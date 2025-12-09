@@ -1,0 +1,21 @@
+# Lake build directory
+/.lake
+
+# Lean 4 build artifacts
+/build
+*.olean
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak

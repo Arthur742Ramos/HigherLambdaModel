@@ -1,0 +1,20 @@
+name = "HigherLambdaModel"
+version = "0.1.0"
+defaultTargets = ["HigherLambdaModel"]
+
+[[require]]
+name = "computational_paths"
+git = "https://github.com/Arthur742Ramos/ComputationalPathsLean.git"
+rev = "main"
+
+[[require]]
+name = "Metatheory"
+git = "https://github.com/Arthur742Ramos/Metatheory.git"
+rev = "main"
+
+[[lean_lib]]
+name = "HigherLambdaModel"
+
+[[lean_exe]]
+name = "higherlambdamodel"
+root = "Main"
