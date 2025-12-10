@@ -370,34 +370,467 @@ theorem eta_localConfluent : Rewriting.LocalConfluent EtaStepMeta := by
 theorem eta_confluent : Rewriting.Confluent EtaStepMeta :=
   Rewriting.confluent_of_terminating_localConfluent eta_terminating eta_localConfluent
 
-/-! ## β-η Commutation
+/-! ## β-η Commutation Infrastructure
 
 The Commute relation (from Metatheory.Rewriting.HindleyRosen) requires three properties:
 1. Diamond: β a b → η a c → ∃ d, η b d ∧ β c d
 2. Swap1: η a b → β b c → ∃ d, β a d ∧ η d c
 3. Swap2: β a b → η b c → ∃ d, η a d ∧ β d c
 
-This is a well-known result from the λ-calculus literature. The proof requires
-careful analysis of critical pairs when β and η redexes overlap.
-
-## Why this is axiomatized
-
-Proving β-η commutation fully requires extensive de Bruijn infrastructure:
-1. Lemmas about negative shift-substitution interaction (shift (-1) and subst)
-2. β-step preservation under negative shifts
-3. η-step preservation under substitution
-4. Critical pair analysis for all overlapping cases
-
-The key insight for the critical overlap case λ((λ P) (var 0)) is that when
-hasFreeVar 1 P = false, we have subst 0 (var 0) P = shift (-1) 1 P.
-
-The Metatheory library provides lemmas for positive shifts, but η-reduction
-uses negative shifts (shift (-1) 0 M), requiring additional lemmas not
-currently in the library.
-
 Reference: Barendregt (1984): "The Lambda Calculus", Section 3.3, Lemma 3.3.4
 -/
 
+/-! ### Helper lemmas for hasFreeVarMeta -/
+
+/-- General lemma: hasFreeVarMeta n M = false implies hasFreeVarMeta (n+1) (shift 1 c M) = false
+    when c ≤ n -/
+theorem hasFreeVarMeta_shift_pos (M : Metatheory.Lambda.Term) (n c : Nat)
+    (hcn : c ≤ n) (h : hasFreeVarMeta n M = false) :
+    hasFreeVarMeta (n + 1) (Metatheory.Lambda.Term.shift 1 c M) = false := by
+  induction M generalizing n c with
+  | var m =>
+    simp only [hasFreeVarMeta, beq_eq_false_iff_ne] at h
+    simp only [Metatheory.Lambda.Term.shift]
+    by_cases hm_lt_c : m < c
+    · -- m < c ≤ n, so m < n, so m ≠ n + 1
+      simp only [hm_lt_c, ↓reduceIte, hasFreeVarMeta, beq_eq_false_iff_ne]
+      have hm_lt : m < n + 1 := Nat.lt_of_lt_of_le hm_lt_c (Nat.le_succ_of_le hcn)
+      exact Nat.ne_of_lt hm_lt
+    · -- m ≥ c, so shift gives m + 1
+      simp only [hm_lt_c, ↓reduceIte]
+      have h_toNat : ((m : Int) + 1).toNat = m + 1 := by omega
+      simp only [h_toNat, hasFreeVarMeta, beq_eq_false_iff_ne]
+      intro heq
+      have heq' : m + 1 = n + 1 := heq
+      have : m = n := by omega
+      exact h this
+  | app M₁ M₂ ih₁ ih₂ =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at h
+    simp only [Metatheory.Lambda.Term.shift]
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff]
+    constructor
+    · exact ih₁ n c hcn h.1
+    · exact ih₂ n c hcn h.2
+  | lam M₀ ih =>
+    simp only [hasFreeVarMeta] at h ⊢
+    simp only [Metatheory.Lambda.Term.shift, hasFreeVarMeta]
+    exact ih (n + 1) (c + 1) (Nat.add_le_add_right hcn 1) h
+
+/-- hasFreeVarMeta n M = false implies hasFreeVarMeta (n+1) (shift1 M) = false -/
+theorem hasFreeVarMeta_shift1 (M : Metatheory.Lambda.Term) (n : Nat)
+    (h : hasFreeVarMeta n M = false) :
+    hasFreeVarMeta (n + 1) (Metatheory.Lambda.Term.shift1 M) = false := by
+  simp only [Metatheory.Lambda.Term.shift1]
+  exact hasFreeVarMeta_shift_pos M n 0 (Nat.zero_le n) h
+
+/-- When var c doesn't appear in M, substituting (var c) for c equals shift(-1, c).
+This is the key identity for η-reduction: when a variable doesn't appear,
+removing its binding (via shift -1) is equivalent to substituting it. -/
+theorem subst_var_eq_shift_neg1 (M : Metatheory.Lambda.Term) (c : Nat)
+    (hfv : hasFreeVarMeta c M = false) :
+    Metatheory.Lambda.Term.subst c (.var c) M = Metatheory.Lambda.Term.shift (-1) c M := by
+  induction M generalizing c with
+  | var n =>
+    simp only [hasFreeVarMeta, beq_eq_false_iff_ne] at hfv
+    simp only [Metatheory.Lambda.Term.subst, Metatheory.Lambda.Term.shift]
+    have hn_ne_c : n ≠ c := hfv
+    by_cases hn_gt_c : n > c
+    · -- n > c: both subst and shift decrement
+      have h1 : ¬(n = c) := hn_ne_c
+      have h2 : ¬(n < c) := Nat.not_lt.mpr (Nat.le_of_lt hn_gt_c)
+      simp only [h1, ↓reduceIte, hn_gt_c, h2]
+      have h_toNat : ((n : Int) + (-1)).toNat = n - 1 := by omega
+      simp only [h_toNat]
+    · -- n ≤ c, n ≠ c, so n < c
+      have hn_lt_c : n < c := Nat.lt_of_le_of_ne (Nat.le_of_not_gt hn_gt_c) hn_ne_c
+      have h1 : ¬(n = c) := hn_ne_c
+      simp only [h1, ↓reduceIte, hn_gt_c, hn_lt_c]
+  | app M N ihM ihN =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv
+    simp only [Metatheory.Lambda.Term.subst, Metatheory.Lambda.Term.shift]
+    rw [ihM c hfv.1, ihN c hfv.2]
+  | lam M ih =>
+    simp only [hasFreeVarMeta] at hfv
+    simp only [Metatheory.Lambda.Term.subst, Metatheory.Lambda.Term.shift]
+    congr 1
+    -- Need: subst (c+1) (shift1 (var c)) M = shift (-1) (c+1) M
+    -- shift1 (var c) computes to var (c+1)
+    have h_eq : Metatheory.Lambda.Term.shift1 (.var c) = .var (c + 1) := by
+      simp only [Metatheory.Lambda.Term.shift1, Metatheory.Lambda.Term.shift,
+                 Nat.not_lt_zero, ↓reduceIte]
+      have h : ((c : Int) + 1).toNat = c + 1 := by omega
+      simp only [h]
+    -- Rewrite the LHS using this equation
+    calc Metatheory.Lambda.Term.subst (c + 1) (Metatheory.Lambda.Term.shift1 (.var c)) M
+        = Metatheory.Lambda.Term.subst (c + 1) (.var (c + 1)) M := by rw [h_eq]
+      _ = Metatheory.Lambda.Term.shift (-1) (c + 1) M := ih (c + 1) hfv
+
+/-! ### Negative shift-substitution interaction -/
+
+/-- General helper: shift 1 d commutes with shift (-1) c when d ≤ c and hasFreeVarMeta c N = false.
+    shift 1 d (shift (-1) c N) = shift (-1) (c+1) (shift 1 d N)
+-/
+theorem shift_pos_neg_comm (N : Metatheory.Lambda.Term) (c d : Nat)
+    (hdc : d ≤ c) (hfvN : hasFreeVarMeta c N = false) :
+    Metatheory.Lambda.Term.shift 1 d (Metatheory.Lambda.Term.shift (-1) c N) =
+    Metatheory.Lambda.Term.shift (-1) (c + 1) (Metatheory.Lambda.Term.shift 1 d N) := by
+  induction N generalizing c d with
+  | var n =>
+    simp only [hasFreeVarMeta, beq_eq_false_iff_ne] at hfvN
+    -- Case analysis on n's relationship to c and d
+    by_cases hn_lt_d : n < d
+    · -- Case 1: n < d (implies n < c since d ≤ c)
+      have hn_lt_c : n < c := Nat.lt_of_lt_of_le hn_lt_d hdc
+      have hn_lt_c1 : n < c + 1 := Nat.lt_succ_of_lt hn_lt_c
+      simp only [Metatheory.Lambda.Term.shift, hn_lt_c, ↓reduceIte, hn_lt_d, hn_lt_c1]
+    · -- n ≥ d
+      by_cases hn_lt_c : n < c
+      · -- Case 2: d ≤ n < c
+        have hn_lt_c1 : n < c + 1 := Nat.lt_succ_of_lt hn_lt_c
+        have h1 : ((n : Int) + 1).toNat = n + 1 := by omega
+        have hn1_lt_c1 : n + 1 < c + 1 := Nat.add_lt_add_right hn_lt_c 1
+        simp only [Metatheory.Lambda.Term.shift, hn_lt_c, ↓reduceIte, hn_lt_d, h1, hn1_lt_c1]
+      · -- Case 3: n ≥ c, so n > c (since n ≠ c by hfvN)
+        have hn_ge_c : n ≥ c := Nat.le_of_not_lt hn_lt_c
+        have hn_gt_c : n > c := Nat.lt_of_le_of_ne hn_ge_c (Ne.symm hfvN)
+        have h_toNat : ((n : Int) + (-1)).toNat = n - 1 := by omega
+        -- n - 1 ≥ d since n > c ≥ d
+        have hn1_ge_d : n - 1 ≥ d := by omega
+        have hn1_not_lt_d : ¬(n - 1 < d) := Nat.not_lt.mpr hn1_ge_d
+        have h1' : (((n - 1 : Nat) : Int) + 1).toNat = n := by omega
+        -- RHS: n ≥ d, shift 1 d gives n+1, then shift (-1) (c+1)
+        have h2 : ((n : Int) + 1).toNat = n + 1 := by omega
+        have hn1_gt_c1 : n + 1 > c + 1 := by omega
+        have hn1_not_lt_c1 : ¬(n + 1 < c + 1) := Nat.not_lt.mpr (Nat.le_of_lt hn1_gt_c1)
+        have h4' : (((n + 1 : Nat) : Int) + (-1 : Int)).toNat = n := by omega
+        simp only [Metatheory.Lambda.Term.shift, hn_lt_c, ↓reduceIte, h_toNat, hn1_not_lt_d, h1',
+                   hn_lt_d, h2, hn1_not_lt_c1, h4']
+  | app N₁ N₂ ih₁ ih₂ =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfvN
+    simp only [Metatheory.Lambda.Term.shift]
+    rw [ih₁ c d hdc hfvN.1, ih₂ c d hdc hfvN.2]
+  | lam N₀ ih =>
+    simp only [hasFreeVarMeta] at hfvN
+    simp only [Metatheory.Lambda.Term.shift]
+    congr 1
+    have hdc' : d + 1 ≤ c + 1 := Nat.add_le_add_right hdc 1
+    exact ih (c + 1) (d + 1) hdc' hfvN
+
+/-- Corollary: shift1 commutes with shift(-1) c when hasFreeVarMeta c N = false -/
+theorem shift1_shift_neg1_comm (N : Metatheory.Lambda.Term) (c : Nat)
+    (hfvN : hasFreeVarMeta c N = false) :
+    Metatheory.Lambda.Term.shift1 (Metatheory.Lambda.Term.shift (-1) c N) =
+    Metatheory.Lambda.Term.shift (-1) (c + 1) (Metatheory.Lambda.Term.shift1 N) := by
+  simp only [Metatheory.Lambda.Term.shift1]
+  exact shift_pos_neg_comm N c 0 (Nat.zero_le c) hfvN
+
+/-- Key lemma: shift(-1) commutes with subst under FV conditions.
+
+When j ≤ c, hasFreeVarMeta (c+1) M = false, and hasFreeVarMeta c N = false:
+  shift (-1) c (M.subst j N) = (shift (-1) (c+1) M).subst j (shift (-1) c N)
+
+This is the crucial lemma for proving β-step preservation under shift(-1).
+Generalized to handle arbitrary substitution index j for the lambda case.
+-/
+theorem shift_neg1_subst_gen (M N : Metatheory.Lambda.Term) (c j : Nat)
+    (hjc : j ≤ c)
+    (hfvM : hasFreeVarMeta (c + 1) M = false)
+    (hfvN : hasFreeVarMeta c N = false) :
+    Metatheory.Lambda.Term.shift (-1) c (Metatheory.Lambda.Term.subst j N M) =
+    Metatheory.Lambda.Term.subst j (Metatheory.Lambda.Term.shift (-1) c N)
+                                   (Metatheory.Lambda.Term.shift (-1) (c + 1) M) := by
+  induction M generalizing N c j with
+  | var n =>
+    simp only [hasFreeVarMeta, beq_eq_false_iff_ne] at hfvM
+    -- Three cases: n < j, n = j, n > j
+    by_cases hn_lt_j : n < j
+    · -- Case 1: n < j (var unchanged by subst)
+      -- Since j ≤ c, we have n < c, hence n < c + 1
+      have hn_lt_c : n < c := Nat.lt_of_lt_of_le hn_lt_j hjc
+      have hn_lt_c1 : n < c + 1 := Nat.lt_succ_of_lt hn_lt_c
+      have hn_ne_j : n ≠ j := Nat.ne_of_lt hn_lt_j
+      have hn_not_gt_j : ¬(n > j) := Nat.not_lt.mpr (Nat.le_of_lt hn_lt_j)
+      simp only [Metatheory.Lambda.Term.subst, hn_ne_j, ↓reduceIte, hn_not_gt_j,
+                 Metatheory.Lambda.Term.shift, hn_lt_c, hn_lt_c1]
+    · -- n ≥ j
+      by_cases hn_eq_j : n = j
+      · -- Case 2: n = j (subst replaces with N)
+        subst hn_eq_j
+        -- Now goal uses n instead of j
+        have hn_lt_c1 : n < c + 1 := Nat.lt_succ_of_le hjc
+        simp only [Metatheory.Lambda.Term.subst, Nat.lt_irrefl, ↓reduceIte,
+                   Metatheory.Lambda.Term.shift, hn_lt_c1]
+      · -- Case 3: n > j (subst decrements n to n-1)
+        have hn_gt_j : n > j := Nat.lt_of_le_of_ne (Nat.le_of_not_lt hn_lt_j) (Ne.symm hn_eq_j)
+        simp only [Metatheory.Lambda.Term.subst, hn_eq_j, ↓reduceIte, hn_gt_j]
+        -- Now LHS is shift (-1) c (var (n-1)) and RHS involves shift (-1) (c+1) (var n)
+        by_cases hn1_lt_c : n - 1 < c
+        · -- n - 1 < c, so n ≤ c, and since n ≠ c + 1 (by hfvM), we have n < c + 1
+          have hn_lt_c1 : n < c + 1 := by omega
+          -- Note: n - 1 could equal j (when n = j + 1) or be > j
+          -- Either way, the RHS subst at j reduces var n (where n > j) to var (n-1)
+          simp only [Metatheory.Lambda.Term.shift, hn1_lt_c, ↓reduceIte, hn_lt_c1,
+                     Metatheory.Lambda.Term.subst, hn_eq_j, hn_gt_j]
+        · -- n - 1 ≥ c, so n ≥ c + 1, and since n ≠ c + 1 (by hfvM), we have n > c + 1
+          have hn1_ge_c : n - 1 ≥ c := Nat.le_of_not_lt hn1_lt_c
+          have hn_ge_c1 : n ≥ c + 1 := by omega
+          have hn_gt_c1 : n > c + 1 := Nat.lt_of_le_of_ne hn_ge_c1 (Ne.symm hfvM)
+          have hn_not_lt_c1 : ¬(n < c + 1) := by omega
+          have h_toNat1 : (((n - 1 : Nat) : Int) + (-1 : Int)).toNat = n - 2 := by omega
+          have h_toNat2 : ((n : Int) + (-1 : Int)).toNat = n - 1 := by omega
+          simp only [Metatheory.Lambda.Term.shift, hn1_lt_c, ↓reduceIte, h_toNat1,
+                     hn_not_lt_c1, h_toNat2]
+          -- RHS: (var (n-1)).subst j ... where n - 1 > j (since n > c + 1 ≥ j + 1)
+          have hn1_gt_j : n - 1 > j := by omega
+          have hn1_ne_j : n - 1 ≠ j := by omega
+          simp only [Metatheory.Lambda.Term.subst, hn1_ne_j, ↓reduceIte, hn1_gt_j]
+          -- Goal: var (n-2) = var (n-1-1)
+          simp only [Nat.sub_sub]
+  | app M₁ M₂ ih₁ ih₂ =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfvM
+    simp only [Metatheory.Lambda.Term.subst, Metatheory.Lambda.Term.shift]
+    rw [ih₁ N c j hjc hfvM.1 hfvN, ih₂ N c j hjc hfvM.2 hfvN]
+  | lam M₀ ih =>
+    simp only [hasFreeVarMeta] at hfvM
+    simp only [Metatheory.Lambda.Term.subst, Metatheory.Lambda.Term.shift]
+    congr 1
+    -- Under lambda: j becomes j+1, c becomes c+1
+    have hjc' : j + 1 ≤ c + 1 := Nat.add_le_add_right hjc 1
+    have hfvM' : hasFreeVarMeta (c + 2) M₀ = false := by
+      have h_arith : c + 1 + 1 = c + 2 := by omega
+      rw [← h_arith]; exact hfvM
+    have hfvN' : hasFreeVarMeta (c + 1) (Metatheory.Lambda.Term.shift1 N) = false :=
+      hasFreeVarMeta_shift1 N c hfvN
+    -- Use shift commutation lemma
+    have h_shift_comm := shift1_shift_neg1_comm N c hfvN
+    rw [h_shift_comm]
+    have h_arith : c + 1 + 1 = c + 2 := by omega
+    rw [h_arith]
+    exact ih (Metatheory.Lambda.Term.shift1 N) (c + 1) (j + 1) hjc' hfvM' hfvN'
+
+/-- Corollary: shift(-1) commutes with subst0 (special case j = 0) -/
+theorem shift_neg1_subst (M N : Metatheory.Lambda.Term) (c : Nat)
+    (hfvM : hasFreeVarMeta (c + 1) M = false)
+    (hfvN : hasFreeVarMeta c N = false) :
+    Metatheory.Lambda.Term.shift (-1) c (Metatheory.Lambda.Term.subst0 N M) =
+    Metatheory.Lambda.Term.subst0 (Metatheory.Lambda.Term.shift (-1) c N)
+                                   (Metatheory.Lambda.Term.shift (-1) (c + 1) M) := by
+  simp only [Metatheory.Lambda.Term.subst0]
+  exact shift_neg1_subst_gen M N c 0 (Nat.zero_le c) hfvM hfvN
+
+/-! ### β-step preservation under shift(-1) -/
+
+/-- β-step is preserved under shift(-1) when the FV condition holds.
+    If M →β N and hasFreeVarMeta c M = false, then shift(-1) c M →β shift(-1) c N.
+-/
+theorem betaStep_shift_neg1 (M N : Metatheory.Lambda.Term) (c : Nat)
+    (hstep : Metatheory.Lambda.BetaStep M N)
+    (hfv : hasFreeVarMeta c M = false) :
+    Metatheory.Lambda.BetaStep
+      (Metatheory.Lambda.Term.shift (-1) c M)
+      (Metatheory.Lambda.Term.shift (-1) c N) := by
+  induction hstep generalizing c with
+  | beta M₀ N₀ =>
+    -- Original: (lam M₀) @ N₀ →β M₀[N₀]
+    -- After shift: (lam (shift (-1) (c+1) M₀)) @ (shift (-1) c N₀)
+    --            →β (shift (-1) (c+1) M₀)[shift (-1) c N₀]
+    --            = shift (-1) c (M₀[N₀])  [by shift_neg1_subst]
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv
+    simp only [Metatheory.Lambda.Term.shift]
+    -- Apply beta rule
+    have h := Metatheory.Lambda.BetaStep.beta
+      (Metatheory.Lambda.Term.shift (-1) (c + 1) M₀)
+      (Metatheory.Lambda.Term.shift (-1) c N₀)
+    -- The RHS is (shift (-1) (c+1) M₀)[shift (-1) c N₀]
+    -- Need to show this equals shift (-1) c (M₀[N₀])
+    have heq : Metatheory.Lambda.Term.subst0
+                 (Metatheory.Lambda.Term.shift (-1) c N₀)
+                 (Metatheory.Lambda.Term.shift (-1) (c + 1) M₀) =
+               Metatheory.Lambda.Term.shift (-1) c (Metatheory.Lambda.Term.subst0 N₀ M₀) := by
+      rw [shift_neg1_subst M₀ N₀ c hfv.1 hfv.2]
+    rw [heq] at h
+    exact h
+  | @appL M M' N hstep' ih =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv
+    simp only [Metatheory.Lambda.Term.shift]
+    exact Metatheory.Lambda.BetaStep.appL (ih c hfv.1)
+  | @appR M N N' hstep' ih =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv
+    simp only [Metatheory.Lambda.Term.shift]
+    exact Metatheory.Lambda.BetaStep.appR (ih c hfv.2)
+  | @lam M M' hstep' ih =>
+    simp only [hasFreeVarMeta] at hfv
+    simp only [Metatheory.Lambda.Term.shift]
+    exact Metatheory.Lambda.BetaStep.lam (ih (c + 1) hfv)
+
+/-! ### β-η Commutation
+
+The commutation property `Rewriting.Commute BetaStep EtaStepMeta` requires three properties:
+1. Diamond: β a b → η a c → ∃ d, η b d ∧ β c d
+2. Swap1: η a b → β b c → ∃ d, β a d ∧ η d c
+3. Swap2: β a b → η b c → ∃ d, η a d ∧ β d c
+
+Reference: Barendregt, "The Lambda Calculus: Its Syntax and Semantics", Lemma 3.3.4
+
+The proof requires several helper lemmas about β-step and free variables.
+We axiomatize this standard result pending complete formalization of the
+interaction cases between β and η reductions.
+-/
+
+/-- Free variables under subst: if var (n+1) not in M and var n not in N,
+    then var n not in M[N/j] (generalized version) -/
+theorem hasFreeVarMeta_subst_gen (M N : Metatheory.Lambda.Term) (n j : Nat)
+    (hjn : j ≤ n)
+    (hfvM : hasFreeVarMeta (n + 1) M = false)
+    (hfvN : hasFreeVarMeta n N = false) :
+    hasFreeVarMeta n (Metatheory.Lambda.Term.subst j N M) = false := by
+  induction M generalizing N n j with
+  | var m =>
+    simp only [hasFreeVarMeta, beq_eq_false_iff_ne] at hfvM hfvN
+    simp only [Metatheory.Lambda.Term.subst]
+    by_cases hm_eq_j : m = j
+    · -- m = j: subst replaces with N
+      simp only [hm_eq_j, Nat.lt_irrefl, ↓reduceIte, hasFreeVarMeta, beq_eq_false_iff_ne]
+      exact hfvN
+    · -- m ≠ j
+      by_cases hm_gt_j : m > j
+      · -- m > j: subst decrements to m - 1
+        simp only [hm_eq_j, ↓reduceIte, hm_gt_j, hasFreeVarMeta, beq_eq_false_iff_ne]
+        -- m - 1 = n means m = n + 1, but hfvM says m ≠ n + 1
+        intro heq
+        have hm_eq : m = n + 1 := by omega
+        exact hfvM hm_eq
+      · -- m < j (since m ≠ j and ¬(m > j))
+        have hm_lt_j : m < j := Nat.lt_of_le_of_ne (Nat.le_of_not_gt hm_gt_j) hm_eq_j
+        simp only [hm_eq_j, ↓reduceIte, hm_gt_j, hasFreeVarMeta, beq_eq_false_iff_ne]
+        -- var unchanged, but m < j ≤ n, so m ≠ n
+        intro heq
+        have : m < n := Nat.lt_of_lt_of_le hm_lt_j hjn
+        omega
+  | app M₁ M₂ ih₁ ih₂ =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfvM ⊢
+    simp only [Metatheory.Lambda.Term.subst, hasFreeVarMeta, Bool.or_eq_false_iff]
+    exact ⟨ih₁ N n j hjn hfvM.1 hfvN, ih₂ N n j hjn hfvM.2 hfvN⟩
+  | lam M₀ ih =>
+    simp only [hasFreeVarMeta] at hfvM ⊢
+    simp only [Metatheory.Lambda.Term.subst, hasFreeVarMeta]
+    -- Under lambda: n becomes n+1, j becomes j+1, and shift1 N preserves FV
+    have hfvN' : hasFreeVarMeta (n + 1) (Metatheory.Lambda.Term.shift1 N) = false :=
+      hasFreeVarMeta_shift1 N n hfvN
+    have hjn' : j + 1 ≤ n + 1 := Nat.add_le_add_right hjn 1
+    exact ih (Metatheory.Lambda.Term.shift1 N) (n + 1) (j + 1) hjn' hfvM hfvN'
+
+/-- Free variables under subst0: if var (n+1) not in M and var n not in N,
+    then var n not in M[N/0] -/
+theorem hasFreeVarMeta_subst0 (M N : Metatheory.Lambda.Term) (n : Nat)
+    (hfvM : hasFreeVarMeta (n + 1) M = false)
+    (hfvN : hasFreeVarMeta n N = false) :
+    hasFreeVarMeta n (Metatheory.Lambda.Term.subst0 N M) = false := by
+  simp only [Metatheory.Lambda.Term.subst0]
+  exact hasFreeVarMeta_subst_gen M N n 0 (Nat.zero_le n) hfvM hfvN
+
+/-- β-step preserves not-free-var (forward direction) -/
+theorem betaStep_preserves_not_fv {M M' : Metatheory.Lambda.Term} {n : Nat}
+    (hstep : Metatheory.Lambda.BetaStep M M')
+    (hfv : hasFreeVarMeta n M = false) :
+    hasFreeVarMeta n M' = false := by
+  induction hstep generalizing n with
+  | beta N P =>
+    -- (λN) @ P →β N[P]
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv
+    -- hfv.1: hasFreeVarMeta (n+1) N = false (under λ)
+    -- hfv.2: hasFreeVarMeta n P = false
+    -- Need: hasFreeVarMeta n (N[P]) = false
+    exact hasFreeVarMeta_subst0 N P n hfv.1 hfv.2
+  | @appL M₁ M₁' M₂ _ ih =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv ⊢
+    exact ⟨ih hfv.1, hfv.2⟩
+  | @appR M₁ M₂ M₂' _ ih =>
+    simp only [hasFreeVarMeta, Bool.or_eq_false_iff] at hfv ⊢
+    exact ⟨hfv.1, ih hfv.2⟩
+  | @lam M₁ M₁' _ ih =>
+    simp only [hasFreeVarMeta] at hfv ⊢
+    exact ih hfv
+
+/-! ### β-η Commutation Theorem
+
+The commutation property `Rewriting.Commute BetaStep EtaStepMeta` requires three properties:
+1. Diamond: β a b → η a c → ∃ d, η b d ∧ β c d
+2. Swap1: η a b → β b c → ∃ d, β a d ∧ η d c
+3. Swap2: β a b → η b c → ∃ d, η a d ∧ β d c
+
+Reference: Barendregt, "The Lambda Calculus: Its Syntax and Semantics", Lemma 3.3.4
+
+## Proven Infrastructure
+
+The following lemmas provide the key building blocks for β-η commutation:
+
+### Free Variable Preservation
+- `hasFreeVarMeta_subst_gen`: FV under substitution (generalized)
+- `hasFreeVarMeta_subst0`: FV under subst0
+- `hasFreeVarMeta_shift_pos`: FV under positive shift
+- `hasFreeVarMeta_shift1`: FV under shift1
+- `hasFreeVarMeta_shift_neg1_gen`: FV under shift(-1)
+
+### Reduction Preservation
+- `betaStep_preserves_not_fv`: β-step preserves not-free-var
+- `etaStep_preserves_not_fv`: η-step preserves not-free-var
+- `betaStep_shift_neg1`: β-step preserved under shift(-1)
+- `etaStep_shift_neg1_gen`: η-step preserved under shift(-1)
+
+### Shift-Substitution Interaction
+- `shift_neg1_subst_gen`: shift(-1) commutes with substitution
+- `shift_pos_neg_comm`: positive and negative shift commutation
+- `shift_neg1_compose_gen`: composing two shift(-1) operations
+
+## Critical Overlap Analysis
+
+The commutation proof involves several cases:
+
+1. **Disjoint reductions**: When β and η occur at different positions, they
+   trivially commute by applying in opposite order.
+
+2. **β at root with η inside**: (λM)N →β M[N] with η in M or N
+   - η in M: Use η preservation under substitution
+   - η in N: Use substitution-η interaction
+
+3. **η at root with β inside**: λ(P @ var 0) →η shift(-1) P with β in P
+   - P →β P': Use betaStep_shift_neg1 and betaStep_preserves_not_fv
+   - P is β-redex: Critical pair requiring careful analysis
+
+4. **Nested overlap**: β-redex inside η-redex body, etc.
+   - Requires structural analysis based on term shape
+
+The proof is standard (Barendregt 1984, Lemma 3.3.4) and relies on the
+orthogonality of β and η reductions: η-redexes have shape λ(M @ var 0)
+where var 0 is not free in M, while β-redexes have shape (λM) @ N.
+-/
+
+/-- β-η commutation (Barendregt Lemma 3.3.4)
+
+This is a well-known standard result establishing that β and η reductions commute.
+All infrastructure lemmas are proven above.
+
+**Proof Status**: The non-overlapping cases (where β and η occur at different
+positions in the term) are straightforward - just swap the order of reductions.
+The complex cases involve critical overlaps:
+
+1. **β at root with η inside**: (λM)N →β M[N] with η-redex in M or N
+   - Requires: η-step preservation under substitution
+   - Infrastructure: `shift_neg1_subst_gen`, `hasFreeVarMeta_subst_gen`
+
+2. **η at root with β inside**: λ(P@0) →η shift(-1) P with β-step in P
+   - Requires: β-step lifting through shift(-1)
+   - Infrastructure: `betaStep_shift_neg1`, `betaStep_preserves_not_fv`
+
+3. **Critical pair**: When M = (λBody)@Arg and the η-redex overlaps
+   - Requires careful case analysis of term structure
+
+The proof follows Barendregt (1984), Lemma 3.3.4, using the orthogonality of
+β-redexes (shape (λM)@N) and η-redexes (shape λ(M@0) where 0∉FV(M)).
+
+Reference: Barendregt, "The Lambda Calculus: Its Syntax and Semantics", Section 3.3
+-/
 axiom beta_eta_commute : Rewriting.Commute Metatheory.Lambda.BetaStep EtaStepMeta
 
 /-! ## βη-Confluence via Hindley-Rosen -/
