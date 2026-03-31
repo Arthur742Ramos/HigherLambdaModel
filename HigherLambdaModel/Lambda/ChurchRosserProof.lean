@@ -5,7 +5,7 @@ This module provides a proof of Church-Rosser (confluence) for the
 HigherLambdaModel.Lambda.Term type by transferring the result from
 the Metatheory library through a term isomorphism.
 
-This eliminates the need for the church_rosser axiom in HigherTerms.lean.
+This removes the need for the earlier church_rosser postulate in HigherTerms.lean.
 -/
 
 import HigherLambdaModel.Lambda.Reduction

@@ -38,24 +38,20 @@ The tower of n-conversions captures the higher structure of βη-equivalence:
 - Σ₀ = λ-terms (the 0-cells)
 - Σ₁ = βη-conversions between terms (1-cells)
 - Σ₂ = proofs that two βη-conversions are equal (2-cells)
-- Σₙ₊₁ = equivalences between n-conversions -/
+- Σₙ₊₁ = higher cells generated recursively from lower ones -/
 
 /-- The type of n-conversions.
 
     Σ₀ = Term (λ-terms)
     Σ₁ = pairs of terms with a reduction sequence (1-conversions)
     Σ₂ = homotopies between parallel reduction sequences (2-conversions)
-    Σₙ for n ≥ 3 = trivial (in extensional models, 1-truncation)
+    Σₙ for n ≥ 3 = recursively generated higher cells from `HigherTerms.Cell`.
 
-    Note: In a fully extensional model, 2-cells and above are all connected. -/
-def NConversion : Nat → Type
-  | 0 => Term
-  | 1 => Σ (M N : Term), ReductionSeq M N
-  | 2 => Σ (M N : Term) (p q : ReductionSeq M N), Homotopy2 p q
-  | _ + 3 => Unit  -- Higher conversions are trivial in extensional models
+    We use the same constructive tower as the core higher-terms layer, rather
+    than collapsing higher dimensions to a terminal type. -/
+abbrev NConversion : Nat → Sort _ := HigherTerms.Cell
 
-/-- The source of an n-conversion (for n ≥ 1).
-    For n ≥ 2, this is partial since all higher cells are contractible. -/
+/-- The source of a 1-conversion. -/
 def NConversion.source0 : NConversion 1 → NConversion 0
   | ⟨M, _, _⟩ => M
 
@@ -121,7 +117,7 @@ def NTerm1.toReductionSeq : NTerm1 M N → ReductionSeq M N
     For n = 0: Just a λ-term
     For n = 1: A well-formed 1-term (indexed by source and target)
     For n = 2: A Church-Rosser diamond witnessing a homotopy
-    For n ≥ 3: Trivial in extensional models -/
+    For n ≥ 3: An explicit higher conversion from the recursive tower -/
 inductive NTerm : Nat → Type where
   /-- A 0-term is just a λ-term -/
   | term : Term → NTerm 0
@@ -134,8 +130,8 @@ inductive NTerm : Nat → Type where
               NTerm 2
   /-- Identity 2-term -/
   | refl2 : {M N : Term} → ReductionSeq M N → NTerm 2
-  /-- Higher terms are trivial -/
-  | trivial : (n : Nat) → NTerm (n + 3)
+  /-- Higher terms reuse the constructive higher-conversion tower directly. -/
+  | liftHigher : {n : Nat} → NConversion (n + 3) → NTerm (n + 3)
 
 namespace NTerm
 
@@ -167,8 +163,7 @@ def seq (t₁ t₂ : NTerm 1) (h : t₁.target1 = t₂.source1) : NTerm 1 :=
 def refl1 (M : Term) : NTerm 1 :=
   nterm1 M M NTerm1.refl
 
-/-- Well-formedness is now a theorem, not an axiom!
-    For the seq smart constructor, endpoints must match by construction. -/
+/-- Well-formedness is proved constructively for the `seq` smart constructor. -/
 theorem seq_well_formed (t₁ t₂ : NTerm 1) (h : t₁.target1 = t₂.source1) :
     (seq t₁ t₂ h).source1 = t₁.source1 ∧ (seq t₁ t₂ h).target1 = t₂.target1 :=
   ⟨rfl, rfl⟩
@@ -189,9 +184,9 @@ def NTerm.toNConversion : {n : Nat} → NTerm n → NConversion n
   | 0, NTerm.term t => t
   | 1, NTerm.nterm1 M N t => ⟨M, N, t.toReductionSeq⟩
   | 2, NTerm.diamond M _ _ P p₁ p₂ q₁ q₂ =>
-    ⟨M, P, ReductionSeq.concat p₁ q₁, ReductionSeq.concat p₂ q₂, Homotopy2.ofParallel _ _⟩
+    ⟨M, P, ReductionSeq.concat p₁ q₁, ReductionSeq.concat p₂ q₂, Homotopy2.ofDiamond p₁ p₂ q₁ q₂⟩
   | 2, NTerm.refl2 p => ⟨_, _, p, p, Homotopy2.refl p⟩
-  | _ + 3, _ => ()  -- Higher conversions are trivial
+  | _ + 3, NTerm.liftHigher c => c
 
 /-! ## Higher λ-Abstraction (λⁿ)
 
@@ -442,20 +437,20 @@ theorem globular_tgt_2 (f : NConversion 2) :
     This captures the essential ω-groupoid structure. -/
 structure LambdaTower where
   /-- 0-cells: λ-terms -/
-  Cell0 : Type
+  Cell0 : Sort _
   /-- 1-cells: paths between 0-cells -/
-  Cell1 : Cell0 → Cell0 → Type
+  Cell1 : Cell0 → Cell0 → Sort _
   /-- 2-cells: homotopies between parallel 1-cells -/
-  Cell2 : {M N : Cell0} → Cell1 M N → Cell1 M N → Type
-  /-- 3-cells and above: trivial (contractible) -/
-  CellHigher : (n : Nat) → (n ≥ 3) → Type
+  Cell2 : {M N : Cell0} → Cell1 M N → Cell1 M N → Sort _
+  /-- 3-cells and above: the recursively generated higher-conversion tower. -/
+  CellHigher : (n : Nat) → (n ≥ 3) → Sort _
 
 /-- The canonical lambda tower with concrete λ-calculus types -/
 def lambdaTower : LambdaTower where
   Cell0 := Term
   Cell1 := ReductionSeq
   Cell2 := Homotopy2
-  CellHigher := fun _ _ => Unit
+  CellHigher := fun n _ => NConversion n
 
 /-! ## Summary
 
@@ -465,13 +460,13 @@ We have formalized Section 3 of the paper:
    - Σ₀ = Terms
    - Σ₁ = βη-reduction sequences
    - Σ₂ = Homotopies between sequences
-   - Σₙ (n ≥ 3) = Trivial in extensional models
+   - Σₙ (n ≥ 3) = Higher cells generated recursively from lower ones
 
 2. **N-Terms (Πₙ)**: Computational witnesses
    - Π₀ = Terms
    - Π₁ = Redexes and sequences
    - Π₂ = Church-Rosser diamonds
-   - Πₙ (n ≥ 3) = Trivial
+   - Πₙ (n ≥ 3) = Explicit higher conversions
 
 3. **Proposition 3.4**: Πₙ ⊆ Σₙ
    - Every n-term induces an n-conversion

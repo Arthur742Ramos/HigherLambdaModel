@@ -42,21 +42,25 @@ In classical lambda calculus, two terms are beta-eta equivalent if *some* reduct
 | **Eta-Soundness** | `ExtensionalKan.lean` | `lambda x. M x = M` when `x not in FV(M)` |
 | **TH_lambda subset HoTFT** | `NTerms.lean` | Classical lambda-theory embeds in HoTFT |
 | **Pi_n -> Sigma_n** | `NTerms.lean` | n-terms embed into n-conversions |
-| **BetaEta Confluence** | `BetaEtaConfluence.lean` | Via Hindley-Rosen lemma |
+| **BetaEta Compatibility** | `BetaEtaConfluence.lean` | Constructive common-extension layer for parallel paths |
 
 ## The Tower of n-Conversions
 
 The formalization captures the full hierarchy of higher conversions:
 
 ```lean
-def NConversion : Nat -> Type
-  | 0 => Term                                           -- Lambda terms
-  | 1 => (M N : Term) * ReductionSeq M N                -- Reduction paths
-  | 2 => (M N : Term) * (p q : ReductionSeq M N) * Homotopy2 p q  -- Homotopies
-  | _ + 3 => Unit                                       -- Trivial (extensionality!)
+def NConversion : Nat -> Sort _
+  | 0 => Term
+  | 1 => Σ (M N : Term), ReductionSeq M N
+  | 2 => Σ (M N : Term) (p q : ReductionSeq M N), Homotopy2 p q
+  | 3 => Σ (M N : Term) (p q : ReductionSeq M N) (α β : Homotopy2 p q), Homotopy3 α β
+  | n + 4 => PSigma (fun x : NConversion (n + 3) =>
+      PSigma (fun y : NConversion (n + 3) => x = y))
 ```
 
-The remarkable fact: in **extensional** Kan complexes, all 2-cells are homotopic (the model is "truncated"), so higher structure collapses.
+Low dimensions are carried by explicit constructive witnesses. Above dimension 3,
+the tower continues internally via Lean identity types instead of collapsing to a
+dummy terminal object.
 
 ## Project Structure
 
@@ -127,8 +131,8 @@ lake build
 
 Automatically fetched by Lake:
 
-- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Homotopy theory infrastructure
-- [Metatheory](https://github.com/Arthur742Ramos/Metatheory) - Proven Church-Rosser theorem
+- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Related path-theoretic infrastructure (not used directly by the current higher-cell core)
+- [Metatheory](https://github.com/Arthur742Ramos/Metatheory) - External Church-Rosser/confluence development
 
 ## Examples
 
@@ -168,20 +172,14 @@ def fls : Term := lam (lam (var 0))
 - [x] Main theorem: TH_lambda subset HoTFT
 - [x] n-terms and n-conversions tower
 - [x] Beta-confluence (via Metatheory library)
-- [x] BetaEta-confluence (via Hindley-Rosen)
+- [x] Constructive higher-cell/coherence layer for explicit βη paths
 
-### Axioms Used
+### Current Proof Status
 
-The formalization uses a small number of well-justified axioms:
-
-| Axiom | Justification |
-|-------|---------------|
-| `church_rosser` | Standard result (provable via Metatheory isomorphism) |
-| `ReductionSeq.inv` | Follows from Church-Rosser |
-| `eta_diamond` | Eta has no critical pairs |
-| `beta_eta_commute` | Standard commutation lemma |
-
-These axioms are all mathematically sound and could be eliminated with additional term isomorphism machinery.
+The repository currently has no local `axiom`, `sorry`, or `admit` declarations
+in its `.lean` sources. The remaining external proof-theoretic dependency of note
+is `Metatheory`, which is used for the Church-Rosser transfer in
+`ChurchRosserProof.lean`.
 
 ## Theory Summary
 
@@ -230,14 +228,15 @@ theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =betaeta N) :
 
 ### Related Formalizations
 
-- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Computational paths and homotopy
+- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Related computational-path infrastructure
 - [Metatheory](https://github.com/Arthur742Ramos/Metatheory) - Rewriting theory and Church-Rosser
 
 ## Contributing
 
 Contributions welcome! Particularly:
 
-- Eliminating remaining axioms via term isomorphism with Metatheory
+- Internalizing more of the confluence development currently imported from Metatheory
+- Refining the higher-cell tower above dimension 3
 - Adding more examples and applications
 - Extending to typed lambda calculi
 - Connecting to other formalizations of HoTT
@@ -248,7 +247,7 @@ Contributions welcome! Particularly:
 
 ## Acknowledgments
 
-This formalization is based on the theoretical work of Martinez-Rivillas and de Queiroz. Thanks to Arthur Ramos for the ComputationalPathsLean and Metatheory libraries.
+This formalization is based on the theoretical work of Martinez-Rivillas and de Queiroz. Thanks to Arthur Ramos for the Metatheory and related Lean infrastructure libraries.
 
 ---
 

@@ -15,14 +15,49 @@ open Term
 
 /-! ## Kan Complex Structure (copied from ExtensionalKan for self-containment) -/
 
-structure KanComplex where
+structure SimplicialSet where
   Simplex : Nat → Type
   Obj : Type := Simplex 0
-  face : {n : Nat} → Fin (n + 2) → Simplex (n + 1) → Simplex n
-  degen : {n : Nat} → Fin (n + 1) → Simplex n → Simplex (n + 1)
+  face : (n : Nat) → Nat → Simplex (n + 1) → Simplex n
+  degen : (n : Nat) → Nat → Simplex n → Simplex (n + 1)
+  face_face : ∀ (n : Nat) (σ : Simplex (n + 2)) {i j : Nat},
+      i ≤ j → j ≤ n + 1 →
+      face n i (face (n + 1) (j + 1) σ) = face n j (face (n + 1) i σ)
+  face_degen_lt : ∀ (n : Nat) (σ : Simplex (n + 1)) {i j : Nat},
+      i < j → j ≤ n + 1 →
+      face (n + 1) i (degen (n + 1) j σ) = degen n (j - 1) (face n i σ)
+  face_degen_eq : ∀ (n : Nat) (σ : Simplex (n + 1)) {i : Nat},
+      i ≤ n + 1 →
+      face (n + 1) i (degen (n + 1) i σ) = σ
+  face_degen_succ : ∀ (n : Nat) (σ : Simplex (n + 1)) {i : Nat},
+      i ≤ n + 1 →
+      face (n + 1) (i + 1) (degen (n + 1) i σ) = σ
+  face_degen_gt : ∀ (n : Nat) (σ : Simplex (n + 1)) {i j : Nat},
+      j + 1 < i → i ≤ n + 2 →
+      face (n + 1) i (degen (n + 1) j σ) = degen n j (face n (i - 1) σ)
+  degen_degen : ∀ (n : Nat) (σ : Simplex n) {i j : Nat},
+      i ≤ j → j ≤ n →
+      degen (n + 1) (j + 1) (degen n i σ) = degen (n + 1) i (degen n j σ)
+
+structure Horn (S : SimplicialSet) (n missing : Nat) where
+  missing_le : missing ≤ n + 1
+  facet : ∀ (i : Nat), i ≠ missing → S.Simplex n
+  compatibility :
+    match n with
+    | 0 => True
+    | m + 1 =>
+        ∀ {i j : Nat} (_hi : i ≤ n + 1) (_hj : j ≤ n + 1)
+          (hmi : i ≠ missing) (hmj : j ≠ missing),
+          i < j →
+          S.face m i (facet j hmj) = S.face m (j - 1) (facet i hmi)
+
+structure KanComplex extends SimplicialSet where
   PathSpace : Obj → Obj → Type
   pathSpace_isSimplex : ∀ a b, PathSpace a b = Simplex 1
-  kanFilling : True
+  fill : ∀ {n missing : Nat}, Horn toSimplicialSet n missing → Simplex (n + 1)
+  fill_spec : ∀ {n missing : Nat} (Λ : Horn toSimplicialSet n missing)
+      {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
+      face n i (fill Λ) = Λ.facet i hmi
 
 def FunctorSpace (K : KanComplex) : Type := K.Obj → K.Obj
 

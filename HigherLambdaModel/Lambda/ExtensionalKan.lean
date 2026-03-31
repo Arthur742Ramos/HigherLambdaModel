@@ -26,14 +26,55 @@ open Term
 
 /-! ## Simplicial Sets and Kan Complexes -/
 
-structure KanComplex where
+/-- A simplicial set presented by face and degeneracy operators satisfying the
+standard simplicial identities. Indices are modeled by natural numbers; the
+laws only refer to the in-range cases. -/
+structure SimplicialSet where
   Simplex : Nat → Type
   Obj : Type := Simplex 0
-  face : {n : Nat} → Fin (n + 2) → Simplex (n + 1) → Simplex n
-  degen : {n : Nat} → Fin (n + 1) → Simplex n → Simplex (n + 1)
+  face : (n : Nat) → Nat → Simplex (n + 1) → Simplex n
+  degen : (n : Nat) → Nat → Simplex n → Simplex (n + 1)
+  face_face : ∀ (n : Nat) (σ : Simplex (n + 2)) {i j : Nat},
+      i ≤ j → j ≤ n + 1 →
+      face n i (face (n + 1) (j + 1) σ) = face n j (face (n + 1) i σ)
+  face_degen_lt : ∀ (n : Nat) (σ : Simplex (n + 1)) {i j : Nat},
+      i < j → j ≤ n + 1 →
+      face (n + 1) i (degen (n + 1) j σ) = degen n (j - 1) (face n i σ)
+  face_degen_eq : ∀ (n : Nat) (σ : Simplex (n + 1)) {i : Nat},
+      i ≤ n + 1 →
+      face (n + 1) i (degen (n + 1) i σ) = σ
+  face_degen_succ : ∀ (n : Nat) (σ : Simplex (n + 1)) {i : Nat},
+      i ≤ n + 1 →
+      face (n + 1) (i + 1) (degen (n + 1) i σ) = σ
+  face_degen_gt : ∀ (n : Nat) (σ : Simplex (n + 1)) {i j : Nat},
+      j + 1 < i → i ≤ n + 2 →
+      face (n + 1) i (degen (n + 1) j σ) = degen n j (face n (i - 1) σ)
+  degen_degen : ∀ (n : Nat) (σ : Simplex n) {i j : Nat},
+      i ≤ j → j ≤ n →
+      degen (n + 1) (j + 1) (degen n i σ) = degen (n + 1) i (degen n j σ)
+
+/-- An `n`-horn missing the `missing`-th face. The compatibility condition is
+the usual simplicial horn boundary condition. -/
+structure Horn (S : SimplicialSet) (n missing : Nat) where
+  missing_le : missing ≤ n + 1
+  facet : ∀ (i : Nat), i ≠ missing → S.Simplex n
+  compatibility :
+    match n with
+    | 0 => True
+    | m + 1 =>
+        ∀ {i j : Nat} (_hi : i ≤ n + 1) (_hj : j ≤ n + 1)
+          (hmi : i ≠ missing) (hmj : j ≠ missing),
+          i < j →
+          S.face m i (facet j hmj) = S.face m (j - 1) (facet i hmi)
+
+/-- A Kan complex is a simplicial set in which every horn has a chosen filler. -/
+structure KanComplex extends SimplicialSet where
   PathSpace : Obj → Obj → Type
   pathSpace_isSimplex : ∀ a b, PathSpace a b = Simplex 1
-  kanFilling : True
+  fill : ∀ {n missing : Nat}, Horn toSimplicialSet n missing → Simplex (n + 1)
+  fill_spec : ∀ {n missing : Nat} (Λ : Horn toSimplicialSet n missing)
+      {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
+      face n i (fill Λ) = Λ.facet i hmi
 
 def FunctorSpace (K : KanComplex) : Type := K.Obj → K.Obj
 
@@ -369,7 +410,7 @@ theorem beta_sound (K : ExtensionalKanComplex) (M N : Term) (ρ : Valuation K.to
     1. The ε-law (extensionality): x = G(F(x))
     2. The shift lemma for terms without free variable 0
 
-    This requires the full extensionality axiom, unlike β-soundness which
+    This requires the full extensionality principle, unlike β-soundness which
     only needs the η-law. This is the semantic justification for η-reduction. -/
 theorem eta_sound (K : ExtensionalKanComplex) (M : Term) (ρ : Valuation K.toReflexiveKanComplex)
     (h : Term.hasFreeVar 0 M = false) :

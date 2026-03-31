@@ -14,8 +14,9 @@ This file summarizes the main results from our formalization of
 
 ### 2. Higher Structure (Lambda/HigherTerms.lean)
 - Explicit reduction sequences as 1-cells
-- Homotopies between reduction sequences as 2-cells
-- Church-Rosser 2-cells from confluence
+- Explicit common-extension witnesses as 2-cells
+- Explicit 3-cells between parallel 2-cells
+- Identity-type higher cells above dimension 3
 - Weak ω-groupoid structure on λ-terms
 
 ### 3. Extensional Kan Complexes (Lambda/ExtensionalKan.lean)
@@ -30,7 +31,7 @@ This file summarizes the main results from our formalization of
 - Σ₀ = λ-terms (0-conversions)
 - Σ₁ = βη-reduction sequences (1-conversions)
 - Σ₂ = homotopies between parallel sequences (2-conversions)
-- Σₙ (n ≥ 3) = trivial in extensional models
+- Σₙ (n ≥ 3) = recursively generated higher cells
 - Πₙ = n-terms (computational witnesses for n-conversions)
 - Embedding: Πₙ ⊆ Σₙ (Proposition 3.4)
 - Main Theorem: TH_λ= ⊆ HoTFT
@@ -66,22 +67,7 @@ open Lambda Lambda.ExtensionalKan Lambda.NTerms Lambda.HigherTerms
 
 /-! ## Main Results -/
 
--- Re-export the key theorems
-
-/-- β-reduction is sound in any extensional Kan complex -/
-#check @beta_sound
-
-/-- The embedding of classical λ-theory into HoTFT -/
-#check @TH_lambda_eq_subset_HoTFT
-
-/-- The embedding of n-terms into n-conversions -/
-#check @pi_subset_sigma
-
-/-- The weak ω-groupoid structure on λ-terms -/
-#check @lambdaOmegaGroupoidData
-
-/-- The tower of n-conversions -/
-#check @lambdaTower
+-- Re-export the key theorem names through the namespace opened above.
 
 /-! ## Example: The Identity Function
 
