@@ -62,7 +62,7 @@ def truncate0 {M N : Term} : ReductionSeq M N → (M =_TH N) :=
 /-- Every classical βη-conversion admits an explicit path representative. -/
 theorem truncate0_surjective (M N : Term) (h : M =_TH N) :
     ∃ (seq : ReductionSeq M N), truncate0 seq = h :=
-  ReductionSeq.exists_path_of_betaEtaConv h
+  ⟨ReductionSeq.ofBetaEtaConv h, ReductionSeq.toBetaEtaConv_ofBetaEtaConv h⟩
 
 /-- Explicit paths imply proposition-level βη-conversion. -/
 theorem classicalEquality_to_TH_lambda_eq {M N : Term} :
@@ -91,12 +91,7 @@ theorem TH_lambda_eq_is_0_truncation (M N : Term) :
 theorem connected_implies_equal (K : ExtensionalKanComplex) (M N : Term)
     (seq : ReductionSeq M N) : (M =ₖ[K] N) := by
   intro ρ
-  induction seq with
-  | refl M => rfl
-  | step s rest ih =>
-    exact (betaEtaStep_sound K _ _ s ρ).trans ih
-  | stepInv s rest ih =>
-    exact (betaEtaStep_sound K _ _ s ρ).symm.trans ih
+  exact ExtensionalKan.reductionSeq_sound K seq ρ
 
 /-- Every reduction sequence admits its reflexive 2-cell. -/
 def reduction_sequence_self_homotopy (M N : Term) (p : ReductionSeq M N) :

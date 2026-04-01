@@ -17,9 +17,12 @@ open Term
 
 structure SimplicialSet where
   Simplex : Nat → Type
-  Obj : Type := Simplex 0
   face : (n : Nat) → Nat → Simplex (n + 1) → Simplex n
   degen : (n : Nat) → Nat → Simplex n → Simplex (n + 1)
+  face_degen0_eq : ∀ (σ : Simplex 0),
+      face 0 0 (degen 0 0 σ) = σ
+  face_degen0_succ : ∀ (σ : Simplex 0),
+      face 0 1 (degen 0 0 σ) = σ
   face_face : ∀ (n : Nat) (σ : Simplex (n + 2)) {i j : Nat},
       i ≤ j → j ≤ n + 1 →
       face n i (face (n + 1) (j + 1) σ) = face n j (face (n + 1) i σ)
@@ -39,6 +42,8 @@ structure SimplicialSet where
       i ≤ j → j ≤ n →
       degen (n + 1) (j + 1) (degen n i σ) = degen (n + 1) i (degen n j σ)
 
+abbrev SimplicialSet.Obj (S : SimplicialSet) : Type := S.Simplex 0
+
 structure Horn (S : SimplicialSet) (n missing : Nat) where
   missing_le : missing ≤ n + 1
   facet : ∀ (i : Nat), i ≠ missing → S.Simplex n
@@ -52,19 +57,85 @@ structure Horn (S : SimplicialSet) (n missing : Nat) where
           S.face m i (facet j hmj) = S.face m (j - 1) (facet i hmi)
 
 structure KanComplex extends SimplicialSet where
-  PathSpace : Obj → Obj → Type
-  pathSpace_isSimplex : ∀ a b, PathSpace a b = Simplex 1
   fill : ∀ {n missing : Nat}, Horn toSimplicialSet n missing → Simplex (n + 1)
   fill_spec : ∀ {n missing : Nat} (Λ : Horn toSimplicialSet n missing)
       {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
       face n i (fill Λ) = Λ.facet i hmi
 
+structure KanComplex.PathSpace (K : KanComplex) (a b : K.Obj) where
+  simplex : K.Simplex 1
+  source : K.face 0 1 simplex = a
+  target : K.face 0 0 simplex = b
+
+def KanComplex.reflPath (K : KanComplex) (a : K.Obj) : K.PathSpace a a where
+  simplex := K.degen 0 0 a
+  source := K.face_degen0_succ a
+  target := K.face_degen0_eq a
+
+structure KanComplex.Path2 (K : KanComplex) {a b : K.Obj}
+    (p q : K.PathSpace a b) where
+  simplex : K.Simplex 2
+  face0 : K.face 1 0 simplex = (K.reflPath b).simplex
+  face1 : K.face 1 1 simplex = q.simplex
+  face2 : K.face 1 2 simplex = p.simplex
+
+def KanComplex.reflPath2 (K : KanComplex) {a b : K.Obj}
+    (p : K.PathSpace a b) : K.Path2 p p := by
+  refine
+    { simplex := K.degen 1 1 p.simplex
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · calc
+      K.face 1 0 (K.degen 1 1 p.simplex)
+          = K.degen 0 0 (K.face 0 0 p.simplex) := by
+              simpa using (K.face_degen_lt 0 p.simplex (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.degen 0 0 b := by rw [p.target]
+      _ = (K.reflPath b).simplex := rfl
+  · simpa using (K.face_degen_eq 0 p.simplex (i := 1) (by omega))
+  · simpa using (K.face_degen_succ 0 p.simplex (i := 1) (by omega))
+
+def KanComplex.compPath (K : KanComplex) {a b c : K.Obj}
+    (p : K.PathSpace a b) (q : K.PathSpace b c) : K.PathSpace a c := by
+  let Λ : Horn K.toSimplicialSet 1 1 :=
+    { missing_le := by omega
+      facet := fun i _ => if h0 : i = 0 then q.simplex else p.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hi0 : i = 0 := by omega
+        have hj2 : j = 2 := by omega
+        subst hi0
+        subst hj2
+        simp
+        exact p.target.trans q.source.symm }
+  refine
+    { simplex := K.face 1 1 (K.fill Λ)
+      source := ?_
+      target := ?_ }
+  · have h2 : K.face 1 2 (K.fill Λ) = p.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 0 1 (K.face 1 1 (K.fill Λ))
+          = K.face 0 1 (K.face 1 2 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 0 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 0 1 p.simplex := by rw [h2]
+      _ = a := p.source
+  · have h0 : K.face 1 0 (K.fill Λ) = q.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 0 0 (K.face 1 1 (K.fill Λ))
+          = K.face 0 0 (K.face 1 0 (K.fill Λ)) := by
+              simpa using (K.face_face 0 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 0 0 q.simplex := by rw [h0]
+      _ = c := q.target
+
 def FunctorSpace (K : KanComplex) : Type := K.Obj → K.Obj
 
 structure ReflexiveKanComplex extends KanComplex where
-  F : Obj → FunctorSpace toKanComplex
-  G : FunctorSpace toKanComplex → Obj
-  eta : ∀ (f : FunctorSpace toKanComplex) (x : Obj), F (G f) x = f x
+  F : toKanComplex.Obj → FunctorSpace toKanComplex
+  G : FunctorSpace toKanComplex → toKanComplex.Obj
+  eta : ∀ (f : FunctorSpace toKanComplex) (x : toKanComplex.Obj), F (G f) x = f x
 
 def ReflexiveKanComplex.app (K : ReflexiveKanComplex) (a b : K.Obj) : K.Obj :=
   K.F a b

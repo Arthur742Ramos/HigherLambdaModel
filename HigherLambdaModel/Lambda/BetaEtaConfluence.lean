@@ -27,11 +27,6 @@ structure CommonExtension (M N : Term) where
 def Joinable (M N : Term) : Prop :=
   Nonempty (CommonExtension M N)
 
-/-- Two paths out of a common source are constructively joinable. -/
-theorem parallel_paths_joinable {M N P : Term}
-    (p : ReductionSeq M N) (q : ReductionSeq M P) : Joinable N P := by
-  exact ⟨commonExtension p q⟩
-
 /-- The joinability witness packaged as explicit common-extension data. -/
 def commonExtension {M N P : Term}
     (p : ReductionSeq M N) (q : ReductionSeq M P) :
@@ -39,6 +34,11 @@ def commonExtension {M N P : Term}
   { apex := M
     left := p.inv
     right := q.inv }
+
+/-- Two paths out of a common source are constructively joinable. -/
+theorem parallel_paths_joinable {M N P : Term}
+    (p : ReductionSeq M N) (q : ReductionSeq M P) : Joinable N P := by
+  exact ⟨commonExtension p q⟩
 
 /-- An explicit confluence diamond induces a 2-cell in the higher-path core. -/
 def diamond_homotopic {M N₁ N₂ P : Term}

@@ -26,6 +26,16 @@ This file summarizes the main results from our formalization of
 - β-soundness: ⟦(λM)N⟧ = ⟦M[N]⟧
 - η-soundness: ⟦λx.Mx⟧ = ⟦M⟧ (when x ∉ FV(M))
 - HoTFT: Intersection of all extensional Kan complex theories
+- Proof-relevant semantic 1-conversions: `Theory1` and `HoTFT1`, with explicit path composition and inversion via horn fillers
+- Proof-relevant semantic 2-conversions: `Theory2` and `HoTFT2`, carried by actual simplicial 2-cells, with structural symmetry, left/right whiskering, associators, and unitors
+- Proof-relevant semantic 3-conversions: `Theory3` and `HoTFT3`, carried by actual simplicial 3-cells, with reflexivity, symmetry, vertical composition, equality transport, and interchange formalized
+- Initial proof-relevant semantic 4-conversions: `Theory4` and `HoTFT4`, carried by actual simplicial 4-cells, with reflexivity and equality transport already formalized
+- Packaging of extensional Kan complexes as `HomotopicLambdaModel`s
+
+### 3a. Homotopy Domain Order Layer (Lambda/HomotopyOrder.lean)
+- Homotopy partial orders (Definition 2.3)
+- Complete homotopy partial orders (Definition 2.4)
+- Continuous maps and CHP O morphisms (Definitions 2.5-2.6)
 
 ### 4. N-Terms and N-Conversions (Lambda/NTerms.lean)
 - Σ₀ = λ-terms (0-conversions)
@@ -35,6 +45,10 @@ This file summarizes the main results from our formalization of
 - Πₙ = n-terms (computational witnesses for n-conversions)
 - Embedding: Πₙ ⊆ Σₙ (Proposition 3.4)
 - Main Theorem: TH_λ= ⊆ HoTFT
+- Explicit `Homotopy2` cells now interpret directly into semantic `HoTFT2` cells carried by the structural HoTFT 1-cells of their boundaries
+- Reflexive, equality-generated, symmetric, vertically composable, and interchange 3-cells over those semantic `HoTFT2` boundaries now land in an actual simplicial `HoTFT3` layer
+- A supported explicit syntactic 3-cell fragment `StructuralHomotopy3`, now closed under symmetry and vertical composition, maps directly into that `HoTFT3` layer
+- Reflexive 4-cells over the current interpreted 3-cell fragment now land in an actual simplicial `HoTFT4` layer
 
 ## Key Results
 
@@ -74,7 +88,7 @@ open Lambda Lambda.ExtensionalKan Lambda.NTerms Lambda.HigherTerms
 Let's verify that the identity combinator behaves as expected. -/
 
 -- I = λx.x reduces any term M to itself
-example (M : Term) : (Term.I @ M) →*βη M :=
+example (M : Term) : Term.app Term.I M →*βη M :=
   BetaEtaClosure.single (BetaEtaStep.beta (BetaStep.beta (Term.var 0) M))
 
 /-! ## The Paper's Main Insight

@@ -208,6 +208,24 @@ structure Context1 where
 def higherLam1 (C : Context1) (M N : Term) (h : BetaEtaStep M N) : NTerm 1 :=
   NTerm.redex (C.ctx M) (C.ctx N) (C.preserves_reduction M N h)
 
+/-! ### Primitive λ¹-terms for β₁ and η₁ (Proposition 3.2) -/
+
+/-- The primitive λ¹-term witnessing the root β-contraction. This is the base
+case of Proposition 3.2 showing that β₁ is itself a λ¹-term. -/
+def beta1Term (M N : Term) : NTerm 1 :=
+  NTerm.redex (Term.app (Term.lam M) N) (M[N])
+    (BetaEtaStep.beta (BetaStep.beta M N))
+
+/-- The primitive λ¹-term witnessing the raw η-contraction
+`λ.(M · 0) → shift (-1) 0 M` when variable `0` is not free in `M`.
+This is the base case of Proposition 3.2 showing that η₁ is a λ¹-term. -/
+def eta1Term (M : Term) (h : Term.hasFreeVar 0 M = false) : NTerm 1 :=
+  NTerm.redex (Term.lam (Term.app M (Term.var 0))) (Term.shift (-1) 0 M)
+    (BetaEtaStep.eta (EtaStep.eta M (by
+      intro htrue
+      rw [h] at htrue
+      cases htrue)))
+
 /-! ## Interpretation of N-Terms in Extensional Kan Complexes
 
 The semantic justification: in any extensional Kan complex K,
@@ -239,90 +257,16 @@ theorem interpret_unshift' (K : ReflexiveKanComplex) (M : Term) (ρ : Valuation 
 theorem betaStep_sound (K : ExtensionalKanComplex) (M N : Term)
     (h : BetaStep M N) (ρ : Valuation K.toReflexiveKanComplex) :
     interpret K.toReflexiveKanComplex ρ M =
-    interpret K.toReflexiveKanComplex ρ N := by
-  induction h generalizing ρ with
-  | beta M N =>
-    -- Root β-redex: (λM)N →β M[N]
-    exact beta_sound K M N ρ
-  | appL hstep ih =>
-    -- β-reduction in function position: app M N → app M' N
-    simp only [interpret, ReflexiveKanComplex.app]
-    rw [ih]
-  | appR hstep ih =>
-    -- β-reduction in argument position: app M N → app M N'
-    simp only [interpret, ReflexiveKanComplex.app]
-    rw [ih]
-  | lam hstep ih =>
-    -- β-reduction under λ: lam M → lam M'
-    simp only [interpret]
-    congr 1
-    funext f
-    exact ih (fun n => if n = 0 then f else ρ (n - 1))
+    interpret K.toReflexiveKanComplex ρ N :=
+  ExtensionalKan.betaStep_sound K M N h ρ
 
 /-- Soundness of a single η-step in an extensional Kan complex.
     This proves that η-reduction preserves interpretation. -/
 theorem etaStep_sound (K : ExtensionalKanComplex) (M N : Term)
     (h : EtaStep M N) (ρ : Valuation K.toReflexiveKanComplex) :
     interpret K.toReflexiveKanComplex ρ M =
-    interpret K.toReflexiveKanComplex ρ N := by
-  induction h generalizing ρ with
-  | eta M hfv =>
-    -- Root η-redex: λx.Mx →η M when x ∉ FV(M)
-    -- The source is (lam (app M (var 0))) where hasFreeVar 0 M = false
-    -- The target is (shift (-1) 0 M)
-    -- We need: interpret ρ (lam (app M (var 0))) = interpret ρ (shift (-1) 0 M)
-
-    -- First, extract the hypothesis that M doesn't have variable 0 free
-    have h_not_free : Term.hasFreeVar 0 M = false := by
-      simp at hfv
-      exact hfv
-
-    -- Expand the interpretation of (lam (app M (var 0)))
-    simp only [interpret, ReflexiveKanComplex.app]
-
-    -- We have: G(λf. F(⟦M⟧ρ')(f)) where ρ' = (fun n => if n = 0 then f else ρ (n - 1))
-    -- We want to show this equals: ⟦shift (-1) 0 M⟧ρ
-
-    -- Step 1: Use interpret_unshift to relate ⟦M⟧ρ' to ⟦shift (-1) 0 M⟧ρ
-    have key : ∀ f, interpret K.toReflexiveKanComplex
-                      (fun n => if n = 0 then f else ρ (n - 1)) M =
-                   interpret K.toReflexiveKanComplex ρ (Term.shift (-1) 0 M) := by
-      intro f
-      exact interpret_unshift K.toReflexiveKanComplex M ρ f h_not_free
-
-    -- The goal is: K.G (λf. K.F (⟦M⟧ρ') f) = ⟦shift (-1) 0 M⟧ρ
-    -- After using key, we get: K.G (λf. K.F (⟦shift (-1) 0 M⟧ρ) f) = ⟦shift (-1) 0 M⟧ρ
-    -- By function extensionality: (λf. K.F x f) = K.F x
-    -- So we need: K.G (K.F (⟦shift (-1) 0 M⟧ρ)) = ⟦shift (-1) 0 M⟧ρ
-    -- This is exactly epsilon (in reverse)
-
-    -- Step 2: Show the inner functions are equal
-    -- Note: simp normalizes 0 = 0 to True, so we use True in the statement
-    have inner_eq : (fun f => K.F (interpret K.toReflexiveKanComplex
-                                     (fun n => if n = 0 then f else ρ (n - 1)) M)
-                                   (if True then f else ρ (0 - 1))) =
-                    K.F (interpret K.toReflexiveKanComplex ρ (Term.shift (-1) 0 M)) := by
-      funext f
-      simp only [ite_true, key]
-
-    rw [inner_eq]
-    -- Now goal is: K.G (K.F (⟦shift (-1) 0 M⟧ρ)) = ⟦shift (-1) 0 M⟧ρ
-    exact (K.epsilon (interpret K.toReflexiveKanComplex ρ (Term.shift (-1) 0 M))).symm
-
-  | appL hstep ih =>
-    -- η-reduction in function position
-    simp only [interpret, ReflexiveKanComplex.app]
-    rw [ih]
-  | appR hstep ih =>
-    -- η-reduction in argument position
-    simp only [interpret, ReflexiveKanComplex.app]
-    rw [ih]
-  | lam hstep ih =>
-    -- η-reduction under λ
-    simp only [interpret]
-    congr 1
-    funext f
-    exact ih (fun n => if n = 0 then f else ρ (n - 1))
+    interpret K.toReflexiveKanComplex ρ N :=
+  ExtensionalKan.etaStep_sound K M N h ρ
 
 /-- Soundness of a single βη-step in an extensional Kan complex.
 
@@ -332,23 +276,88 @@ theorem etaStep_sound (K : ExtensionalKanComplex) (M N : Term)
 theorem betaEtaStep_sound (K : ExtensionalKanComplex) (M N : Term)
     (h : BetaEtaStep M N) (ρ : Valuation K.toReflexiveKanComplex) :
     interpret K.toReflexiveKanComplex ρ M =
-    interpret K.toReflexiveKanComplex ρ N := by
-  cases h with
-  | beta hb => exact betaStep_sound K M N hb ρ
-  | eta he => exact etaStep_sound K M N he ρ
+    interpret K.toReflexiveKanComplex ρ N :=
+  ExtensionalKan.betaEtaStep_sound K M N h ρ
+
+/-- Structural proof-relevant interpretation of an indexed 1-term in a fixed
+extensional Kan complex. -/
+noncomputable def nterm1_indexed_in_Theory1 (K : ExtensionalKanComplex) :
+    {M N : Term} → NTerm1 M N → Theory1 K M N
+  | _, _, .redex s =>
+      ExtensionalKan.betaEtaStep_in_Theory1 K _ _ s
+  | _, _, .seq t₁ t₂ =>
+      Theory1.comp K (nterm1_indexed_in_Theory1 K t₁) (nterm1_indexed_in_Theory1 K t₂)
+  | M, _, .refl =>
+      fun ρ => K.reflPath (interpret K.toReflexiveKanComplex ρ M)
+
+/-- Structural proof-relevant interpretation of an indexed 1-term in HoTFT. -/
+noncomputable def nterm1_indexed_in_HoTFT1 {M N : Term} (t : NTerm1 M N) :
+    HoTFT1 M N :=
+  fun K => nterm1_indexed_in_Theory1 K t
+
+/-- Structural proof-relevant interpretation of a packaged 1-term in a fixed
+extensional Kan complex. -/
+noncomputable def nterm1_in_Theory1 (K : ExtensionalKanComplex) (t : NTerm 1) :
+    Theory1 K t.source1 t.target1 := by
+  cases t with
+  | nterm1 M N inner =>
+      exact nterm1_indexed_in_Theory1 K inner
+
+/-- Structural proof-relevant interpretation of a packaged 1-term in HoTFT. -/
+noncomputable def nterm1_in_HoTFT1 (t : NTerm 1) : HoTFT1 t.source1 t.target1 :=
+  fun K => nterm1_in_Theory1 K t
+
+/-- Interpret a 1-term in a fixed extensional Kan complex.
+
+This is the low-dimensional instance of Proposition 3.3 saying that the model's
+1-simplex space carries the semantics of λ¹-terms. -/
+noncomputable def interpretNTerm1 (K : ExtensionalKanComplex) (t : NTerm 1) :
+    Theory1 K t.source1 t.target1 :=
+  nterm1_in_Theory1 K t
+
+/-- Higher λ-abstraction at level 1 denotes a semantic 1-cell in every fixed
+extensional Kan complex. -/
+noncomputable def higherLam1_in_Theory1 (K : ExtensionalKanComplex)
+    (C : Context1) (M N : Term) (h : BetaEtaStep M N) :
+    Theory1 K (C.ctx M) (C.ctx N) :=
+  interpretNTerm1 K (higherLam1 C M N h)
+
+/-- Higher λ-abstraction at level 1 denotes a proof-relevant HoTFT 1-cell. -/
+noncomputable def higherLam1_in_HoTFT1
+    (C : Context1) (M N : Term) (h : BetaEtaStep M N) :
+    HoTFT1 (C.ctx M) (C.ctx N) :=
+  nterm1_in_HoTFT1 (higherLam1 C M N h)
+
+/-- The primitive β₁-term denotes a semantic 1-cell in any fixed extensional
+Kan complex. -/
+noncomputable def beta1Term_in_Theory1 (K : ExtensionalKanComplex) (M N : Term) :
+    Theory1 K (Term.app (Term.lam M) N) (M[N]) :=
+  interpretNTerm1 K (beta1Term M N)
+
+/-- The primitive β₁-term denotes a proof-relevant HoTFT 1-cell. -/
+noncomputable def beta1Term_in_HoTFT1 (M N : Term) :
+    HoTFT1 (Term.app (Term.lam M) N) (M[N]) :=
+  nterm1_in_HoTFT1 (beta1Term M N)
+
+/-- The primitive η₁-term denotes a semantic 1-cell in any fixed extensional
+Kan complex. -/
+noncomputable def eta1Term_in_Theory1 (K : ExtensionalKanComplex)
+    (M : Term) (h : Term.hasFreeVar 0 M = false) :
+    Theory1 K (Term.lam (Term.app M (Term.var 0))) (Term.shift (-1) 0 M) :=
+  interpretNTerm1 K (eta1Term M h)
+
+/-- The primitive η₁-term denotes a proof-relevant HoTFT 1-cell. -/
+noncomputable def eta1Term_in_HoTFT1
+    (M : Term) (h : Term.hasFreeVar 0 M = false) :
+    HoTFT1 (Term.lam (Term.app M (Term.var 0))) (Term.shift (-1) 0 M) :=
+  nterm1_in_HoTFT1 (eta1Term M h)
 
 /-- Soundness for the indexed NTerm1 type -/
 theorem nterm1_indexed_sound (K : ExtensionalKanComplex) {M N : Term} (t : NTerm1 M N)
     (ρ : Valuation K.toReflexiveKanComplex) :
     interpret K.toReflexiveKanComplex ρ M =
-    interpret K.toReflexiveKanComplex ρ N := by
-  induction t with
-  | redex h =>
-    exact betaEtaStep_sound K _ _ h ρ
-  | seq t₁ t₂ ih₁ ih₂ =>
-    exact ih₁.trans ih₂
-  | refl =>
-    rfl
+    interpret K.toReflexiveKanComplex ρ N :=
+  ExtensionalKan.reductionSeq_sound K t.toReductionSeq ρ
 
 /-- Two terms related by a 1-term have equal interpretations -/
 theorem nterm1_sound (K : ExtensionalKanComplex) (t : NTerm 1)
@@ -396,19 +405,115 @@ valid in HoTFT (the intersection of all extensional Kan complex theories). -/
     - Symmetry of equality for inverse steps -/
 theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =_TH N) :
     HoTFT_eq M N := by
-  intro K
-  intro ρ
-  -- The proof goes by induction on the βη-conversion
-  induction h with
-  | refl _ => rfl
-  | step s _ ih =>
-    -- Single step: need to show ⟦M⟧ = ⟦M'⟧ when M →βη M'
-    have h1 := betaEtaStep_sound K _ _ s ρ
-    exact h1.trans ih
-  | stepInv s _ ih =>
-    -- Reverse step: use symmetry
-    have h1 := betaEtaStep_sound K _ _ s ρ
-    exact h1.symm.trans ih
+  exact ExtensionalKan.reductionSeq_in_HoTFT (ReductionSeq.ofBetaEtaConv h)
+
+/-- Proof-relevant version of the main theorem: a classical βη-conversion
+induces a semantic 1-conversion in every extensional Kan complex. -/
+noncomputable def TH_lambda_eq_subset_HoTFT1 (M N : Term) (h : M =_TH N) :
+    HoTFT1 M N :=
+  ExtensionalKan.reductionSeq_in_HoTFT1 (ReductionSeq.ofBetaEtaConv h)
+
+/-- Every explicit syntactic 2-cell between parallel βη paths induces a
+proof-relevant semantic HoTFT 2-conversion between the corresponding
+structural semantic 1-cells, provided the 2-cell lies in the fragment already
+supported by the simplicial semantics. -/
+noncomputable def StructuralHomotopy2_subset_HoTFT2
+    {M N : Term} {p q : ReductionSeq M N} (α : StructuralHomotopy2 p q) :
+    HoTFT2 (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+      (ExtensionalKan.reductionSeq_in_HoTFT1 q) :=
+  ExtensionalKan.structuralHomotopy2_in_HoTFT2 α
+
+/-- Every explicit syntactic 2-cell between parallel βη paths induces a
+proof-relevant semantic HoTFT 2-conversion between the corresponding semantic
+1-cells. The resulting semantic witness is an actual simplicial 2-cell in each
+model and now lands directly on the structural HoTFT 1-cells induced by the
+boundary reduction sequences. -/
+noncomputable def Homotopy2_subset_HoTFT2
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT2 (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+      (ExtensionalKan.reductionSeq_in_HoTFT1 q) :=
+  ExtensionalKan.homotopy2_in_HoTFT2 α
+
+/-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 3-cell
+over its interpreted HoTFT 2-cell. -/
+noncomputable def Homotopy2_refl_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3 (ExtensionalKan.homotopy2_in_HoTFT2 α)
+      (ExtensionalKan.homotopy2_in_HoTFT2 α) :=
+  ExtensionalKan.homotopy2_refl_in_HoTFT3 α
+
+/-- Equality of explicit syntactic 2-cells induces a semantic HoTFT 3-cell
+between their interpreted HoTFT 2-cells. -/
+noncomputable def Homotopy2_eq_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q} (h : α = β) :
+    HoTFT3 (ExtensionalKan.homotopy2_in_HoTFT2 α)
+      (ExtensionalKan.homotopy2_in_HoTFT2 β) :=
+  ExtensionalKan.homotopy2_eq_in_HoTFT3 h
+
+/-- Every structurally supported syntactic 3-cell between parallel explicit
+2-cells induces a proof-relevant semantic HoTFT 3-conversion. -/
+noncomputable def StructuralHomotopy3_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.StructuralHomotopy3 α β) :
+    HoTFT3 (ExtensionalKan.homotopy2_in_HoTFT2 α)
+      (ExtensionalKan.homotopy2_in_HoTFT2 β) :=
+  ExtensionalKan.structuralHomotopy3_in_HoTFT3 η
+
+/-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 4-cell
+over the reflexive semantic HoTFT 3-cell on its interpreted HoTFT 2-cell. -/
+noncomputable def Homotopy2_refl_subset_HoTFT4
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT4 (ExtensionalKan.homotopy2_refl_in_HoTFT3 α)
+      (ExtensionalKan.homotopy2_refl_in_HoTFT3 α) :=
+  HoTFT4.refl (ExtensionalKan.homotopy2_refl_in_HoTFT3 α)
+
+/-- Every structurally supported syntactic 3-cell admits a reflexive semantic
+HoTFT 4-cell over its interpreted HoTFT 3-cell. -/
+noncomputable def StructuralHomotopy3_refl_subset_HoTFT4
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.StructuralHomotopy3 α β) :
+    HoTFT4 (StructuralHomotopy3_subset_HoTFT3 η)
+      (StructuralHomotopy3_subset_HoTFT3 η) :=
+  HoTFT4.refl (StructuralHomotopy3_subset_HoTFT3 η)
+
+/-- The semantic image of syntactic interchange is already a HoTFT 3-cell in
+the current simplicial 3-cell layer. -/
+noncomputable def Homotopy2_interchange_subset_HoTFT3
+    {L M N : Term} {p p' : ReductionSeq L M} {q q' : ReductionSeq M N}
+    (α : Homotopy2 p p') (β : Homotopy2 q q') :
+    HoTFT3
+      (HoTFT2.hcomp (ExtensionalKan.homotopy2_in_HoTFT2 α)
+        (ExtensionalKan.homotopy2_in_HoTFT2 β))
+      (HoTFT2.trans
+        (HoTFT2.whiskerRight (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 q))
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 p')
+          (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
+  ExtensionalKan.homotopy2_interchange_in_HoTFT3 α β
+
+/-- Every computational 2-term packages a semantic HoTFT 2-conversion between
+the semantic 1-cells induced by its boundary reduction sequences. -/
+noncomputable def interpretNTerm2 (K : ExtensionalKanComplex) (t : NTerm 2) :
+    Σ (M N : Term) (α β : Theory1 K M N), Theory2 K α β := by
+  rcases t.toNConversion with ⟨M, N, p, q, h2⟩
+  exact ⟨M, N, ExtensionalKan.reductionSeq_in_Theory1 K p,
+    ExtensionalKan.reductionSeq_in_Theory1 K q,
+    ExtensionalKan.homotopy2_in_Theory2 K h2⟩
+
+/-- Every computational 2-term packages a proof-relevant semantic HoTFT
+2-conversion between the semantic 1-cells induced by its boundary reduction
+sequences. -/
+noncomputable def NTerm2_subset_HoTFT2 (t : NTerm 2) :
+    Σ (M N : Term) (α β : HoTFT1 M N), HoTFT2 α β := by
+  rcases t.toNConversion with ⟨M, N, p, q, h2⟩
+  exact ⟨M, N, ExtensionalKan.reductionSeq_in_HoTFT1 p,
+    ExtensionalKan.reductionSeq_in_HoTFT1 q,
+    ExtensionalKan.homotopy2_in_HoTFT2 h2⟩
+
+/-- HoTFT-level interpretation wrapper for computational 2-terms. -/
+noncomputable def interpretNTerm2_in_HoTFT2 (t : NTerm 2) :
+    Σ (M N : Term) (α β : HoTFT1 M N), HoTFT2 α β :=
+  NTerm2_subset_HoTFT2 t
 
 /-! ## The Full Tower: Weak ω-Groupoid Structure
 

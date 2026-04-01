@@ -232,7 +232,7 @@ def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
   comp_assoc := ReductionSeq.concat_assoc
   comp_id_left := ReductionSeq.concat_refl_left
   comp_id_right := ReductionSeq.concat_refl_right
-  hom3_refl := fun {_} {_} {p} {q} α => coherence_refl α
+  hom3_refl := fun {_} {_} {_} {_} α => coherence_refl α
   pentagon_coh := pentagon
   triangle_coh := triangle
   interchange_coh := interchange
