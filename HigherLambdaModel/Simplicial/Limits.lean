@@ -109,7 +109,18 @@ structure FixedPointWitness {X : InfinityCategory} (F : CatFunctor X X) where
   seed : Morphism X.toSSet base (CatFunctor.onObj F base)
   chain : OmegaDiagram X
   colimit : OmegaColimit chain
-  fixed : EquivalentVertices X.toSSet colimit.apex (CatFunctor.onObj F colimit.apex)
+  shiftedColimit : OmegaColimit (OmegaDiagram.mapFunctor chain F)
+  shiftEquiv : EquivalentVertices X.toSSet colimit.apex shiftedColimit.apex
+  shiftedApex : shiftedColimit.apex = CatFunctor.onObj F colimit.apex
+
+/-- The fixed-point equivalence carried by a fixed-point witness. The witness
+stores the comparison with the colimit of the shifted chain, and the target
+fixed point is derived by identifying that colimit with `F` applied to the
+original colimit apex. -/
+def FixedPointWitness.fixed {X : InfinityCategory} {F : CatFunctor X X}
+    (w : FixedPointWitness F) :
+    EquivalentVertices X.toSSet w.colimit.apex (CatFunctor.onObj F w.colimit.apex) :=
+  w.shiftedApex ▸ w.shiftEquiv
 
 /-- The fixed-point theorem of Definition/Theorem 2.3, packaged as extraction
 of the chosen fixed-point equivalence from explicit witness data. -/
@@ -150,6 +161,33 @@ structure CompleteHomotopySpace where
     ∀ (P : Vertex carrier.toSSet → Prop) (hP : Directed le P),
       IsLeastUpperBound le P (sup P hP)
 
+/-- Composition preserves directed suprema when composing on either side. The
+image predicates are spelled out directly to avoid introducing extra chosen
+suprema beyond the homotopy-order data already carried by the hom-spaces. -/
+def CompositionContinuous
+    (Obj : Type u)
+    (Hom : Obj → Obj → CompleteHomotopySpace)
+    (comp :
+      ∀ {A B C : Obj},
+        Vertex ((Hom A B).carrier.toSSet) →
+          Vertex ((Hom B C).carrier.toSSet) →
+            Vertex ((Hom A C).carrier.toSSet)) : Prop :=
+  (∀ {A B C : Obj}
+    (g : Vertex ((Hom B C).carrier.toSSet))
+    (F : Vertex ((Hom A B).carrier.toSSet) → Prop)
+    (hF : Directed (Hom A B).le F),
+      IsLeastUpperBound (Hom A C).le
+        (fun h => ∃ f, F f ∧ comp f g = h)
+        (comp ((Hom A B).sup F hF) g))
+    ∧
+  ∀ {A B C : Obj}
+    (f : Vertex ((Hom A B).carrier.toSSet))
+    (G : Vertex ((Hom B C).carrier.toSSet) → Prop)
+    (hG : Directed (Hom B C).le G),
+      IsLeastUpperBound (Hom A C).le
+        (fun h => ∃ g, G g ∧ comp f g = h)
+        (comp f ((Hom B C).sup G hG))
+
 /-- A `0`-∞-category in the sense of Definition 2.21. The continuity of
 composition is recorded as an explicit predicate field on the chosen operation. -/
 structure ZeroInfinityCategory where
@@ -183,7 +221,7 @@ structure ZeroInfinityCategory where
       {g g' : Vertex ((Hom B C).carrier.toSSet)},
       (Hom B C).le g g' →
         (Hom A C).le (comp f g) (comp f g')
-  comp_continuous : Prop
+  comp_continuous : CompositionContinuous Obj Hom comp
   bottom_absorb :
     ∀ {A B C : Obj} (f : Vertex ((Hom A B).carrier.toSSet)),
       comp f (Hom B C).bottom = (Hom A C).bottom
@@ -318,9 +356,26 @@ def LocallyMonotonic (K : ZeroInfinityCategory) (F : Bifunctor K) : Prop :=
 
 /-- Local continuity of a bifunctor (Definition 2.26). The order-theoretic
 content is recorded as a proposition on chosen directed suprema. -/
+def BifunctorPreservesDirectedSups (K : ZeroInfinityCategory) (F : Bifunctor K) : Prop :=
+  (∀ {A B C D : K.Obj}
+    (f : HomObj K B A)
+    (G : HomObj K C D → Prop)
+    (hG : Directed (K.Hom C D).le G),
+      IsLeastUpperBound (K.Hom (F.onObj A C) (F.onObj B D)).le
+        (fun h => ∃ g, G g ∧ F.onMor f g = h)
+        (F.onMor f ((K.Hom C D).sup G hG)))
+    ∧
+  ∀ {A B C D : K.Obj}
+    (g : HomObj K C D)
+    (H : HomObj K B A → Prop)
+    (hH : Directed (K.Hom B A).le H),
+      IsLeastUpperBound (K.Hom (F.onObj A C) (F.onObj B D)).le
+        (fun h => ∃ f, H f ∧ F.onMor f g = h)
+        (F.onMor ((K.Hom B A).sup H hH) g)
+
 structure LocallyContinuous (K : ZeroInfinityCategory) (F : Bifunctor K) where
   monotone : LocallyMonotonic K F
-  preservesDirectedSups : Prop
+  preservesDirectedSups : BifunctorPreservesDirectedSups K F
 
 /-- Equivalence of objects in a `0`-∞-category, used to express the homotopy
 domain equation. -/

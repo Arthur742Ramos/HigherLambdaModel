@@ -34,18 +34,6 @@ theorem stage_boundedComplete : ∀ n : Nat, BoundedComplete (K n)
   | 0 => Flat.boundedComplete SpherePoint
   | n + 1 => boundedComplete_exponential (stage_boundedComplete n)
 
-/-- Chosen-data packaging of the Section 4.1 domain-theoretic interface exposed
-by the current repository. -/
-structure Proposition41Witness where
-  stageBoundedComplete : ∀ n : Nat, BoundedComplete (K n)
-  coordinateProjection : ∀ n : Nat, ContinuousMap KInfinityCHPO (K n)
-
-/-- Proposition 4.1, as currently exposed in the repository's chosen-data
-interface. -/
-noncomputable def proposition_4_1 : Proposition41Witness where
-  stageBoundedComplete := stage_boundedComplete
-  coordinateProjection := projectContinuous
-
 /-! ## Base Embedding and Approximation Interfaces -/
 
 /-- The level-zero embedding `f₀,∞ : K₀ → K∞`, obtained by iterating the
@@ -100,6 +88,121 @@ noncomputable def proposition_4_2_approximation
 theorem proposition_4_2 (x : KInfinityCHPO.Obj) :
     projectToLevel 0 (proposition_4_2_approximation x) = projectToLevel 0 x := by
   simp [proposition_4_2_approximation]
+
+private theorem baseUp_below_of_level0
+    {x : (K 0).Obj} {y : KInfinityCHPO.Obj}
+    (h0 : (K 0).Rel x (projectToLevel 0 y)) :
+    ∀ n : Nat, (K n).Rel (baseUp x n) (projectToLevel n y)
+  | 0 => by simpa [baseUp] using h0
+  | n + 1 => by
+      have ih : (K n).Rel (baseUp x n) (projectToLevel n y) :=
+        baseUp_below_of_level0 h0 n
+      have hPlus :
+          (K (n + 1)).Rel
+            ((fPlus n).toFun (baseUp x n))
+            ((fPlus n).toFun (projectToLevel n y)) :=
+        (fPlus n).monotone' ih
+      have hFrom :
+          (K n).Rel
+            (projectToLevel n y)
+            ((fMinus n).toFun (projectToLevel (n + 1) y)) :=
+        y.fromPrev n
+      have hLift :
+          (K (n + 1)).Rel
+            ((fPlus n).toFun (projectToLevel n y))
+            ((fPlus n).toFun ((fMinus n).toFun (projectToLevel (n + 1) y))) :=
+        (fPlus n).monotone' hFrom
+      have hSection :
+          (K (n + 1)).Rel
+            ((fPlus n).toFun ((fMinus n).toFun (projectToLevel (n + 1) y)))
+            (projectToLevel (n + 1) y) :=
+        fPlus_fMinus_le n (projectToLevel (n + 1) y)
+      simpa [baseUp_succ] using
+        (K (n + 1)).rel_trans hPlus ((K (n + 1)).rel_trans hLift hSection)
+
+/-- The canonical base embedding lies below any thread whose base coordinate
+dominates the chosen level-zero point. -/
+theorem embedBaseToLimit_below_of_level0
+    {x : (K 0).Obj} {y : KInfinityCHPO.Obj}
+    (h0 : (K 0).Rel x (projectToLevel 0 y)) :
+    KInfinityCHPO.Rel (embedBaseToLimit x) y := by
+  exact Projective.rel_mk (S := system) (baseUp_below_of_level0 h0)
+
+/-- The base embedding of a level-zero point is compact in `K∞`. This gives a
+concrete compact finite approximation for every inverse-limit thread. -/
+theorem embedBaseToLimit_compact (x : (K 0).Obj) :
+    IsCompact KInfinityCHPO (embedBaseToLimit x) := by
+  intro X hX hSup
+  let Y : (K 0).Obj → Prop := Projective.coordPred (S := system) X 0
+  have hY : (K 0).Directed Y := Projective.directed_coord (S := system) hX 0
+  have hxCompact : IsCompact (K 0) x := by
+    simpa [K] using (Flat.isCompact (α := SpherePoint) x)
+  have hxSup : (K 0).Rel x (projectToLevel 0 (KInfinityCHPO.sup X hX)) := by
+    have hCoord :
+        (K 0).Rel
+          (projectToLevel 0 (embedBaseToLimit x))
+          (projectToLevel 0 (KInfinityCHPO.sup X hX)) :=
+      (Projective.rel_iff.mp hSup) 0
+    simpa [project_embedBase_self] using hCoord
+  have hImage :
+      image (fun z : KInfinityCHPO.Obj => z.val 0) X = Y := by
+    funext a
+    apply propext
+    constructor <;> intro ha <;> simpa [Y, Projective.coordPred] using ha
+  have hCoordLub :
+      (K 0).IsLeastUpperBound Y (projectToLevel 0 (KInfinityCHPO.sup X hX)) := by
+    simpa [projectToLevel, Y, hImage] using (projectContinuous 0).preserves_sup X hX
+  rcases hxCompact Y hY hxSup with ⟨a, ha, hxa⟩
+  rcases ha with ⟨y, hy, hya⟩
+  refine ⟨y, hy, ?_⟩
+  apply embedBaseToLimit_below_of_level0
+  simpa [projectToLevel, hya] using hxa
+
+/-- The base approximation of any thread is below that thread. -/
+theorem proposition_4_1_baseApprox_below (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.Rel (proposition_4_2_approximation x) x := by
+  have h0 : (K 0).Rel (projectToLevel 0 x) (projectToLevel 0 x) :=
+    (K 0).rel_refl (projectToLevel 0 x)
+  simpa [proposition_4_2_approximation] using
+    (embedBaseToLimit_below_of_level0 (x := projectToLevel 0 x) (y := x) h0)
+
+/-- The chosen Proposition 4.2 approximation is compact in `K∞`. -/
+theorem proposition_4_1_baseApprox_compact (x : KInfinityCHPO.Obj) :
+    IsCompact KInfinityCHPO (proposition_4_2_approximation x) := by
+  simpa [proposition_4_2_approximation] using
+    embedBaseToLimit_compact (projectToLevel 0 x)
+
+/-- Chosen-data packaging of the Section 4.1 interface for `K∞`. Besides the
+per-stage bounded-completeness data and coordinate projections, the witness now
+contains a concrete compact finite approximation of each inverse-limit thread:
+the canonical embedding of its level-zero coordinate. -/
+structure Proposition41Witness where
+  stageBoundedComplete : ∀ n : Nat, BoundedComplete (K n)
+  coordinateProjection : ∀ n : Nat, ContinuousMap KInfinityCHPO (K n)
+  baseApproximation : KInfinityCHPO.Obj → KInfinityCHPO.Obj
+  baseApproximation_finite :
+    ∀ x : KInfinityCHPO.Obj, ∃ a : (K 0).Obj, baseApproximation x = embedBaseToLimit a
+  baseApproximation_compact :
+    ∀ x : KInfinityCHPO.Obj, IsCompact KInfinityCHPO (baseApproximation x)
+  baseApproximation_below :
+    ∀ x : KInfinityCHPO.Obj, KInfinityCHPO.Rel (baseApproximation x) x
+  baseApproximation_exact0 :
+    ∀ x : KInfinityCHPO.Obj,
+      projectToLevel 0 (baseApproximation x) = projectToLevel 0 x
+
+/-- Proposition 4.1 in the repository's current chosen-data style: bounded
+completeness of each stage, continuity of the coordinate projections, and a
+concrete compact finite approximation of every point of `K∞`. -/
+noncomputable def proposition_4_1 : Proposition41Witness where
+  stageBoundedComplete := stage_boundedComplete
+  coordinateProjection := projectContinuous
+  baseApproximation := proposition_4_2_approximation
+  baseApproximation_finite := by
+    intro x
+    refine ⟨projectToLevel 0 x, rfl⟩
+  baseApproximation_compact := proposition_4_1_baseApprox_compact
+  baseApproximation_below := proposition_4_1_baseApprox_below
+  baseApproximation_exact0 := proposition_4_2
 
 /-- A level-zero shadow of Proposition 4.3: application determined by the first
 two coordinates of `K∞`. -/

@@ -195,17 +195,28 @@ non-trivial group at dimension `dim + 1` by `Bool` and use `PUnit` elsewhere. -/
 def sphereHomotopyGroup (n : Nat) (x : SpherePoint) : Type :=
   if n = x.dim.succ then Bool else PUnit
 
+/-- A sphere-summand vertex is a horn vertex when it supports some non-trivial
+higher homotopy group. This is the chosen-data form of belonging to a
+non-degenerate horn for the Section 4 sphere model. -/
+def SpherePoint.isHornVertex (x : SpherePoint) : Prop :=
+  ∃ n : Nat, 1 ≤ n ∧ TypeNontrivial (sphereHomotopyGroup n x)
+
 /-- Example 4.1: the chosen Section 4 model of `N = ⨿ₙ Sⁿ`. -/
 def N : HomotopyGroupKanComplex where
   carrier := constantKanComplex SpherePoint
   pi0 := Nat
   pi := sphereHomotopyGroup
   component := fun x => x.dim
-  hornVertex := fun _ => True
+  hornVertex := SpherePoint.isHornVertex
 
 private theorem sphereHomotopyGroup_nontrivial_at_dim (x : SpherePoint) :
     TypeNontrivial (sphereHomotopyGroup x.dim.succ x) := by
   simpa [sphereHomotopyGroup] using bool_typeNontrivial
+
+private theorem spherePoint_isHornVertex (x : SpherePoint) :
+    x.isHornVertex := by
+  refine ⟨x.dim.succ, Nat.succ_le_succ (Nat.zero_le x.dim), ?_⟩
+  exact sphereHomotopyGroup_nontrivial_at_dim x
 
 /-- Example 4.1: the chosen sphere-summand model `N` is non-trivial. -/
 theorem N_isNonTrivial : IsNonTrivialKanComplex N := by
@@ -223,8 +234,7 @@ theorem N_isNonTrivial : IsNonTrivialKanComplex N := by
     rw [hpred']
     simpa using bool_typeNontrivial
   · intro x hx
-    refine ⟨x.dim.succ, by omega, ?_⟩
-    exact sphereHomotopyGroup_nontrivial_at_dim x
+    exact hx
 
 /-! ## Definition 4.3: the flat c.h.p.o. `NPlus` -/
 

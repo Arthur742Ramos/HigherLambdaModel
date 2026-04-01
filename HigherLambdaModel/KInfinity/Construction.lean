@@ -303,14 +303,14 @@ noncomputable def projectContinuous (n : Nat) :
 
 /-! ## Levelwise Embeddings into the Limit -/
 
-private def castLevel
+def castLevel
     {n m : Nat}
     (h : n = m) :
     (K n).Obj → (K m).Obj := by
   subst h
   exact fun x => x
 
-@[simp] private theorem castLevel_rfl
+@[simp] theorem castLevel_rfl
     {n : Nat} (x : (K n).Obj) :
     castLevel rfl x = x := rfl
 
@@ -332,6 +332,12 @@ noncomputable def projectUp
     (n : Nat) (x : (K n).Obj) (k : Nat) :
     projectUp n x (k + 1) = (fPlus (n + k)).toFun (projectUp n x k) := by
   simpa [projectUp, Nat.add_assoc]
+
+@[simp] theorem projectUp_prev
+    (n : Nat) (x : (K n).Obj) (k : Nat) :
+    (fMinus (n + k)).toFun (projectUp n x (k + 1)) = projectUp n x k := by
+  rw [projectUp_succ]
+  exact congrArg (fun g => g.toFun (projectUp n x k)) (fMinus_comp_fPlus (n + k))
 
 /-- Repeated application of the h-projections `fₙ⁻`. -/
 noncomputable def projectDown
