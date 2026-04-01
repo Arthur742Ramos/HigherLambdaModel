@@ -7,3 +7,4 @@ This module provides the entry point to the formalization of
 
 import HigherLambdaModel.Lambda
 import HigherLambdaModel.Simplicial
+import HigherLambdaModel.Domain
