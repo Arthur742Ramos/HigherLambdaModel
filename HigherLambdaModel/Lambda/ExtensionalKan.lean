@@ -754,8 +754,8 @@ def KanComplex.symmTetrahedron (K : KanComplex) {a b : K.Obj}
     K.Tetrahedron
       (K.reflPath2 (K.reflPath b)).toTriangle
       (K.symmPath2 α).toTriangle
-      α.toTriangle
-      (K.reflPath2 p).toTriangle := by
+      (K.reflPath2 p).toTriangle
+      α.toTriangle := by
   let ε := K.reflPath2 (K.reflPath b)
   let ρ := K.reflPath2 p
   let Λ : Horn K.toSimplicialSet 2 1 :=
@@ -782,8 +782,8 @@ def KanComplex.symmTetrahedron (K : KanComplex) {a b : K.Obj}
   · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
   · change K.face 2 1 (K.fill Λ) = (K.symmPath2 α).simplex
     rfl
-  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
   · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
 
 private def KanComplex.triangleComparisonHorn (K : KanComplex) {a b c : K.Obj}
     {p : K.PathSpace a b} {m n : K.PathSpace a c} {q : K.PathSpace b c}
@@ -1016,6 +1016,93 @@ def KanComplex.tetrahedronPath3 (K : KanComplex) {a b c : K.Obj}
               simpa using
                 (K.face_face 2 (K.tetrahedronPath3Simplex ω₁ ω₂)
                   (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 ρ.simplex := by rw [h4]
+      _ = (K.reflPath2 p02).simplex := ρ.face1
+
+/-- A semantic 3-cell between the front faces of two tetrahedra with identical
+remaining boundary induces a semantic 3-cell between their middle faces. -/
+def KanComplex.tetrahedronFrontPath3 (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ₁ γ₂ : K.Path2 p12 p13} {α β : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (κ : K.Path3 γ₁ γ₂)
+    (ω₁ : K.Tetrahedron γ₁.toTriangle α.toTriangle τ2 τ3)
+    (ω₂ : K.Tetrahedron γ₂.toTriangle β.toTriangle τ2 τ3) :
+    K.Path3 α β := by
+  let ρ := K.reflTriangleTetrahedron τ3
+  let Λ : Horn K.toSimplicialSet 3 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then κ.toTetrahedron.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else if h3 : i = 3 then ω₁.simplex
+        else ρ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h02 | hrest
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ω₂.face0.trans κ.toTetrahedron.face1.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₁.face0.trans κ.toTetrahedron.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using ρ.face0.trans κ.toTetrahedron.face3.symm
+            · rcases hrest with h23 | hrest
+              · rcases h23 with ⟨rfl, rfl⟩
+                simpa using ω₁.face2.trans ω₂.face2.symm
+              · rcases hrest with h24 | h34
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using ρ.face2.trans ω₂.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using ρ.face3.trans ω₁.face3.symm }
+  refine
+    { simplex := K.face 3 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = κ.toTetrahedron.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.fill Λ))
+          = K.face 2 0 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 κ.toTetrahedron.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.reflPath c)).simplex := κ.toTetrahedron.face0
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h2]
+      _ = β.simplex := ω₂.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h3]
+      _ = α.simplex := ω₁.face1
+  · have h4 : K.face 3 4 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 3) (by omega) (by omega))
       _ = K.face 2 1 ρ.simplex := by rw [h4]
       _ = (K.reflPath2 p02).simplex := ρ.face1
 
@@ -2117,6 +2204,20 @@ noncomputable def TheoryTetrahedron.path3
     Theory3 K α β :=
   fun v => K.tetrahedronPath3 (Ω₁ v) (Ω₂ v)
 
+/-- A proof-relevant semantic 3-cell between the front faces of two
+boundary-aware tetrahedra with identical remaining boundary induces a semantic
+3-cell between their middle faces. -/
+noncomputable def TheoryTetrahedron.frontPath3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {ρ : Theory1 K L M} {σ τ : Theory1 K M N} {μ ν : Theory1 K L N}
+    {γ₁ γ₂ : Theory2 K σ τ} {α β : Theory2 K μ ν}
+    {τ2 : TheoryTriangle K ρ ν τ} {τ3 : TheoryTriangle K ρ μ σ}
+    (Κ : Theory3 K γ₁ γ₂)
+    (Ω₁ : TheoryTetrahedron K (Theory2.toTriangle K γ₁) (Theory2.toTriangle K α) τ2 τ3)
+    (Ω₂ : TheoryTetrahedron K (Theory2.toTriangle K γ₂) (Theory2.toTriangle K β) τ2 τ3) :
+    Theory3 K α β :=
+  fun v => K.tetrahedronFrontPath3 (Κ v) (Ω₁ v) (Ω₂ v)
+
 /-- A boundary-aware semantic 4-simplex comparison between tetrahedra with the
 same front face and same second outer face, but potentially different last
 outer faces. The extracted 3-simplex is still packaged as a semantic
@@ -2827,6 +2928,20 @@ noncomputable def HoTFTTetrahedron.path3
     HoTFT3 α β :=
   fun K => TheoryTetrahedron.path3 K (Ω₁ K) (Ω₂ K)
 
+/-- A proof-relevant HoTFT 3-cell between the front faces of two
+boundary-aware HoTFT tetrahedra with identical remaining boundary induces a
+proof-relevant HoTFT 3-cell between their middle faces. -/
+noncomputable def HoTFTTetrahedron.frontPath3
+    {L M N : Term}
+    {ρ : HoTFT1 L M} {σ τ : HoTFT1 M N} {μ ν : HoTFT1 L N}
+    {γ₁ γ₂ : HoTFT2 σ τ} {α β : HoTFT2 μ ν}
+    {τ2 : HoTFTTriangle ρ ν τ} {τ3 : HoTFTTriangle ρ μ σ}
+    (Κ : HoTFT3 γ₁ γ₂)
+    (Ω₁ : HoTFTTetrahedron (HoTFT2.toTriangle γ₁) (HoTFT2.toTriangle α) τ2 τ3)
+    (Ω₂ : HoTFTTetrahedron (HoTFT2.toTriangle γ₂) (HoTFT2.toTriangle β) τ2 τ3) :
+    HoTFT3 α β :=
+  fun K => TheoryTetrahedron.frontPath3 K (Κ K) (Ω₁ K) (Ω₂ K)
+
 /-- A boundary-aware HoTFT 4-simplex comparison between tetrahedra with the
 same front face and same second outer face, but potentially different last
 outer faces. -/
@@ -3057,27 +3172,6 @@ noncomputable def homotopy2_interchange_in_Theory3
         (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K p') (homotopy2_in_Theory2 K β))) :=
   Theory3.interchange K (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)
 
-/-- Every structurally supported syntactic 3-cell between parallel explicit
-2-cells induces a semantic 3-conversion between the corresponding interpreted
-semantic 2-cells in a fixed extensional Kan complex. -/
-noncomputable def structuralHomotopy3_in_Theory3
-    (K : ExtensionalKanComplex) :
-    {M N : Term} → {p q : ReductionSeq M N} → {α β : Homotopy2 p q} →
-      HigherLambdaModel.Lambda.HigherTerms.StructuralHomotopy3 α β →
-        Theory3 K (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)
-  | _, _, _, _, _, _, .refl α =>
-      homotopy2_refl_in_Theory3 K α
-  | _, _, _, _, _, _, .ofEq h =>
-      homotopy2_eq_in_Theory3 K h
-  | _, _, _, _, _, _, .symm η =>
-      Theory3.symm K (structuralHomotopy3_in_Theory3 K η)
-  | _, _, _, _, _, _, .trans η θ =>
-      Theory3.trans K
-        (structuralHomotopy3_in_Theory3 K η)
-        (structuralHomotopy3_in_Theory3 K θ)
-  | _, _, _, _, _, _, .interchange α β =>
-      homotopy2_eq_in_Theory3 K rfl
-
 /-- Reflexivity of the structural semantic 2-cell associated to an explicit βη
 path in a fixed model. -/
 noncomputable def reductionSeq_refl_in_Theory2
@@ -3240,6 +3334,39 @@ noncomputable def homotopy2_whiskerLeftRefl_in_Theory3
     (homotopy2_whiskerLeft_in_TheoryTetrahedron K r (Homotopy2.refl p))
     (reductionSeq_comp_refl_in_TheoryTetrahedron K r p)
 
+/-- Structural left whiskering of a reflexive interpreted 2-cell along an
+explicit βη path normalizes directly to the reflexive interpreted composite
+path. The recursive structural whisker appears as the front face of the
+single-step whiskering tetrahedron, while the target tetrahedron has the
+reflexive front face coming from the recursive normalization. -/
+noncomputable def reductionSeq_whiskerLeftRefl_in_Theory3
+    (K : ExtensionalKanComplex) :
+    {L M N : Term} → (r : ReductionSeq L M) → (p : ReductionSeq M N) →
+      Theory3 K
+        (reductionSeq_whiskerLeft_in_Theory2 K r
+          (Theory2.refl K (reductionSeq_in_Theory1 K p)))
+        (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat r p)))
+  | _, _, _, .refl _, p =>
+      Theory3.refl K (Theory2.refl K (reductionSeq_in_Theory1 K p))
+  | _, _, _, .step s rest, p =>
+      TheoryTetrahedron.frontPath3 K
+        (reductionSeq_whiskerLeftRefl_in_Theory3 K rest p)
+        (Theory3.whiskerLeftTetrahedron K (betaEtaStep_in_Theory1 K _ _ s)
+          (reductionSeq_whiskerLeft_in_Theory2 K rest
+            (Theory2.refl K (reductionSeq_in_Theory1 K p))))
+        (TheoryTriangle.reflTetrahedron K
+          (Theory1.compTriangle K (betaEtaStep_in_Theory1 K _ _ s)
+            (reductionSeq_in_Theory1 K (ReductionSeq.concat rest p))))
+  | _, _, _, .stepInv s rest, p =>
+      TheoryTetrahedron.frontPath3 K
+        (reductionSeq_whiskerLeftRefl_in_Theory3 K rest p)
+        (Theory3.whiskerLeftTetrahedron K (betaEtaStepInv_in_Theory1 K _ _ s)
+          (reductionSeq_whiskerLeft_in_Theory2 K rest
+            (Theory2.refl K (reductionSeq_in_Theory1 K p))))
+        (TheoryTriangle.reflTetrahedron K
+          (Theory1.compTriangle K (betaEtaStepInv_in_Theory1 K _ _ s)
+            (reductionSeq_in_Theory1 K (ReductionSeq.concat rest p))))
+
 /-- A first boundary-aware 4-simplex comparison for right whiskering of a
 reflexive interpreted 2-cell. This absorbs the mismatch between the source and
 target tetrahedra into an explicit extra boundary face, but does not yet
@@ -3264,6 +3391,29 @@ noncomputable def homotopy2_whiskerRightRefl_in_TheoryTetrahedron
     (homotopy2_whiskerRight_in_TheoryTetrahedron K (Homotopy2.refl p) s)
     (reductionSeq_comp_refl_in_TheoryTetrahedron K p s)
     (homotopy2_whiskerRight_in_TheoryTetrahedron K (Homotopy2.refl p) s)
+
+/-- Every structurally supported syntactic 3-cell between parallel explicit
+2-cells induces a semantic 3-conversion between the corresponding interpreted
+semantic 2-cells in a fixed extensional Kan complex. -/
+noncomputable def structuralHomotopy3_in_Theory3
+    (K : ExtensionalKanComplex) :
+    {M N : Term} → {p q : ReductionSeq M N} → {α β : Homotopy2 p q} →
+      HigherLambdaModel.Lambda.HigherTerms.StructuralHomotopy3 α β →
+        Theory3 K (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)
+  | _, _, _, _, _, _, .refl α =>
+      homotopy2_refl_in_Theory3 K α
+  | _, _, _, _, _, _, .ofEq h =>
+      homotopy2_eq_in_Theory3 K h
+  | _, _, _, _, _, _, .symm η =>
+      Theory3.symm K (structuralHomotopy3_in_Theory3 K η)
+  | _, _, _, _, _, _, .trans η θ =>
+      Theory3.trans K
+        (structuralHomotopy3_in_Theory3 K η)
+        (structuralHomotopy3_in_Theory3 K θ)
+  | _, _, _, _, _, _, .whiskerLeftRefl r p =>
+      reductionSeq_whiskerLeftRefl_in_Theory3 K r p
+  | _, _, _, _, _, _, .interchange α β =>
+      homotopy2_eq_in_Theory3 K rfl
 
 /-- Every structurally supported syntactic 2-cell between explicit βη paths
 induces a semantic 2-conversion between the corresponding structural semantic
@@ -3530,6 +3680,17 @@ noncomputable def homotopy2_whiskerLeftRefl_in_HoTFT3
     (homotopy2_whiskerLeft_in_HoTFTTetrahedron r (Homotopy2.refl p))
     (reductionSeq_comp_refl_in_HoTFTTetrahedron r p)
 
+/-- Structural left whiskering of a reflexive HoTFT 2-cell along an explicit
+βη path normalizes directly to the reflexive interpreted composite HoTFT
+1-cell. -/
+noncomputable def reductionSeq_whiskerLeftRefl_in_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerLeft_in_HoTFT2 r
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 (ReductionSeq.concat r p))) :=
+  fun K => reductionSeq_whiskerLeftRefl_in_Theory3 K r p
+
 /-- A first boundary-aware 4-simplex comparison for right whiskering of a
 reflexive interpreted 2-cell at the HoTFT layer. The remaining gap is now only
 the final normalization of this tetrahedron into `HoTFT3`. -/
@@ -3596,6 +3757,8 @@ noncomputable def structuralHomotopy3_in_HoTFT3 :
       HoTFT3.trans
         (structuralHomotopy3_in_HoTFT3 η)
         (structuralHomotopy3_in_HoTFT3 θ)
+  | _, _, _, _, _, _, .whiskerLeftRefl r p =>
+      reductionSeq_whiskerLeftRefl_in_HoTFT3 r p
   | _, _, _, _, _, _, .interchange α β =>
       homotopy2_eq_in_HoTFT3 rfl
 
