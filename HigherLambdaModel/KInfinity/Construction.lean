@@ -353,6 +353,27 @@ noncomputable def projectUp
   rw [projectUp_succ]
   exact congrArg (fun g => g.toFun (projectUp n x k)) (fMinus_comp_fPlus (n + k))
 
+@[simp] theorem projectUp_bottom
+    (n : Nat) (k : Nat) :
+    projectUp n (K n).bottom k = (K (n + k)).bottom := by
+  induction k with
+  | zero =>
+      rfl
+  | succ k ih =>
+      rw [projectUp_succ, ih, fPlus_strict]
+      simpa [K, Nat.add_assoc]
+
+theorem projectUp_monotone
+    (n : Nat)
+    {x y : (K n).Obj}
+    (hxy : (K n).Rel x y) :
+    ∀ k : Nat, (K (n + k)).Rel (projectUp n x k) (projectUp n y k)
+  | 0 => by
+      simpa using hxy
+  | k + 1 => by
+      rw [projectUp_succ, projectUp_succ]
+      exact (fPlus (n + k)).monotone' (projectUp_monotone n hxy k)
+
 /-- Repeated application of the h-projections `fₙ⁻`. -/
 noncomputable def projectDown
     (n : Nat) (x : (K n).Obj) :
@@ -382,5 +403,38 @@ theorem projectDown_step
     lhs
     unfold projectDown
   simp [hmn]
+
+@[simp] theorem projectDown_bottom
+    (n : Nat) :
+    ∀ {m : Nat} (_hm : m ≤ n),
+      projectDown n (K n).bottom m (by omega) = (K m).bottom
+  | m, _hm => by
+      by_cases hmn : m = n
+      · subst hmn
+        simpa using projectDown_self n (K n).bottom
+      · rw [projectDown_step (n := n) (x := (K n).bottom) (m := m) (by omega)]
+        rw [projectDown_bottom n (m := m + 1)]
+        exact fMinus_strict_eq m
+termination_by m _hm => n - m
+decreasing_by
+  omega
+
+theorem projectDown_monotone
+    (n : Nat)
+    {x y : (K n).Obj}
+    (hxy : (K n).Rel x y) :
+    ∀ {m : Nat} (_hm : m ≤ n),
+      (K m).Rel (projectDown n x m (by omega)) (projectDown n y m (by omega))
+  | m, _hm => by
+      by_cases hmn : m = n
+      · subst hmn
+        simpa using hxy
+      · rw [projectDown_step (n := n) (x := x) (m := m) (by omega)]
+        rw [projectDown_step (n := n) (x := y) (m := m) (by omega)]
+        exact (fMinus m).monotone'
+          (projectDown_monotone n hxy (m := m + 1) (by omega))
+termination_by m _hm => n - m
+decreasing_by
+  omega
 
 end HigherLambdaModel.KInfinity

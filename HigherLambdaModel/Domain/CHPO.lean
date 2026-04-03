@@ -1241,6 +1241,70 @@ abbrev KInfinity (S : System) : CompleteHomotopyPartialOrder :=
 
 end Projective
 
+/-! ## Bottom Preservation and Strictness -/
+
+/-- The bottom element of any c.h.p.o. is the least upper bound of
+the singleton `{⊥}`. -/
+theorem bottom_isLub_singleton
+    (K : CompleteHomotopyPartialOrder) :
+    K.IsLeastUpperBound (fun x => x = K.bottom) K.bottom := by
+  constructor
+  · intro x hx; subst hx; exact K.rel_refl K.bottom
+  · intro w hw; exact hw rfl
+
+/-- A continuous map sends bottom above the codomain bottom. -/
+theorem ContinuousMap.bottom_below
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (f : ContinuousMap K L) :
+    L.Rel L.bottom (f.toFun K.bottom) :=
+  L.bottom_le (f.toFun K.bottom)
+
+/-- A strict continuous map sends bottom to bottom. -/
+def IsStrictMap
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (f : ContinuousMap K L) : Prop :=
+  f.toFun K.bottom = L.bottom
+
+/-- Namespace-friendly alias for strict continuous maps. -/
+def ContinuousMap.IsStrict
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (f : ContinuousMap K L) : Prop :=
+  IsStrictMap f
+
+/-- Composition of strict maps is strict. -/
+theorem isStrictMap_comp
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    {M : CompleteHomotopyPartialOrder}
+    (g : ContinuousMap L M) (f : ContinuousMap K L)
+    (hf : IsStrictMap f) (hg : IsStrictMap g) :
+    IsStrictMap (ContinuousMap.comp g f) := by
+  show g.toFun (f.toFun K.bottom) = M.bottom
+  rw [hf, hg]
+
+/-- Composition of strict continuous maps is strict. -/
+theorem ContinuousMap.strict_comp
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    {M : CompleteHomotopyPartialOrder}
+    (g : ContinuousMap L M) (f : ContinuousMap K L)
+    (hf : ContinuousMap.IsStrict g) (hg : ContinuousMap.IsStrict f) :
+    ContinuousMap.IsStrict (ContinuousMap.comp g f) :=
+  isStrictMap_comp g f hg hf
+
+/-- The identity map is strict. -/
+theorem isStrictMap_id (K : CompleteHomotopyPartialOrder) :
+    IsStrictMap (ContinuousMap.id K) := rfl
+
+/-- The identity map is strict. -/
+theorem ContinuousMap.strict_id
+    (K : CompleteHomotopyPartialOrder) :
+    ContinuousMap.IsStrict (ContinuousMap.id K) :=
+  isStrictMap_id K
+
 /-! ## ω-Diagrams and Colimits (Corollary 3.1) -/
 
 /-- An ordinary `ω`-diagram in the category of c.h.p.o.'s. -/

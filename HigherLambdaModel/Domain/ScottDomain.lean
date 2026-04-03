@@ -81,6 +81,40 @@ def CompactApproximation
   ∀ x : K.Obj,
     L.IsLeastUpperBound (image f (compactBelow K x)) (f x)
 
+/-! ## Bottom Compactness -/
+
+/-- The bottom element of any c.h.p.o. is compact. -/
+theorem bottom_isCompact (K : CompleteHomotopyPartialOrder) : IsCompact K K.bottom := by
+  intro X hX _; rcases hX.1 with ⟨x, hx⟩; exact ⟨x, hx, K.bottom_le x⟩
+
+/-- The image of a compact element under a section of a retraction is compact. -/
+theorem compact_of_retraction
+    {K L : CompleteHomotopyPartialOrder}
+    (e : ContinuousMap K L) (r : ContinuousMap L K)
+    (hret : ∀ x : K.Obj, K.Rel (r.toFun (e.toFun x)) x ∧ K.Rel x (r.toFun (e.toFun x)))
+    (hsec : ∀ y : L.Obj, L.Rel (e.toFun (r.toFun y)) y)
+    {x : K.Obj} (hx : IsCompact K x) : IsCompact L (e.toFun x) := by
+  intro Y hY heSup
+  have hZ : K.Directed (image r.toFun Y) := r.directed_image hY
+  have hrSup : K.Rel (r.toFun (L.sup Y hY)) (K.sup (image r.toFun Y) hZ) := by
+    refine (r.preserves_sup Y hY).2 ?_
+    intro a ha
+    rcases ha with ⟨y, hy, rfl⟩
+    exact (K.sup_spec _ hZ).1 ⟨y, hy, rfl⟩
+  have hxSupZ : K.Rel x (K.sup (image r.toFun Y) hZ) := by
+    exact K.rel_trans (hret x).2 (K.rel_trans (r.monotone' heSup) hrSup)
+  rcases hx _ hZ hxSupZ with ⟨z, ⟨y, hy, rfl⟩, hxz⟩
+  exact ⟨y, hy, L.rel_trans (e.monotone' hxz) (hsec y)⟩
+
+/-- Compactness below is monotone in the ambient element. -/
+theorem compactBelow_mono {K : CompleteHomotopyPartialOrder} {x y : K.Obj}
+    (hxy : K.Rel x y) {z : K.Obj} (hz : compactBelow K x z) : compactBelow K y z :=
+  ⟨hz.1, K.rel_trans hz.2 hxy⟩
+
+/-- The bottom element is compact-below every element. -/
+theorem bottom_compactBelow (K : CompleteHomotopyPartialOrder) (x : K.Obj) :
+    compactBelow K x K.bottom := ⟨bottom_isCompact K, K.bottom_le x⟩
+
 /-! ## Helper Lemmas -/
 
 /-- Directedness is invariant under pointwise equivalent predicates. -/
@@ -789,5 +823,31 @@ def selfExponentialScottDomainOfFiniteStepBasis
     (hBasis : ∀ f : ContinuousMap K K, Nonempty (FiniteStepBasis K K f)) :
     HomotopyScottDomain :=
   exponentialScottDomainOfFiniteStepBasis K K hBasis
+
+/-! ## Step Function Properties -/
+
+/-- A step function with bottom source yields the constant map. -/
+theorem stepFunction_bottom_source
+    {K L : CompleteHomotopyPartialOrder} (ha : IsCompact K K.bottom) (b : L.Obj) :
+    (Exponential.chpo K L).Rel (stepFunction K.bottom ha b) (ContinuousMap.const K L b) := by
+  refine Exponential.rel_mk ?_
+  intro x; simp only [stepFunction, K.bottom_le x, ite_true]; exact L.rel_refl b
+
+/-- The bottom continuous map is a step function with bottom arguments. -/
+theorem bottom_map_is_step
+    {K L : CompleteHomotopyPartialOrder} (ha : IsCompact K K.bottom) :
+    (Exponential.chpo K L).Rel (stepFunction K.bottom ha L.bottom) (Exponential.chpo K L).bottom := by
+  refine Exponential.rel_mk ?_
+  intro x; simp only [stepFunction, K.bottom_le x, ite_true]; exact L.rel_refl L.bottom
+
+/-- The bottom continuous map is compact in the exponential c.h.p.o. -/
+theorem bottom_map_compact (K L : CompleteHomotopyPartialOrder) :
+    IsCompact (Exponential.chpo K L) (Exponential.chpo K L).bottom :=
+  bottom_isCompact (Exponential.chpo K L)
+
+/-- The exponential bottom map is compact-below every continuous map. -/
+theorem bottom_map_compactBelow {K L : CompleteHomotopyPartialOrder} (f : ContinuousMap K L) :
+    compactBelow (Exponential.chpo K L) f (Exponential.chpo K L).bottom :=
+  bottom_compactBelow (Exponential.chpo K L) f
 
 end HigherLambdaModel.Domain
