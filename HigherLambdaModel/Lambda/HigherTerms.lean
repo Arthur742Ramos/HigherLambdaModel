@@ -450,10 +450,11 @@ end Homotopy3
 
 This keeps only the constructors already matched by explicit simplicial
 operations in `ExtensionalKan`: reflexivity, literal equality of 2-cells,
-symmetry, vertical composition, and the interchange witness coming from the
-chosen definition of horizontal composition. The remaining primitive
-constructors of `Homotopy3Deriv` stay in the full syntax but are not yet
-included in this restricted fragment. -/
+symmetry, vertical composition, the `whiskerLeftRefl` witness already
+normalized semantically in `ExtensionalKan`, and the interchange witness
+coming from the chosen definition of horizontal composition. The remaining
+primitive constructors of `Homotopy3Deriv` stay in the full syntax but are not
+yet included in this restricted fragment. -/
 inductive StructuralHomotopy3 :
     {M N : Term} → {p q : ReductionSeq M N} →
     (α β : Homotopy2 p q) → Type where
@@ -467,6 +468,9 @@ inductive StructuralHomotopy3 :
       {α β γ : Homotopy2 p q} :
       StructuralHomotopy3 α β → StructuralHomotopy3 β γ →
       StructuralHomotopy3 α γ
+  | whiskerLeftRefl {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+      StructuralHomotopy3 (whiskerLeft r (Homotopy2.refl p))
+        (Homotopy2.refl (ReductionSeq.concat r p))
   | interchange {M N P : Term}
       {p p' : ReductionSeq M N} {q q' : ReductionSeq N P}
       (α : Homotopy2 p p') (β : Homotopy2 q q') :
@@ -483,6 +487,8 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
   | .ofEq h => Homotopy3.ofEq h
   | .symm η => Homotopy3.symm η.toHomotopy3
   | .trans η θ => Homotopy3.trans η.toHomotopy3 θ.toHomotopy3
+  | .whiskerLeftRefl r p =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftRefl r p)
   | .interchange α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.interchange α β)
 

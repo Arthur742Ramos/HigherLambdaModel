@@ -183,6 +183,22 @@ def KanComplex.Path3.toTetrahedron (K : KanComplex) {a b : K.Obj}
   face2 := η.face2
   face3 := η.face3
 
+/-- A tetrahedron with the degenerate outer faces of a `Path3` can be read
+back as a semantic 3-cell. -/
+def KanComplex.Tetrahedron.toPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} {α β : K.Path2 p q}
+    (ω : K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      β.toTriangle
+      α.toTriangle
+      (K.reflPath2 p).toTriangle) :
+    K.Path3 α β where
+  simplex := ω.simplex
+  face0 := ω.face0
+  face1 := ω.face1
+  face2 := ω.face2
+  face3 := ω.face3
+
 private theorem KanComplex.reflPath2_reflPath_simplex
     (K : KanComplex) (b : K.Obj) :
     K.degen 1 0 (K.reflPath b).simplex = (K.reflPath2 (K.reflPath b)).simplex := by
@@ -731,6 +747,43 @@ def KanComplex.symmPath2 (K : KanComplex) {a b : K.Obj}
               simpa using (K.face_face 1 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
       _ = K.face 1 1 α.simplex := by rw [h3]
       _ = q.simplex := α.face1
+
+/-- The tetrahedron filled in the definition of `symmPath2`. -/
+def KanComplex.symmTetrahedron (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (α : K.Path2 p q) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      (K.symmPath2 α).toTriangle
+      α.toTriangle
+      (K.reflPath2 p).toTriangle := by
+  let ε := K.reflPath2 (K.reflPath b)
+  let ρ := K.reflPath2 p
+  let Λ : Horn K.toSimplicialSet 2 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex else if h2 : i = 2 then ρ.simplex else α.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+          omega
+        rcases hij_cases with h02 | h03 | h23
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ρ.face0.trans ε.face1.symm
+        · rcases h03 with ⟨rfl, rfl⟩
+          simpa using α.face0.trans ε.face2.symm
+        · rcases h23 with ⟨rfl, rfl⟩
+          simpa using α.face2.trans ρ.face2.symm }
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · change K.face 2 1 (K.fill Λ) = (K.symmPath2 α).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
 
 private def KanComplex.triangleComparisonHorn (K : KanComplex) {a b c : K.Obj}
     {p : K.PathSpace a b} {m n : K.PathSpace a c} {q : K.PathSpace b c}
