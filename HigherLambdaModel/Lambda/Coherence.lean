@@ -195,6 +195,19 @@ def homotopy3_refl {M N : Term} {p q : ReductionSeq M N}
     (α : Homotopy2 p q) : HigherTerms.Homotopy3 α α :=
   HigherTerms.Homotopy3.refl α
 
+/-- Every 3-cell admits its reflexive 4-cell in the recursive higher tower. -/
+def homotopy4_refl {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} (η : HigherTerms.Homotopy3 α β) :
+    HigherTerms.HigherDeriv η η :=
+  HigherTerms.HigherDeriv.refl η
+
+/-- Every 4-cell admits its reflexive 5-cell in the recursive higher tower. -/
+def homotopy5_refl {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} {η θ : HigherTerms.Homotopy3 α β}
+    (ω : HigherTerms.HigherDeriv η θ) :
+    HigherTerms.HigherDeriv ω ω :=
+  HigherTerms.HigherDeriv.refl ω
+
 /-! ## The Weak ω-Groupoid Structure -/
 
 /-- The generic omega-groupoid core specialized to λ-terms. -/
@@ -211,6 +224,8 @@ def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
   Hom2 := Homotopy2
   refl2 := Homotopy2.refl
   Hom3 := HigherTerms.Homotopy3
+  Hom4 := fun {_} {_} {_} {_} {_} {_} η θ => HigherTerms.HigherDeriv η θ
+  Hom5 := fun {_} {_} {_} {_} {_} {_} {_} {_} ω ω' => HigherTerms.HigherDeriv ω ω'
   symm2 := fun α => Homotopy2.symm α
   trans2 := fun α β => Homotopy2.trans α β
   whiskerLeft := fun {M} {N} {P} r {p} {q} α =>
@@ -228,6 +243,8 @@ def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
   inv_right := inv_right_homotopy
   inv_left := inv_left_homotopy
   hom3_refl := fun α => coherence_refl α
+  hom4_refl := fun η => homotopy4_refl η
+  hom5_refl := fun ω => homotopy5_refl ω
   pentagon_coh := pentagon
   triangle_coh := triangle
   interchange_coh := interchange
