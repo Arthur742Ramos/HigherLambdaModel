@@ -22,6 +22,7 @@ irrelevant wrappers.
 -/
 
 import HigherLambdaModel.Lambda.Reduction
+import HigherLambdaModel.Simplicial.OmegaGroupoid
 
 namespace HigherLambdaModel.Lambda.HigherTerms
 
@@ -507,6 +508,17 @@ inductive HigherDeriv {A : Type u} : A → A → Type u where
   | symm {x y : A} : HigherDeriv x y → HigherDeriv y x
   | trans {x y z : A} : HigherDeriv x y → HigherDeriv y z → HigherDeriv x z
 
+namespace HigherDeriv
+
+/-- Every abstract higher derivation in the current recursive layer collapses to
+ordinary equality of its endpoints. -/
+theorem toEq {A : Type u} {x y : A} : HigherDeriv x y → x = y
+  | .refl _ => rfl
+  | .symm h => (toEq h).symm
+  | .trans h₁ h₂ => (toEq h₁).trans (toEq h₂)
+
+end HigherDeriv
+
 /-- The type of cells in the constructive higher λ-model.
 
 Dimensions `0` through `3` are represented explicitly. Above that, the tower is
@@ -517,6 +529,42 @@ def Cell : Nat → Type
   | 2 => Σ (M N : Term) (p q : ReductionSeq M N), Homotopy2 p q
   | 3 => Σ (M N : Term) (p q : ReductionSeq M N) (α β : Homotopy2 p q), Homotopy3 α β
   | n + 4 => Σ (x y : Cell (n + 3)), HigherDeriv x y
+
+namespace Cell
+
+/-- The immediate source boundary of a higher cell. -/
+def source : {n : Nat} → Cell (n + 1) → Cell n
+  | 0, ⟨M, _, _⟩ => M
+  | 1, ⟨M, N, p, _, _⟩ => ⟨M, N, p⟩
+  | 2, ⟨M, N, p, q, α, _, _⟩ => ⟨M, N, p, q, α⟩
+  | _ + 3, ⟨x, _, _⟩ => x
+
+/-- The immediate target boundary of a higher cell. -/
+def target : {n : Nat} → Cell (n + 1) → Cell n
+  | 0, ⟨_, N, _⟩ => N
+  | 1, ⟨M, N, _, q, _⟩ => ⟨M, N, q⟩
+  | 2, ⟨M, N, p, q, _, β, _⟩ => ⟨M, N, p, q, β⟩
+  | _ + 3, ⟨_, y, _⟩ => y
+
+/-- Globularity on source boundaries for the recursive higher-cell tower. -/
+theorem globular_source : {n : Nat} → (x : Cell (n + 2)) →
+    source (source x) = source (target x)
+  | 0, ⟨_, _, _, _, _⟩ => rfl
+  | 1, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | _ + 2, ⟨x, y, h⟩ => by
+      cases HigherDeriv.toEq h
+      rfl
+
+/-- Globularity on target boundaries for the recursive higher-cell tower. -/
+theorem globular_target : {n : Nat} → (x : Cell (n + 2)) →
+    target (source x) = target (target x)
+  | 0, ⟨_, _, _, _, _⟩ => rfl
+  | 1, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | _ + 2, ⟨x, y, h⟩ => by
+      cases HigherDeriv.toEq h
+      rfl
+
+end Cell
 
 /-! ## Homotopic λ-Models -/
 
@@ -533,18 +581,13 @@ structure HomotopicLambdaModel where
 
 /-! ## Weak ω-Groupoid Data -/
 
-/-- The low-dimensional groupoid data carried by λ-terms.
+/-- The generic low-dimensional omega-groupoid interface specialized to the
+lambda-calculus higher-path core.
 
 The `refl2` field packages the canonical reflexive 2-cell constructor available
 in the current higher-path core. -/
-structure LambdaOmegaGroupoidData where
-  Obj : Type
-  Hom : Obj → Obj → Type
-  id : (M : Obj) → Hom M M
-  comp : {M N P : Obj} → Hom M N → Hom N P → Hom M P
-  inv : {M N : Obj} → Hom M N → Hom N M
-  Hom2 : {M N : Obj} → Hom M N → Hom M N → Type
-  refl2 : {M N : Obj} → (p : Hom M N) → Hom2 p p
+abbrev LambdaOmegaGroupoidData :=
+  HigherLambdaModel.Simplicial.OmegaGroupoidData
 
 /-- The λ-terms carry the expected low-dimensional groupoid data, with
 canonical reflexive 2-cells. -/

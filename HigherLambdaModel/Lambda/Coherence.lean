@@ -197,42 +197,37 @@ def homotopy3_refl {M N : Term} {p q : ReductionSeq M N}
 
 /-! ## The Weak ω-Groupoid Structure -/
 
-/-- The weak ω-groupoid structure on λ-terms, with coherence witnesses. -/
-structure LambdaOmegaGroupoid where
-  comp_assoc : {M N P Q : Term} → (p : ReductionSeq M N) → (q : ReductionSeq N P) →
-    (r : ReductionSeq P Q) →
-    ReductionSeq.concat (ReductionSeq.concat p q) r = ReductionSeq.concat p (ReductionSeq.concat q r)
-  comp_id_left : {M N : Term} → (p : ReductionSeq M N) →
-    ReductionSeq.concat (ReductionSeq.refl M) p = p
-  comp_id_right : {M N : Term} → (p : ReductionSeq M N) →
-    ReductionSeq.concat p (ReductionSeq.refl N) = p
-  hom3_refl : {M N : Term} → {p q : ReductionSeq M N} →
-    (α : Homotopy2 p q) → HigherTerms.Homotopy3 α α
-  pentagon_coh : {M N P Q R : Term} → (p : ReductionSeq M N) → (q : ReductionSeq N P) →
-    (r : ReductionSeq P Q) → (s : ReductionSeq Q R) →
-    HigherTerms.Homotopy3
-      (Homotopy2.trans (associator (ReductionSeq.concat p q) r s)
-        (associator p q (ReductionSeq.concat r s)))
-      (Homotopy2.trans
-        (Homotopy2.trans (whiskerRight (associator p q r) s)
-          (associator p (ReductionSeq.concat q r) s))
-        (whiskerLeft p (associator q r s)))
-  triangle_coh : {M N P : Term} → (p : ReductionSeq M N) → (q : ReductionSeq N P) →
-    HigherTerms.Homotopy3
-      (Homotopy2.trans (associator p (ReductionSeq.refl N) q)
-        (whiskerLeft p (leftUnitor q)))
-      (whiskerRight (rightUnitor p) q)
-  interchange_coh : {M N P : Term} → {p p' : ReductionSeq M N} → {q q' : ReductionSeq N P} →
-    (α : Homotopy2 p p') → (β : Homotopy2 q q') →
-    HigherTerms.Homotopy3 (hcomp α β)
-      (Homotopy2.trans (whiskerRight α q) (whiskerLeft p' β))
+/-- The generic omega-groupoid core specialized to λ-terms. -/
+abbrev LambdaOmegaGroupoid :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid
 
 /-- The canonical weak ω-groupoid structure on λ-terms. -/
 def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
-  comp_assoc := ReductionSeq.concat_assoc
-  comp_id_left := ReductionSeq.concat_refl_left
-  comp_id_right := ReductionSeq.concat_refl_right
-  hom3_refl := fun {_} {_} {_} {_} α => coherence_refl α
+  Obj := Term
+  Hom := ReductionSeq
+  id := ReductionSeq.refl
+  comp := ReductionSeq.concat
+  inv := ReductionSeq.inv
+  Hom2 := Homotopy2
+  refl2 := Homotopy2.refl
+  Hom3 := HigherTerms.Homotopy3
+  symm2 := fun α => Homotopy2.symm α
+  trans2 := fun α β => Homotopy2.trans α β
+  whiskerLeft := fun {M} {N} {P} r {p} {q} α =>
+    HigherLambdaModel.Lambda.Coherence.whiskerLeft (M := M) (N := N) (P := P) r
+      (p := p) (q := q) α
+  whiskerRight := fun {M} {N} {P} {p} {q} α s =>
+    HigherLambdaModel.Lambda.Coherence.whiskerRight (M := M) (N := N) (P := P)
+      (p := p) (q := q) α s
+  hcomp := fun {M} {N} {P} {p} {p'} {q} {q'} α β =>
+    HigherLambdaModel.Lambda.Coherence.hcomp (M := M) (N := N) (P := P)
+      (p := p) (p' := p') (q := q) (q' := q') α β
+  associator := associator
+  leftUnitor := leftUnitor
+  rightUnitor := rightUnitor
+  inv_right := inv_right_homotopy
+  inv_left := inv_left_homotopy
+  hom3_refl := fun α => coherence_refl α
   pentagon_coh := pentagon
   triangle_coh := triangle
   interchange_coh := interchange

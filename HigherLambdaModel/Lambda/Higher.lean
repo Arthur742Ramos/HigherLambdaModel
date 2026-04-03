@@ -9,8 +9,7 @@ The current version is a compatibility facade over the explicit higher
 conversion objects defined in `HigherTerms.lean`.
 -/
 
-import HigherLambdaModel.Lambda.HigherTerms
-import HigherLambdaModel.Lambda.HigherTerms
+import HigherLambdaModel.Lambda.Coherence
 
 namespace HigherLambdaModel.Lambda
 
@@ -37,18 +36,26 @@ def betaEtaStepPath {M N : Term} (h : BetaEtaStep M N) : TermPath M N :=
 /-- Legacy name for explicit 1-cells. -/
 abbrev LambdaPath (M N : Term) := ReductionSeq M N
 
+/-- Canonical weak omega-groupoid interface on λ-terms. -/
+abbrev LambdaOmegaGroupoid :=
+  Coherence.LambdaOmegaGroupoid
+
+/-- Re-export of the canonical lambda omega-groupoid structure. -/
+abbrev lambdaOmegaGroupoid : LambdaOmegaGroupoid :=
+  Coherence.lambdaOmegaGroupoid
+
 namespace LambdaPath
 
 /-- Identity path. -/
-def refl (M : Term) : LambdaPath M M := ReductionSeq.refl M
+def refl (M : Term) : LambdaPath M M := lambdaOmegaGroupoid.id M
 
 /-- Composition of paths. -/
 def trans {M N P : Term} (p : LambdaPath M N) (q : LambdaPath N P) : LambdaPath M P :=
-  ReductionSeq.concat p q
+  lambdaOmegaGroupoid.comp p q
 
 /-- Symmetry uses the inverse operation supplied by `HigherTerms`. -/
-noncomputable def symm {M N : Term} (p : LambdaPath M N) : LambdaPath N M :=
-  ReductionSeq.inv p
+def symm {M N : Term} (p : LambdaPath M N) : LambdaPath N M :=
+  lambdaOmegaGroupoid.inv p
 
 /-- A single βη-step as a path. -/
 def step {M N : Term} (h : BetaEtaStep M N) : LambdaPath M N :=
@@ -62,16 +69,17 @@ abbrev Lambda2Cell {M N : Term} (p q : LambdaPath M N) := Homotopy2 p q
 namespace Lambda2Cell
 
 /-- Identity 2-cell. -/
-def refl {M N : Term} (p : LambdaPath M N) : Lambda2Cell p p := Homotopy2.refl p
+def refl {M N : Term} (p : LambdaPath M N) : Lambda2Cell p p :=
+  lambdaOmegaGroupoid.refl2 p
 
 /-- Vertical composition of 2-cells. -/
 def trans {M N : Term} {p q r : LambdaPath M N}
     (α : Lambda2Cell p q) (β : Lambda2Cell q r) : Lambda2Cell p r :=
-  Homotopy2.trans α β
+  lambdaOmegaGroupoid.trans2 α β
 
 /-- Symmetry of 2-cells. -/
 def symm {M N : Term} {p q : LambdaPath M N} (α : Lambda2Cell p q) : Lambda2Cell q p :=
-  Homotopy2.symm α
+  lambdaOmegaGroupoid.symm2 α
 
 end Lambda2Cell
 
@@ -91,21 +99,21 @@ end Lambda3Cell
 /-! ## Groupoid-Style Operations -/
 
 /-- Right inverse law up to homotopy. -/
-noncomputable def path_inv_right {M N : Term} (p : LambdaPath M N) :
+def path_inv_right {M N : Term} (p : LambdaPath M N) :
     Lambda2Cell (LambdaPath.trans p (LambdaPath.symm p)) (LambdaPath.refl M) :=
-  inv_right_homotopy p
+  lambdaOmegaGroupoid.inv_right p
 
 /-- Left inverse law up to homotopy. -/
-noncomputable def path_inv_left {M N : Term} (p : LambdaPath M N) :
+def path_inv_left {M N : Term} (p : LambdaPath M N) :
     Lambda2Cell (LambdaPath.trans (LambdaPath.symm p) p) (LambdaPath.refl N) :=
-  inv_left_homotopy p
+  lambdaOmegaGroupoid.inv_left p
 
 /-- Associativity of path composition up to homotopy. -/
 def path_assoc {M N P Q : Term}
     (p : LambdaPath M N) (q : LambdaPath N P) (r : LambdaPath P Q) :
     Lambda2Cell (LambdaPath.trans (LambdaPath.trans p q) r)
                 (LambdaPath.trans p (LambdaPath.trans q r)) :=
-  concat_assoc_homotopy p q r
+  lambdaOmegaGroupoid.associator p q r
 
 /-! ## Legacy Exports -/
 
@@ -114,8 +122,8 @@ def ExtEqual (M N : Term) : Prop :=
   ∀ (P : Term), BetaEtaConv (app M P) (app N P)
 
 /-- Weak ω-groupoid data packaged using explicit reduction sequences. -/
-noncomputable abbrev lambdaOmegaGroupoidData : LambdaOmegaGroupoidData :=
-  HigherTerms.lambdaOmegaGroupoidData
+abbrev lambdaOmegaGroupoidData : LambdaOmegaGroupoidData :=
+  lambdaOmegaGroupoid.toOmegaGroupoidData
 
 /-! ## Example -/
 

@@ -10,7 +10,7 @@ generic h-level predicates available, but we no longer claim global
 contractibility of the higher-cell spaces.
 -/
 
-import HigherLambdaModel.Lambda.HigherTerms
+import HigherLambdaModel.Lambda.Coherence
 
 namespace HigherLambdaModel.Lambda.TruncationCore
 
@@ -90,24 +90,14 @@ theorem homotopy3_refl_inhabited {M N : Term} {p q : ReductionSeq M N}
 
 /-! ## A Packaged Reflexive Tower -/
 
-/-- The low-dimensional higher-cell data carried by the constructive path model. -/
-structure ReflexiveLambdaTower where
-  Cell0 : Type
-  Cell1 : Cell0 → Cell0 → Type
-  Cell2 : {M N : Cell0} → Cell1 M N → Cell1 M N → Sort _
-  Cell3 : {M N : Cell0} → {p q : Cell1 M N} → Cell2 p q → Cell2 p q → Sort _
-  cell2_refl : ∀ {M N : Cell0} (p : Cell1 M N), Cell2 p p
-  cell3_refl : ∀ {M N : Cell0} {p q : Cell1 M N}
-      (α : Cell2 p q), Cell3 α α
+/-- The low-dimensional higher-cell data carried by the constructive path
+model, viewed through the generic simplicial interface. -/
+abbrev ReflexiveLambdaTower :=
+  HigherLambdaModel.Simplicial.ReflexiveGlobularTower
 
 /-- The canonical higher-cell data coming from λ-terms and explicit paths. -/
-def reflexiveLambdaTower : ReflexiveLambdaTower where
-  Cell0 := Term
-  Cell1 := ReductionSeq
-  Cell2 := @Homotopy2
-  Cell3 := @HigherTerms.Homotopy3
-  cell2_refl := @homotopy2_refl
-  cell3_refl := @homotopy3_refl
+def reflexiveLambdaTower : ReflexiveLambdaTower :=
+  HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower
 
 /-! ## Consequences -/
 

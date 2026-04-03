@@ -826,7 +826,268 @@ def KanComplex.triangleComparisonTetrahedron (K : KanComplex) {a b c : K.Obj}
   · simpa [KanComplex.triangleComparisonSimplex, KanComplex.triangleComparisonHorn, Λ] using
       (K.fill_spec Λ (i := 3) (by omega) (by omega))
 
-private def KanComplex.assocTriangle (K : KanComplex) {a b c d : K.Obj}
+/-- Degenerating a triangle along its middle face produces a tetrahedron whose
+middle face is the reflexive 2-cell on that middle edge. -/
+def KanComplex.reflTriangleTetrahedron (K : KanComplex) {a b c : K.Obj}
+    {p : K.PathSpace a b} {m : K.PathSpace a c} {q : K.PathSpace b c}
+    (τ : K.Triangle p m q) :
+    K.Tetrahedron
+      (K.reflPath2 q).toTriangle
+      (K.reflPath2 m).toTriangle
+      τ
+      τ := by
+  refine
+    { simplex := K.degen 2 2 τ.simplex
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · calc
+      K.face 2 0 (K.degen 2 2 τ.simplex)
+          = K.degen 1 1 (K.face 1 0 τ.simplex) := by
+              simpa using (K.face_degen_lt 1 τ.simplex (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.degen 1 1 q.simplex := by rw [τ.face0]
+      _ = (K.reflPath2 q).toTriangle.simplex := rfl
+  · calc
+      K.face 2 1 (K.degen 2 2 τ.simplex)
+          = K.degen 1 1 (K.face 1 1 τ.simplex) := by
+              simpa using (K.face_degen_lt 1 τ.simplex (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.degen 1 1 m.simplex := by rw [τ.face1]
+      _ = (K.reflPath2 m).toTriangle.simplex := rfl
+  · simpa using (K.face_degen_eq 1 τ.simplex (i := 2) (by omega))
+  · simpa using (K.face_degen_succ 1 τ.simplex (i := 2) (by omega))
+
+private def KanComplex.tetrahedronPath3Horn (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ3) :
+    Horn K.toSimplicialSet 3 1 :=
+  let ε := (K.reflPath3 γ).toTetrahedron
+  let ρ := K.reflTriangleTetrahedron τ3
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then ε.simplex
+      else if h2 : i = 2 then ω₂.simplex
+      else if h3 : i = 3 then ω₁.simplex
+      else ρ.simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases :
+          (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+            (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+        omega
+      rcases hij_cases with h02 | hrest
+      · rcases h02 with ⟨rfl, rfl⟩
+        simpa using ω₂.face0.trans ε.face1.symm
+      · rcases hrest with h03 | hrest
+        · rcases h03 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face2.symm
+        · rcases hrest with h04 | hrest
+          · rcases h04 with ⟨rfl, rfl⟩
+            simpa using ρ.face0.trans ε.face3.symm
+          · rcases hrest with h23 | hrest
+            · rcases h23 with ⟨rfl, rfl⟩
+              simpa using ω₁.face2.trans ω₂.face2.symm
+            · rcases hrest with h24 | h34
+              · rcases h24 with ⟨rfl, rfl⟩
+                simpa using ρ.face2.trans ω₂.face3.symm
+              · rcases h34 with ⟨rfl, rfl⟩
+                simpa using ρ.face3.trans ω₁.face3.symm }
+
+private def KanComplex.tetrahedronPath3Simplex (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ3) : K.Simplex 4 :=
+  K.fill (K.tetrahedronPath3Horn ω₁ ω₂)
+
+/-- Two tetrahedra with the same outer boundary and a front face coming from a
+semantic 2-cell induce a semantic 3-cell between their middle faces. -/
+def KanComplex.tetrahedronPath3 (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ3) :
+    K.Path3 α β := by
+  let Λ := K.tetrahedronPath3Horn ω₁ ω₂
+  let ε := (K.reflPath3 γ).toTetrahedron
+  let ρ := K.reflTriangleTetrahedron τ3
+  refine
+    { simplex := K.face 3 1 (K.tetrahedronPath3Simplex ω₁ ω₂)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.tetrahedronPath3Simplex ω₁ ω₂) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.tetrahedronPath3Simplex ω₁ ω₂))
+          = K.face 2 0 (K.face 3 0 (K.tetrahedronPath3Simplex ω₁ ω₂)) := by
+              simpa using
+                (K.face_face 2 (K.tetrahedronPath3Simplex ω₁ ω₂)
+                  (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.reflPath c)).simplex := ε.face0
+  · have h2 : K.face 3 2 (K.tetrahedronPath3Simplex ω₁ ω₂) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.tetrahedronPath3Simplex ω₁ ω₂))
+          = K.face 2 1 (K.face 3 2 (K.tetrahedronPath3Simplex ω₁ ω₂)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronPath3Simplex ω₁ ω₂)
+                  (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h2]
+      _ = β.simplex := ω₂.face1
+  · have h3 : K.face 3 3 (K.tetrahedronPath3Simplex ω₁ ω₂) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.tetrahedronPath3Simplex ω₁ ω₂))
+          = K.face 2 1 (K.face 3 3 (K.tetrahedronPath3Simplex ω₁ ω₂)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronPath3Simplex ω₁ ω₂)
+                  (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h3]
+      _ = α.simplex := ω₁.face1
+  · have h4 : K.face 3 4 (K.tetrahedronPath3Simplex ω₁ ω₂) = ρ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.tetrahedronPath3Simplex ω₁ ω₂))
+          = K.face 2 1 (K.face 3 4 (K.tetrahedronPath3Simplex ω₁ ω₂)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronPath3Simplex ω₁ ω₂)
+                  (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 ρ.simplex := by rw [h4]
+      _ = (K.reflPath2 p02).simplex := ρ.face1
+
+private def KanComplex.tetrahedronComparisonHorn (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03} {δ : K.Path2 p02 p02}
+    {τ2 : K.Triangle p01 p03 p13}
+    {τ31 τ32 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ31)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ32)
+    (κ : K.Tetrahedron (K.reflPath2 p12).toTriangle δ.toTriangle τ32 τ31) :
+    Horn K.toSimplicialSet 3 1 :=
+  let ε := (K.reflPath3 γ).toTetrahedron
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then ε.simplex
+      else if h2 : i = 2 then ω₂.simplex
+      else if h3 : i = 3 then ω₁.simplex
+      else κ.simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases :
+          (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+            (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+        omega
+      rcases hij_cases with h02 | hrest
+      · rcases h02 with ⟨rfl, rfl⟩
+        simpa using ω₂.face0.trans ε.face1.symm
+      · rcases hrest with h03 | hrest
+        · rcases h03 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face2.symm
+        · rcases hrest with h04 | hrest
+          · rcases h04 with ⟨rfl, rfl⟩
+            simpa using κ.face0.trans ε.face3.symm
+          · rcases hrest with h23 | hrest
+            · rcases h23 with ⟨rfl, rfl⟩
+              simpa using ω₁.face2.trans ω₂.face2.symm
+            · rcases hrest with h24 | h34
+              · rcases h24 with ⟨rfl, rfl⟩
+                simpa using κ.face2.trans ω₂.face3.symm
+              · rcases h34 with ⟨rfl, rfl⟩
+                simpa using κ.face3.trans ω₁.face3.symm }
+
+private def KanComplex.tetrahedronComparisonSimplex (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03} {δ : K.Path2 p02 p02}
+    {τ2 : K.Triangle p01 p03 p13}
+    {τ31 τ32 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ31)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ32)
+    (κ : K.Tetrahedron (K.reflPath2 p12).toTriangle δ.toTriangle τ32 τ31) :
+    K.Simplex 4 :=
+  K.fill (K.tetrahedronComparisonHorn ω₁ ω₂ κ)
+
+/-- A 4-simplex comparison between two tetrahedra with the same front face and
+same second outer face, but possibly different last outer faces, yields a new
+boundary-aware tetrahedron comparing their middle 2-cells. -/
+def KanComplex.tetrahedronComparisonTetrahedron (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c} {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03} {δ : K.Path2 p02 p02}
+    {τ2 : K.Triangle p01 p03 p13}
+    {τ31 τ32 : K.Triangle p01 p02 p12}
+    (ω₁ : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ31)
+    (ω₂ : K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ32)
+    (κ : K.Tetrahedron (K.reflPath2 p12).toTriangle δ.toTriangle τ32 τ31) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath c)).toTriangle
+      β.toTriangle
+      α.toTriangle
+      δ.toTriangle := by
+  let Λ := K.tetrahedronComparisonHorn ω₁ ω₂ κ
+  let ε := (K.reflPath3 γ).toTetrahedron
+  refine
+    { simplex := K.face 3 1 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ))
+          = K.face 2 0 (K.face 3 0 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)) := by
+              simpa using
+                (K.face_face 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)
+                  (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.reflPath c)).simplex := ε.face0
+  · have h2 : K.face 3 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ))
+          = K.face 2 1 (K.face 3 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)
+                  (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h2]
+      _ = β.simplex := ω₂.face1
+  · have h3 : K.face 3 3 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ))
+          = K.face 2 1 (K.face 3 3 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)
+                  (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h3]
+      _ = α.simplex := ω₁.face1
+  · have h4 : K.face 3 4 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ))
+          = K.face 2 1 (K.face 3 4 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.tetrahedronComparisonSimplex ω₁ ω₂ κ)
+                  (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 κ.simplex := by rw [h4]
+      _ = δ.simplex := κ.face1
+
+/-- The auxiliary triangle whose comparison with the chosen composition
+triangle yields the semantic associator 2-cell. -/
+def KanComplex.assocTriangle (K : KanComplex) {a b c d : K.Obj}
     (p : K.PathSpace a b) (q : K.PathSpace b c) (r : K.PathSpace c d) :
     K.Triangle p (K.compPath (K.compPath p q) r) (K.compPath q r) := by
   let Λ : Horn K.toSimplicialSet 2 2 :=
@@ -886,7 +1147,9 @@ def KanComplex.associatorPath2 (K : KanComplex) {a b c d : K.Obj}
     K.Path2 (K.compPath (K.compPath p q) r) (K.compPath p (K.compPath q r)) :=
   K.trianglePath2 (K.assocTriangle p q r) (K.compTriangle p (K.compPath q r))
 
-private def KanComplex.whiskerRightTriangle (K : KanComplex) {a b c : K.Obj}
+/-- The auxiliary triangle whose comparison with the chosen composition
+triangle yields right whiskering of a semantic 2-cell. -/
+def KanComplex.whiskerRightTriangle (K : KanComplex) {a b c : K.Obj}
     {p q : K.PathSpace a b} (α : K.Path2 p q) (r : K.PathSpace b c) :
     K.Triangle q (K.compPath p r) r := by
   let αinv := K.symmPath2 α
@@ -1692,6 +1955,71 @@ noncomputable def Theory2.ofEq (K : ExtensionalKanComplex) {M N : Term}
   cases h
   exact Theory2.refl K α
 
+/-- A proof-relevant semantic triangle between semantic 1-cells in a fixed
+extensional Kan complex, represented modelwise by actual 2-simplices. -/
+def TheoryTriangle (K : ExtensionalKanComplex) {M₀ M₁ M₂ : Term}
+    (α01 : Theory1 K M₀ M₁) (α02 : Theory1 K M₀ M₂) (α12 : Theory1 K M₁ M₂) : Sort _ :=
+  ∀ (ρ : Valuation K.toReflexiveKanComplex), K.Triangle (α01 ρ) (α02 ρ) (α12 ρ)
+
+/-- Every semantic 2-cell determines a semantic triangle with degenerate third
+side. -/
+noncomputable def Theory2.toTriangle (K : ExtensionalKanComplex) {M N : Term}
+    {α β : Theory1 K M N} (η : Theory2 K α β) :
+    TheoryTriangle K α β (Theory1.refl K N) :=
+  fun ρ => (η ρ).toTriangle
+
+/-- The chosen composition triangle at the semantic layer. -/
+noncomputable def Theory1.compTriangle (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) :
+    TheoryTriangle K α (Theory1.comp K α β) β :=
+  fun ρ => K.compTriangle (α ρ) (β ρ)
+
+/-- The chosen source-degenerate triangle at the semantic layer. -/
+noncomputable def Theory1.sourceDegenerateTriangle
+    (K : ExtensionalKanComplex) {M N : Term} (α : Theory1 K M N) :
+    TheoryTriangle K (Theory1.refl K M) α α :=
+  fun ρ => K.sourceDegenerateTriangle (α ρ)
+
+/-- The auxiliary semantic triangle behind the associator 2-cell. -/
+noncomputable def Theory1.assocTriangle (K : ExtensionalKanComplex)
+    {L M N P : Term} (α : Theory1 K L M) (β : Theory1 K M N) (γ : Theory1 K N P) :
+    TheoryTriangle K α
+      (Theory1.comp K (Theory1.comp K α β) γ)
+      (Theory1.comp K β γ) :=
+  fun ρ => K.assocTriangle (α ρ) (β ρ) (γ ρ)
+
+/-- The auxiliary semantic triangle behind right whiskering. -/
+noncomputable def Theory1.whiskerRightTriangle (K : ExtensionalKanComplex)
+    {L M N : Term} {α β : Theory1 K L M} (η : Theory2 K α β) (γ : Theory1 K M N) :
+    TheoryTriangle K β (Theory1.comp K α γ) γ :=
+  fun ρ => K.whiskerRightTriangle (η ρ) (γ ρ)
+
+/-- A proof-relevant semantic tetrahedron between semantic triangles in a fixed
+extensional Kan complex, represented modelwise by actual 3-simplices. -/
+def TheoryTetrahedron (K : ExtensionalKanComplex)
+    {M₀ M₁ M₂ M₃ : Term}
+    {α01 : Theory1 K M₀ M₁} {α02 : Theory1 K M₀ M₂} {α03 : Theory1 K M₀ M₃}
+    {α12 : Theory1 K M₁ M₂} {α13 : Theory1 K M₁ M₃} {α23 : Theory1 K M₂ M₃}
+    (τ0 : TheoryTriangle K α12 α13 α23)
+    (τ1 : TheoryTriangle K α02 α03 α23)
+    (τ2 : TheoryTriangle K α01 α03 α13)
+    (τ3 : TheoryTriangle K α01 α02 α12) : Sort _ :=
+  ∀ (ρ : Valuation K.toReflexiveKanComplex), K.Tetrahedron (τ0 ρ) (τ1 ρ) (τ2 ρ) (τ3 ρ)
+
+/-- Degenerating a semantic triangle along its middle face produces a semantic
+tetrahedron whose middle face is the reflexive semantic 2-cell on that middle
+edge. -/
+noncomputable def TheoryTriangle.reflTetrahedron
+    (K : ExtensionalKanComplex) {M₀ M₁ M₂ : Term}
+    {α01 : Theory1 K M₀ M₁} {α02 : Theory1 K M₀ M₂} {α12 : Theory1 K M₁ M₂}
+    (τ : TheoryTriangle K α01 α02 α12) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K α12))
+      (Theory2.toTriangle K (Theory2.refl K α02))
+      τ
+      τ :=
+  fun ρ => K.reflTriangleTetrahedron (τ ρ)
+
 /-- A proof-relevant semantic 3-conversion between parallel semantic
 2-conversions in a fixed extensional Kan complex, represented by actual
 3-simplices with the expected reflexive outer faces. -/
@@ -1723,6 +2051,42 @@ def Theory3.ofEq (K : ExtensionalKanComplex) {M N : Term}
   cases h
   exact Theory3.refl K η
 
+/-- Two boundary-aware semantic tetrahedra with the same outer boundary and a
+front face coming from a semantic 2-cell induce a semantic 3-cell between
+their middle faces. -/
+noncomputable def TheoryTetrahedron.path3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {ρ : Theory1 K L M} {σ τ : Theory1 K M N} {μ ν : Theory1 K L N}
+    {γ : Theory2 K σ τ} {α β : Theory2 K μ ν}
+    {τ2 : TheoryTriangle K ρ ν τ} {τ3 : TheoryTriangle K ρ μ σ}
+    (Ω₁ : TheoryTetrahedron K (Theory2.toTriangle K γ) (Theory2.toTriangle K α) τ2 τ3)
+    (Ω₂ : TheoryTetrahedron K (Theory2.toTriangle K γ) (Theory2.toTriangle K β) τ2 τ3) :
+    Theory3 K α β :=
+  fun v => K.tetrahedronPath3 (Ω₁ v) (Ω₂ v)
+
+/-- A boundary-aware semantic 4-simplex comparison between tetrahedra with the
+same front face and same second outer face, but potentially different last
+outer faces. The extracted 3-simplex is still packaged as a semantic
+tetrahedron rather than forced into the normalized `Theory3` interface. -/
+noncomputable def TheoryTetrahedron.comparison
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {ρ : Theory1 K L M} {σ τ : Theory1 K M N} {μ ν : Theory1 K L N}
+    {γ : Theory2 K σ τ} {α β : Theory2 K μ ν} {δ : Theory2 K μ μ}
+    {τ2 : TheoryTriangle K ρ ν τ}
+    {τ31 τ32 : TheoryTriangle K ρ μ σ}
+    (Ω₁ : TheoryTetrahedron K (Theory2.toTriangle K γ) (Theory2.toTriangle K α) τ2 τ31)
+    (Ω₂ : TheoryTetrahedron K (Theory2.toTriangle K γ) (Theory2.toTriangle K β) τ2 τ32)
+    (Κ : TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K σ))
+      (Theory2.toTriangle K δ)
+      τ32 τ31) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (Theory1.refl K N)))
+      (Theory2.toTriangle K β)
+      (Theory2.toTriangle K α)
+      (Theory2.toTriangle K δ) :=
+  fun v => K.tetrahedronComparisonTetrahedron (Ω₁ v) (Ω₂ v) (Κ v)
+
 /-- Interchange at the semantic 3-cell layer is immediate from the definition
 of semantic horizontal composition. -/
 noncomputable def Theory3.interchange (K : ExtensionalKanComplex) {L M N : Term}
@@ -1733,6 +2097,77 @@ noncomputable def Theory3.interchange (K : ExtensionalKanComplex) {L M N : Term}
         (Theory2.whiskerRight K η β)
         (Theory2.whiskerLeft K α' θ)) :=
   Theory3.ofEq K rfl
+
+/-- The modelwise tetrahedron whose middle face is the semantic associator
+2-cell. This is the boundary-aware 3-simplex behind `Theory2.associator`. -/
+noncomputable def Theory3.associatorTetrahedron
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) (γ : Theory1 K N P) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((Theory2.refl K (Theory1.comp K β γ)) ρ).toTriangle
+        ((Theory2.associator K α β γ) ρ).toTriangle
+        (K.compTriangle (α ρ) ((Theory1.comp K β γ) ρ))
+        (K.assocTriangle (α ρ) (β ρ) (γ ρ))
+  | ρ =>
+      K.triangleComparisonTetrahedron
+        (K.assocTriangle (α ρ) (β ρ) (γ ρ))
+        (K.compTriangle (α ρ) ((Theory1.comp K β γ) ρ))
+
+/-- The modelwise tetrahedron whose middle face is left whiskering of a
+semantic 2-cell. This keeps the nondegenerate outer faces that are hidden by
+the normalized `Theory3` interface. -/
+noncomputable def Theory3.whiskerLeftTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) {β γ : Theory1 K M N}
+    (η : Theory2 K β γ) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((η ρ).toTriangle)
+        ((Theory2.whiskerLeft K α η) ρ).toTriangle
+        (K.compTriangle (α ρ) (γ ρ))
+        (K.compTriangle (α ρ) (β ρ))
+  | ρ => K.whiskerLeftTetrahedron (α ρ) (η ρ)
+
+/-- The modelwise tetrahedron whose middle face is right whiskering of a
+semantic 2-cell. -/
+noncomputable def Theory3.whiskerRightTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {α β : Theory1 K L M} (η : Theory2 K α β)
+    (γ : Theory1 K M N) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((Theory2.refl K γ) ρ).toTriangle
+        ((Theory2.whiskerRight K η γ) ρ).toTriangle
+        (K.compTriangle (β ρ) (γ ρ))
+        (K.whiskerRightTriangle (η ρ) (γ ρ))
+  | ρ => K.whiskerRightTetrahedron (η ρ) (γ ρ)
+
+/-- The modelwise tetrahedron whose middle face is the semantic left unitor
+2-cell. -/
+noncomputable def Theory3.leftUnitorTetrahedron
+    (K : ExtensionalKanComplex) {M N : Term}
+    (α : Theory1 K M N) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((Theory2.refl K α) ρ).toTriangle
+        ((Theory2.leftUnitor K α) ρ).toTriangle
+        (K.sourceDegenerateTriangle (α ρ))
+        (K.compTriangle ((Theory1.refl K M) ρ) (α ρ))
+  | ρ => K.leftUnitorTetrahedron (α ρ)
+
+/-- The modelwise tetrahedron whose middle face is the semantic right unitor
+2-cell. -/
+noncomputable def Theory3.rightUnitorTetrahedron
+    (K : ExtensionalKanComplex) {M N : Term}
+    (α : Theory1 K M N) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((Theory2.refl K (Theory1.refl K N)) ρ).toTriangle
+        ((Theory2.rightUnitor K α) ρ).toTriangle
+        ((Theory2.refl K α) ρ).toTriangle
+        (K.compTriangle (α ρ) ((Theory1.refl K N) ρ))
+  | ρ => K.rightUnitorTetrahedron (α ρ)
 
 /-- A proof-relevant semantic 4-conversion between parallel semantic
 3-conversions in a fixed extensional Kan complex, represented by actual
@@ -2173,6 +2608,71 @@ noncomputable def HoTFT2.whiskerRight {L M N : Term}
     HoTFT2 (HoTFT1.comp α γ) (HoTFT1.comp β γ) :=
   fun K => Theory2.whiskerRight K (η K) (γ K)
 
+/-- A proof-relevant HoTFT triangle, represented modelwise by semantic
+triangles. -/
+def HoTFTTriangle {M₀ M₁ M₂ : Term}
+    (α01 : HoTFT1 M₀ M₁) (α02 : HoTFT1 M₀ M₂) (α12 : HoTFT1 M₁ M₂) : Sort _ :=
+  ∀ (K : ExtensionalKanComplex), TheoryTriangle K (α01 K) (α02 K) (α12 K)
+
+/-- Every HoTFT 2-cell determines a HoTFT triangle with degenerate third
+side. -/
+noncomputable def HoTFT2.toTriangle {M N : Term}
+    {α β : HoTFT1 M N} (η : HoTFT2 α β) :
+    HoTFTTriangle α β (HoTFT1.refl N) :=
+  fun K => Theory2.toTriangle K (η K)
+
+/-- The chosen composition triangle at the HoTFT layer. -/
+noncomputable def HoTFT1.compTriangle {L M N : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) :
+    HoTFTTriangle α (HoTFT1.comp α β) β :=
+  fun K => Theory1.compTriangle K (α K) (β K)
+
+/-- The chosen source-degenerate triangle at the HoTFT layer. -/
+noncomputable def HoTFT1.sourceDegenerateTriangle {M N : Term}
+    (α : HoTFT1 M N) :
+    HoTFTTriangle (HoTFT1.refl M) α α :=
+  fun K => Theory1.sourceDegenerateTriangle K (α K)
+
+/-- The auxiliary HoTFT triangle behind the associator 2-cell. -/
+noncomputable def HoTFT1.assocTriangle {L M N P : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) (γ : HoTFT1 N P) :
+    HoTFTTriangle α
+      (HoTFT1.comp (HoTFT1.comp α β) γ)
+      (HoTFT1.comp β γ) :=
+  fun K => Theory1.assocTriangle K (α K) (β K) (γ K)
+
+/-- The auxiliary HoTFT triangle behind right whiskering. -/
+noncomputable def HoTFT1.whiskerRightTriangle {L M N : Term}
+    {α β : HoTFT1 L M} (η : HoTFT2 α β) (γ : HoTFT1 M N) :
+    HoTFTTriangle β (HoTFT1.comp α γ) γ :=
+  fun K => Theory1.whiskerRightTriangle K (η K) (γ K)
+
+/-- A proof-relevant HoTFT tetrahedron, represented modelwise by semantic
+tetrahedra. -/
+def HoTFTTetrahedron
+    {M₀ M₁ M₂ M₃ : Term}
+    {α01 : HoTFT1 M₀ M₁} {α02 : HoTFT1 M₀ M₂} {α03 : HoTFT1 M₀ M₃}
+    {α12 : HoTFT1 M₁ M₂} {α13 : HoTFT1 M₁ M₃} {α23 : HoTFT1 M₂ M₃}
+    (τ0 : HoTFTTriangle α12 α13 α23)
+    (τ1 : HoTFTTriangle α02 α03 α23)
+    (τ2 : HoTFTTriangle α01 α03 α13)
+    (τ3 : HoTFTTriangle α01 α02 α12) : Sort _ :=
+  ∀ (K : ExtensionalKanComplex), TheoryTetrahedron K (τ0 K) (τ1 K) (τ2 K) (τ3 K)
+
+/-- Degenerating a HoTFT triangle along its middle face produces a HoTFT
+tetrahedron whose middle face is the reflexive HoTFT 2-cell on that middle
+edge. -/
+noncomputable def HoTFTTriangle.reflTetrahedron
+    {M₀ M₁ M₂ : Term}
+    {α01 : HoTFT1 M₀ M₁} {α02 : HoTFT1 M₀ M₂} {α12 : HoTFT1 M₁ M₂}
+    (τ : HoTFTTriangle α01 α02 α12) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl α12))
+      (HoTFT2.toTriangle (HoTFT2.refl α02))
+      τ
+      τ :=
+  fun K => TheoryTriangle.reflTetrahedron K (τ K)
+
 /-- Horizontal composition of proof-relevant HoTFT 2-conversions, modelwise. -/
 noncomputable def HoTFT2.hcomp {L M N : Term}
     {α α' : HoTFT1 L M} {β β' : HoTFT1 M N}
@@ -2261,6 +2761,41 @@ def HoTFT3.ofEq {M N : Term} {α β : HoTFT1 M N}
   cases h
   exact HoTFT3.refl η
 
+/-- Two boundary-aware HoTFT tetrahedra with the same outer boundary and a
+front face coming from a HoTFT 2-cell induce a proof-relevant HoTFT 3-cell
+between their middle faces. -/
+noncomputable def HoTFTTetrahedron.path3
+    {L M N : Term}
+    {ρ : HoTFT1 L M} {σ τ : HoTFT1 M N} {μ ν : HoTFT1 L N}
+    {γ : HoTFT2 σ τ} {α β : HoTFT2 μ ν}
+    {τ2 : HoTFTTriangle ρ ν τ} {τ3 : HoTFTTriangle ρ μ σ}
+    (Ω₁ : HoTFTTetrahedron (HoTFT2.toTriangle γ) (HoTFT2.toTriangle α) τ2 τ3)
+    (Ω₂ : HoTFTTetrahedron (HoTFT2.toTriangle γ) (HoTFT2.toTriangle β) τ2 τ3) :
+    HoTFT3 α β :=
+  fun K => TheoryTetrahedron.path3 K (Ω₁ K) (Ω₂ K)
+
+/-- A boundary-aware HoTFT 4-simplex comparison between tetrahedra with the
+same front face and same second outer face, but potentially different last
+outer faces. -/
+noncomputable def HoTFTTetrahedron.comparison
+    {L M N : Term}
+    {ρ : HoTFT1 L M} {σ τ : HoTFT1 M N} {μ ν : HoTFT1 L N}
+    {γ : HoTFT2 σ τ} {α β : HoTFT2 μ ν} {δ : HoTFT2 μ μ}
+    {τ2 : HoTFTTriangle ρ ν τ}
+    {τ31 τ32 : HoTFTTriangle ρ μ σ}
+    (Ω₁ : HoTFTTetrahedron (HoTFT2.toTriangle γ) (HoTFT2.toTriangle α) τ2 τ31)
+    (Ω₂ : HoTFTTetrahedron (HoTFT2.toTriangle γ) (HoTFT2.toTriangle β) τ2 τ32)
+    (Κ : HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl σ))
+      (HoTFT2.toTriangle δ)
+      τ32 τ31) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle β)
+      (HoTFT2.toTriangle α)
+      (HoTFT2.toTriangle δ) :=
+  fun K => TheoryTetrahedron.comparison K (Ω₁ K) (Ω₂ K) (Κ K)
+
 /-- Interchange at the HoTFT 3-cell layer is immediate from the definition of
 modelwise horizontal composition. -/
 noncomputable def HoTFT3.interchange {L M N : Term}
@@ -2271,6 +2806,36 @@ noncomputable def HoTFT3.interchange {L M N : Term}
         (HoTFT2.whiskerRight η β)
         (HoTFT2.whiskerLeft α' θ)) :=
   HoTFT3.ofEq rfl
+
+/-- The boundary-aware tetrahedron whose middle face is the HoTFT semantic
+associator 2-cell. -/
+noncomputable def HoTFT3.associatorTetrahedron {L M N P : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) (γ : HoTFT1 N P) :=
+  fun K => Theory3.associatorTetrahedron K (α K) (β K) (γ K)
+
+/-- The boundary-aware tetrahedron whose middle face is left whiskering at the
+HoTFT semantic layer. -/
+noncomputable def HoTFT3.whiskerLeftTetrahedron {L M N : Term}
+    (α : HoTFT1 L M) {β γ : HoTFT1 M N} (η : HoTFT2 β γ) :=
+  fun K => Theory3.whiskerLeftTetrahedron K (α K) (η K)
+
+/-- The boundary-aware tetrahedron whose middle face is right whiskering at the
+HoTFT semantic layer. -/
+noncomputable def HoTFT3.whiskerRightTetrahedron {L M N : Term}
+    {α β : HoTFT1 L M} (η : HoTFT2 α β) (γ : HoTFT1 M N) :=
+  fun K => Theory3.whiskerRightTetrahedron K (η K) (γ K)
+
+/-- The boundary-aware tetrahedron whose middle face is the HoTFT semantic
+left unitor 2-cell. -/
+noncomputable def HoTFT3.leftUnitorTetrahedron {M N : Term}
+    (α : HoTFT1 M N) :=
+  fun K => Theory3.leftUnitorTetrahedron K (α K)
+
+/-- The boundary-aware tetrahedron whose middle face is the HoTFT semantic
+right unitor 2-cell. -/
+noncomputable def HoTFT3.rightUnitorTetrahedron {M N : Term}
+    (α : HoTFT1 M N) :=
+  fun K => Theory3.rightUnitorTetrahedron K (α K)
 
 /-- Proof-relevant HoTFT 4-conversions between parallel proof-relevant HoTFT
 3-conversions. -/
@@ -2526,6 +3091,127 @@ noncomputable def reductionSeq_rightUnitor_in_Theory2
       (reductionSeq_in_Theory1 K p) :=
   Theory2.rightUnitor K (reductionSeq_in_Theory1 K p)
 
+/-- Degenerating the semantic composition triangle yields a boundary-aware
+semantic tetrahedron whose middle face is the reflexive 2-cell on the semantic
+composite path. -/
+noncomputable def reductionSeq_comp_refl_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (reductionSeq_in_Theory1 K q)))
+      (Theory2.toTriangle K
+        (Theory2.refl K
+          (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q)) :=
+  TheoryTriangle.reflTetrahedron K
+    (Theory1.compTriangle K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+
+/-- The interpreted structural associator carries an explicit semantic
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_associator_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K
+        (Theory2.refl K
+          (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))))
+      (Theory2.toTriangle K (reductionSeq_associator_in_Theory2 K p q r))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K p)
+        (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)))
+      (Theory1.assocTriangle K (reductionSeq_in_Theory1 K p)
+        (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)) :=
+  Theory3.associatorTetrahedron K
+    (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)
+
+/-- The interpreted structural left unitor carries an explicit semantic
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_leftUnitor_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (reductionSeq_in_Theory1 K p)))
+      (Theory2.toTriangle K (reductionSeq_leftUnitor_in_Theory2 K p))
+      (Theory1.sourceDegenerateTriangle K (reductionSeq_in_Theory1 K p))
+      (Theory1.compTriangle K (Theory1.refl K M) (reductionSeq_in_Theory1 K p)) :=
+  Theory3.leftUnitorTetrahedron K (reductionSeq_in_Theory1 K p)
+
+/-- The interpreted structural right unitor carries an explicit semantic
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_rightUnitor_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (Theory1.refl K N)))
+      (Theory2.toTriangle K (reductionSeq_rightUnitor_in_Theory2 K p))
+      (Theory2.toTriangle K (Theory2.refl K (reductionSeq_in_Theory1 K p)))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K p) (Theory1.refl K N)) :=
+  Theory3.rightUnitorTetrahedron K (reductionSeq_in_Theory1 K p)
+
+/-- Left whiskering of an interpreted explicit 2-cell carries an explicit
+semantic tetrahedron with its full boundary triangles. -/
+noncomputable def homotopy2_whiskerLeft_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (r : ReductionSeq L M) {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (homotopy2_in_Theory2 K α))
+      (Theory2.toTriangle K
+        (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K α)))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K r) (reductionSeq_in_Theory1 K q))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K r) (reductionSeq_in_Theory1 K p)) :=
+  Theory3.whiskerLeftTetrahedron K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K α)
+
+/-- Right whiskering of an interpreted explicit 2-cell carries an explicit
+semantic tetrahedron with its full boundary triangles. -/
+noncomputable def homotopy2_whiskerRight_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q : ReductionSeq L M} (α : Homotopy2 p q) (s : ReductionSeq M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (reductionSeq_in_Theory1 K s)))
+      (Theory2.toTriangle K
+        (Theory2.whiskerRight K (homotopy2_in_Theory2 K α) (reductionSeq_in_Theory1 K s)))
+      (Theory1.compTriangle K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K s))
+      (Theory1.whiskerRightTriangle K (homotopy2_in_Theory2 K α) (reductionSeq_in_Theory1 K s)) :=
+  Theory3.whiskerRightTetrahedron K (homotopy2_in_Theory2 K α) (reductionSeq_in_Theory1 K s)
+
+/-- Left whiskering preserves reflexive interpreted 2-cells up to a semantic
+3-cell, obtained by comparing the two boundary-aware tetrahedra with matching
+outer boundary. -/
+noncomputable def homotopy2_whiskerLeftRefl_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    Theory3 K
+      (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r)
+        (Theory2.refl K (reductionSeq_in_Theory1 K p)))
+      (Theory2.refl K
+        (Theory1.comp K (reductionSeq_in_Theory1 K r) (reductionSeq_in_Theory1 K p))) :=
+  TheoryTetrahedron.path3 K
+    (homotopy2_whiskerLeft_in_TheoryTetrahedron K r (Homotopy2.refl p))
+    (reductionSeq_comp_refl_in_TheoryTetrahedron K r p)
+
+/-- A first boundary-aware 4-simplex comparison for right whiskering of a
+reflexive interpreted 2-cell. This absorbs the mismatch between the source and
+target tetrahedra into an explicit extra boundary face, but does not yet
+normalize all the way into `Theory3`. -/
+noncomputable def homotopy2_whiskerRightRefl_in_TheoryTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (Theory1.refl K N)))
+      (Theory2.toTriangle K
+        (Theory2.refl K
+          (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K s))))
+      (Theory2.toTriangle K
+        (Theory2.whiskerRight K
+          (Theory2.refl K (reductionSeq_in_Theory1 K p))
+          (reductionSeq_in_Theory1 K s)))
+      (Theory2.toTriangle K
+        (Theory2.whiskerRight K
+          (Theory2.refl K (reductionSeq_in_Theory1 K p))
+          (reductionSeq_in_Theory1 K s))) :=
+  TheoryTetrahedron.comparison K
+    (homotopy2_whiskerRight_in_TheoryTetrahedron K (Homotopy2.refl p) s)
+    (reductionSeq_comp_refl_in_TheoryTetrahedron K p s)
+    (homotopy2_whiskerRight_in_TheoryTetrahedron K (Homotopy2.refl p) s)
+
 /-- Every structurally supported syntactic 2-cell between explicit βη paths
 induces a semantic 2-conversion between the corresponding structural semantic
 1-cells in a fixed model. -/
@@ -2670,6 +3356,59 @@ noncomputable def reductionSeq_rightUnitor_in_HoTFT2
       (reductionSeq_in_HoTFT1 p) :=
   HoTFT2.rightUnitor (reductionSeq_in_HoTFT1 p)
 
+/-- Degenerating the semantic composition triangle yields a boundary-aware
+HoTFT tetrahedron whose middle face is the reflexive 2-cell on the semantic
+composite path. -/
+noncomputable def reductionSeq_comp_refl_in_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (q : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (reductionSeq_in_HoTFT1 q)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q)) :=
+  HoTFTTriangle.reflTetrahedron
+    (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+
+/-- The interpreted structural associator carries an explicit HoTFT
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_associator_in_HoTFTTetrahedron
+    {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle
+        (HoTFT2.refl (HoTFT1.comp (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r))))
+      (HoTFT2.toTriangle (reductionSeq_associator_in_HoTFT2 p q r))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 p)
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r)))
+      (HoTFT1.assocTriangle (reductionSeq_in_HoTFT1 p)
+        (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r)) :=
+  HoTFT3.associatorTetrahedron
+    (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r)
+
+/-- The interpreted structural left unitor carries an explicit HoTFT
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_leftUnitor_in_HoTFTTetrahedron
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.toTriangle (reductionSeq_leftUnitor_in_HoTFT2 p))
+      (HoTFT1.sourceDegenerateTriangle (reductionSeq_in_HoTFT1 p))
+      (HoTFT1.compTriangle (HoTFT1.refl M) (reductionSeq_in_HoTFT1 p)) :=
+  HoTFT3.leftUnitorTetrahedron (reductionSeq_in_HoTFT1 p)
+
+/-- The interpreted structural right unitor carries an explicit HoTFT
+tetrahedron with its full boundary triangles. -/
+noncomputable def reductionSeq_rightUnitor_in_HoTFTTetrahedron
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle (reductionSeq_rightUnitor_in_HoTFT2 p))
+      (HoTFT2.toTriangle (HoTFT2.refl (reductionSeq_in_HoTFT1 p)))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 p) (HoTFT1.refl N)) :=
+  HoTFT3.rightUnitorTetrahedron (reductionSeq_in_HoTFT1 p)
+
 /-- Every structurally supported syntactic 2-cell between explicit βη paths
 induces a proof-relevant HoTFT 2-conversion between the corresponding
 structural HoTFT 1-cells. -/
@@ -2698,6 +3437,68 @@ noncomputable def homotopy2_in_HoTFT2 {M N : Term} {p q : ReductionSeq M N}
     (α : Homotopy2 p q) :
     HoTFT2 (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q) :=
   fun K => homotopy2_in_Theory2 K α
+
+/-- Left whiskering of an interpreted explicit 2-cell carries an explicit
+HoTFT tetrahedron with its full boundary triangles. -/
+noncomputable def homotopy2_whiskerLeft_in_HoTFTTetrahedron
+    {L M N : Term} (r : ReductionSeq L M)
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (homotopy2_in_HoTFT2 α))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 α)))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 r) (reductionSeq_in_HoTFT1 q))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 r) (reductionSeq_in_HoTFT1 p)) :=
+  HoTFT3.whiskerLeftTetrahedron (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 α)
+
+/-- Right whiskering of an interpreted explicit 2-cell carries an explicit
+HoTFT tetrahedron with its full boundary triangles. -/
+noncomputable def homotopy2_whiskerRight_in_HoTFTTetrahedron
+    {L M N : Term} {p q : ReductionSeq L M}
+    (α : Homotopy2 p q) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight (homotopy2_in_HoTFT2 α) (reductionSeq_in_HoTFT1 s)))
+      (HoTFT1.compTriangle (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 s))
+      (HoTFT1.whiskerRightTriangle (homotopy2_in_HoTFT2 α) (reductionSeq_in_HoTFT1 s)) :=
+  HoTFT3.whiskerRightTetrahedron (homotopy2_in_HoTFT2 α) (reductionSeq_in_HoTFT1 s)
+
+/-- Left whiskering preserves reflexive interpreted 2-cells up to a
+proof-relevant HoTFT 3-cell. -/
+noncomputable def homotopy2_whiskerLeftRefl_in_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r)
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.refl
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 r) (reductionSeq_in_HoTFT1 p))) :=
+  HoTFTTetrahedron.path3
+    (homotopy2_whiskerLeft_in_HoTFTTetrahedron r (Homotopy2.refl p))
+    (reductionSeq_comp_refl_in_HoTFTTetrahedron r p)
+
+/-- A first boundary-aware 4-simplex comparison for right whiskering of a
+reflexive interpreted 2-cell at the HoTFT layer. The remaining gap is now only
+the final normalization of this tetrahedron into `HoTFT3`. -/
+noncomputable def homotopy2_whiskerRightRefl_in_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 s))))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (reductionSeq_in_HoTFT1 p))
+          (reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (reductionSeq_in_HoTFT1 p))
+          (reductionSeq_in_HoTFT1 s))) :=
+  HoTFTTetrahedron.comparison
+    (homotopy2_whiskerRight_in_HoTFTTetrahedron (Homotopy2.refl p) s)
+    (reductionSeq_comp_refl_in_HoTFTTetrahedron p s)
+    (homotopy2_whiskerRight_in_HoTFTTetrahedron (Homotopy2.refl p) s)
 
 /-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 3-cell
 over its interpreted HoTFT 2-cell. -/

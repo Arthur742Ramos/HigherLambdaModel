@@ -51,19 +51,41 @@ The tower of n-conversions captures the higher structure of βη-equivalence:
     than collapsing higher dimensions to a terminal type. -/
 abbrev NConversion : Nat → Sort _ := HigherTerms.Cell
 
-/-- The source of a 1-conversion. -/
-def NConversion.source0 : NConversion 1 → NConversion 0
-  | ⟨M, _, _⟩ => M
+/-- The immediate source boundary of an `n+1`-conversion. -/
+def NConversion.source : {n : Nat} → NConversion (n + 1) → NConversion n :=
+  HigherTerms.Cell.source
 
-def NConversion.source1 : NConversion 2 → NConversion 1
-  | ⟨M, N, p, _, _⟩ => ⟨M, N, p⟩
+/-- The immediate target boundary of an `n+1`-conversion. -/
+def NConversion.target : {n : Nat} → NConversion (n + 1) → NConversion n :=
+  HigherTerms.Cell.target
+
+/-- Generic source globularity for the recursive higher-conversion tower. -/
+theorem NConversion.globular_src {n : Nat} (f : NConversion (n + 2)) :
+    NConversion.source (NConversion.source f) =
+    NConversion.source (NConversion.target f) :=
+  HigherTerms.Cell.globular_source f
+
+/-- Generic target globularity for the recursive higher-conversion tower. -/
+theorem NConversion.globular_tgt {n : Nat} (f : NConversion (n + 2)) :
+    NConversion.target (NConversion.source f) =
+    NConversion.target (NConversion.target f) :=
+  HigherTerms.Cell.globular_target f
+
+/-- The source of a 1-conversion. -/
+abbrev NConversion.source0 : NConversion 1 → NConversion 0 :=
+  NConversion.source (n := 0)
+
+/-- The source of a 2-conversion. -/
+abbrev NConversion.source1 : NConversion 2 → NConversion 1 :=
+  NConversion.source (n := 1)
 
 /-- The target of an n-conversion -/
-def NConversion.target0 : NConversion 1 → NConversion 0
-  | ⟨_, N, _⟩ => N
+abbrev NConversion.target0 : NConversion 1 → NConversion 0 :=
+  NConversion.target (n := 0)
 
-def NConversion.target1 : NConversion 2 → NConversion 1
-  | ⟨M, N, _, q, _⟩ => ⟨M, N, q⟩
+/-- The target of a 2-conversion. -/
+abbrev NConversion.target1 : NConversion 2 → NConversion 1 :=
+  NConversion.target (n := 1)
 
 /-! ## TH_λ= : The Classical λ-Theory (Definition 3.2)
 
@@ -491,6 +513,195 @@ noncomputable def Homotopy2_interchange_subset_HoTFT3
           (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
   ExtensionalKan.homotopy2_interchange_in_HoTFT3 α β
 
+/-- The interpreted structural associator carries a boundary-aware HoTFT
+tetrahedron witness. -/
+noncomputable def ReductionSeq_associator_subset_HoTFTTetrahedron
+    {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 r))))
+      (HoTFT2.toTriangle (ExtensionalKan.reductionSeq_associator_in_HoTFT2 p q r))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 r)))
+      (HoTFT1.assocTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 r)) :=
+  ExtensionalKan.reductionSeq_associator_in_HoTFTTetrahedron p q r
+
+/-- Degenerating the semantic composition triangle yields the boundary-aware
+tetrahedron for reflexivity on a semantic composite. -/
+noncomputable def ReductionSeq_comp_refl_subset_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (q : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 q)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 q))))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 q))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 q)) :=
+  ExtensionalKan.reductionSeq_comp_refl_in_HoTFTTetrahedron p q
+
+/-- The interpreted structural left unitor carries a boundary-aware HoTFT
+tetrahedron witness. -/
+noncomputable def ReductionSeq_leftUnitor_subset_HoTFTTetrahedron
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.toTriangle (ExtensionalKan.reductionSeq_leftUnitor_in_HoTFT2 p))
+      (HoTFT1.sourceDegenerateTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+      (HoTFT1.compTriangle (HoTFT1.refl M) (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
+  ExtensionalKan.reductionSeq_leftUnitor_in_HoTFTTetrahedron p
+
+/-- The interpreted structural right unitor carries a boundary-aware HoTFT
+tetrahedron witness. -/
+noncomputable def ReductionSeq_rightUnitor_subset_HoTFTTetrahedron
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle (ExtensionalKan.reductionSeq_rightUnitor_in_HoTFT2 p))
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p) (HoTFT1.refl N)) :=
+  ExtensionalKan.reductionSeq_rightUnitor_in_HoTFTTetrahedron p
+
+/-- Left whiskering of an interpreted explicit 2-cell carries a boundary-aware
+HoTFT tetrahedron witness. -/
+noncomputable def Homotopy2_whiskerLeft_subset_HoTFTTetrahedron
+    {L M N : Term} (r : ReductionSeq L M)
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (ExtensionalKan.homotopy2_in_HoTFT2 α))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.homotopy2_in_HoTFT2 α)))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 q))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
+  ExtensionalKan.homotopy2_whiskerLeft_in_HoTFTTetrahedron r α
+
+/-- The source-side boundary-aware tetrahedron for the `whiskerLeftRefl`
+constructor. -/
+noncomputable def Homotopy2_whiskerLeftRefl_source_subset_HoTFTTetrahedron
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
+  Homotopy2_whiskerLeft_subset_HoTFTTetrahedron r (Homotopy2.refl p)
+
+/-- The intermediate target-side boundary-aware tetrahedron for the
+`whiskerLeftRefl` constructor. It has the same outer boundary as the
+source-side witness and lands on the reflexive 2-cell of the semantic
+composite. -/
+noncomputable def Homotopy2_whiskerLeftRefl_target_subset_HoTFTTetrahedron
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 p))))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
+  ReductionSeq_comp_refl_subset_HoTFTTetrahedron r p
+
+/-- Left whiskering preserves reflexive 2-cells up to a proof-relevant HoTFT
+3-cell. This is the first normalization obtained from the new tetrahedron
+comparison layer. -/
+noncomputable def Homotopy2_whiskerLeftRefl_subset_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)))
+      (HoTFT2.refl
+        (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 p))) :=
+  ExtensionalKan.homotopy2_whiskerLeftRefl_in_HoTFT3 r p
+
+/-- Right whiskering of an interpreted explicit 2-cell carries a boundary-aware
+HoTFT tetrahedron witness. -/
+noncomputable def Homotopy2_whiskerRight_subset_HoTFTTetrahedron
+    {L M N : Term} {p q : ReductionSeq L M}
+    (α : Homotopy2 p q) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s))
+      (HoTFT1.whiskerRightTriangle (ExtensionalKan.homotopy2_in_HoTFT2 α)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s)) :=
+  ExtensionalKan.homotopy2_whiskerRight_in_HoTFTTetrahedron α s
+
+/-- The source-side boundary-aware tetrahedron for the `whiskerRightRefl`
+constructor. -/
+noncomputable def Homotopy2_whiskerRightRefl_source_subset_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s))
+      (HoTFT1.whiskerRightTriangle
+        (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s)) :=
+  Homotopy2_whiskerRight_subset_HoTFTTetrahedron (Homotopy2.refl p) s
+
+/-- The intermediate reflexive target tetrahedron on the semantic composite
+that the `whiskerRightRefl` constructor aims to normalize toward. -/
+noncomputable def Homotopy2_whiskerRightRefl_target_subset_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 s))))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s))
+      (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s)) :=
+  ReductionSeq_comp_refl_subset_HoTFTTetrahedron p s
+
+/-- A first boundary-aware 4-simplex comparison for `whiskerRightRefl`. This
+matches the source and target tetrahedra by inserting one extra boundary face;
+the remaining gap is only the final normalization into `HoTFT3`. -/
+noncomputable def Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 s))))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s))) :=
+  ExtensionalKan.homotopy2_whiskerRightRefl_in_HoTFTTetrahedron p s
+
 /-- Every computational 2-term packages a semantic HoTFT 2-conversion between
 the semantic 1-cells induced by its boundary reduction sequences. -/
 noncomputable def interpretNTerm2 (K : ExtensionalKanComplex) (t : NTerm 2) :
@@ -526,8 +737,7 @@ We characterize the low-dimensional structure explicitly. -/
 theorem globular_src_2 (f : NConversion 2) :
     NConversion.source0 (NConversion.source1 f) =
     NConversion.source0 (NConversion.target1 f) := by
-  obtain ⟨M, _, _, _, _⟩ := f
-  rfl
+  exact NConversion.globular_src f
 
 /-- The globular identity at dimension 2:
     For a 2-cell f : p → q where p, q : M → N,
@@ -535,27 +745,32 @@ theorem globular_src_2 (f : NConversion 2) :
 theorem globular_tgt_2 (f : NConversion 2) :
     NConversion.target0 (NConversion.source1 f) =
     NConversion.target0 (NConversion.target1 f) := by
-  obtain ⟨_, N, _, _, _⟩ := f
-  rfl
+  exact NConversion.globular_tgt f
 
-/-- The tower of n-conversions packaged as data.
-    This captures the essential ω-groupoid structure. -/
-structure LambdaTower where
-  /-- 0-cells: λ-terms -/
-  Cell0 : Sort _
-  /-- 1-cells: paths between 0-cells -/
-  Cell1 : Cell0 → Cell0 → Sort _
-  /-- 2-cells: homotopies between parallel 1-cells -/
-  Cell2 : {M N : Cell0} → Cell1 M N → Cell1 M N → Sort _
-  /-- 3-cells and above: the recursively generated higher-conversion tower. -/
-  CellHigher : (n : Nat) → (n ≥ 3) → Sort _
+/-- The globular identity at dimension 3 on source boundaries:
+    for a 3-cell `η : α → β`, the 1-source of `α` equals the 1-source of `β`. -/
+theorem globular_src_3 (f : NConversion 3) :
+    NConversion.source (NConversion.source f) =
+    NConversion.source (NConversion.target f) := by
+  exact NConversion.globular_src f
+
+/-- The globular identity at dimension 3 on target boundaries:
+    for a 3-cell `η : α → β`, the 1-target of `α` equals the 1-target of `β`. -/
+theorem globular_tgt_3 (f : NConversion 3) :
+    NConversion.target (NConversion.source f) =
+    NConversion.target (NConversion.target f) := by
+  exact NConversion.globular_tgt f
+
+/-- The higher-conversion tower seen as a generic globular tower. -/
+abbrev LambdaTower := HigherLambdaModel.Simplicial.GlobularTower
 
 /-- The canonical lambda tower with concrete λ-calculus types -/
 def lambdaTower : LambdaTower where
-  Cell0 := Term
-  Cell1 := ReductionSeq
-  Cell2 := Homotopy2
-  CellHigher := fun n _ => NConversion n
+  Cell := NConversion
+  source := NConversion.source
+  target := NConversion.target
+  globular_src := NConversion.globular_src
+  globular_tgt := NConversion.globular_tgt
 
 /-! ## Summary
 

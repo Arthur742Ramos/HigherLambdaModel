@@ -1,6 +1,7 @@
 import HigherLambdaModel.Simplicial.Basic
 import HigherLambdaModel.Simplicial.InfinityCategory
 import HigherLambdaModel.Simplicial.Limits
+import HigherLambdaModel.Simplicial.OmegaGroupoid
 
 /-!
 # Simplicial Foundations
