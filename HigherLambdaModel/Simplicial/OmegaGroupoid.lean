@@ -30,11 +30,11 @@ structure GlobularTower where
 /-- Low-dimensional groupoid data with dependent source and target. -/
 structure OmegaGroupoidData where
   Obj : Type u
-  Hom : Obj → Obj → Type v
+  Hom : Obj → Obj → Sort v
   id : (M : Obj) → Hom M M
   comp : {M N P : Obj} → Hom M N → Hom N P → Hom M P
   inv : {M N : Obj} → Hom M N → Hom N M
-  Hom2 : {M N : Obj} → Hom M N → Hom M N → Type w
+  Hom2 : {M N : Obj} → Hom M N → Hom M N → Sort w
   refl2 : {M N : Obj} → (p : Hom M N) → Hom2 p p
 
 /-- A weak omega-groupoid core packaged through 5-cells.
@@ -42,11 +42,11 @@ structure OmegaGroupoidData where
 The interface is intentionally generic: it does not prescribe how higher cells
 are implemented, only which operations and coherence witnesses are available. -/
 structure OmegaGroupoid extends OmegaGroupoidData where
-  Hom3 : {M N : Obj} → {p q : Hom M N} → Hom2 p q → Hom2 p q → Type z
+  Hom3 : {M N : Obj} → {p q : Hom M N} → Hom2 p q → Hom2 p q → Sort z
   Hom4 : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} →
-    Hom3 α β → Hom3 α β → Type z
+    Hom3 α β → Hom3 α β → Sort z
   Hom5 : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} → {η θ : Hom3 α β} →
-    Hom4 η θ → Hom4 η θ → Type z
+    Hom4 η θ → Hom4 η θ → Sort z
   symm2 : {M N : Obj} → {p q : Hom M N} → Hom2 p q → Hom2 q p
   trans2 : {M N : Obj} → {p q r : Hom M N} → Hom2 p q → Hom2 q r → Hom2 p r
   whiskerLeft : {M N P : Obj} → (r : Hom M N) → {p q : Hom N P} →
@@ -86,7 +86,7 @@ structure OmegaGroupoid extends OmegaGroupoidData where
 /-- A reflexive low-dimensional globular tower. -/
 structure ReflexiveGlobularTower where
   Cell0 : Type u
-  Cell1 : Cell0 → Cell0 → Type v
+  Cell1 : Cell0 → Cell0 → Sort v
   Cell2 : {M N : Cell0} → Cell1 M N → Cell1 M N → Sort w
   Cell3 : {M N : Cell0} → {p q : Cell1 M N} → Cell2 p q → Cell2 p q → Sort z
   Cell4 : {M N : Cell0} → {p q : Cell1 M N} → {α β : Cell2 p q} →
@@ -100,6 +100,112 @@ structure ReflexiveGlobularTower where
       (η : Cell3 α β), Cell4 η η
   cell5_refl : ∀ {M N : Cell0} {p q : Cell1 M N} {α β : Cell2 p q}
       {η θ : Cell3 α β} (ω : Cell4 η θ), Cell5 ω ω
+
+/-- The identity-type weak omega-groupoid on any carrier. This supplies the
+canonical coherence data used to package concrete models whose higher cells are
+given by iterated equalities. -/
+def equalityOmegaGroupoid (α : Type u) : OmegaGroupoid where
+  Obj := α
+  Hom := fun x y => PLift (x = y)
+  id := fun x => ⟨rfl⟩
+  comp := fun p q => ⟨p.down.trans q.down⟩
+  inv := fun p => ⟨p.down.symm⟩
+  Hom2 := fun p q => PLift (p = q)
+  refl2 := fun p => ⟨rfl⟩
+  Hom3 := fun α β => PLift (α = β)
+  Hom4 := fun η θ => PLift (η = θ)
+  Hom5 := fun ω ξ => PLift (ω = ξ)
+  symm2 := fun h => ⟨h.down.symm⟩
+  trans2 := fun h₁ h₂ => ⟨h₁.down.trans h₂.down⟩
+  whiskerLeft := by
+    intro M N P r p q h
+    cases r with
+    | up r =>
+      cases p with
+      | up p =>
+        cases q with
+        | up q =>
+          cases h with
+          | up h =>
+            cases h
+            exact ⟨rfl⟩
+  whiskerRight := by
+    intro M N P p q h s
+    cases p with
+    | up p =>
+      cases q with
+      | up q =>
+        cases h with
+        | up h =>
+          cases s with
+          | up s =>
+            cases h
+            exact ⟨rfl⟩
+  hcomp := by
+    intro M N P p p' q q' h₁ h₂
+    cases p with
+    | up p =>
+      cases p' with
+      | up p' =>
+        cases q with
+        | up q =>
+          cases q' with
+          | up q' =>
+            cases h₁ with
+            | up h₁ =>
+              cases h₂ with
+              | up h₂ =>
+                cases h₁
+                cases h₂
+                exact ⟨rfl⟩
+  associator := by
+    intro M N P Q p q r
+    cases p with
+    | up p =>
+      cases q with
+      | up q =>
+        cases r with
+        | up r =>
+          cases p
+          cases q
+          cases r
+          exact ⟨rfl⟩
+  leftUnitor := by
+    intro M N p
+    cases p with
+    | up p =>
+      cases p
+      exact ⟨rfl⟩
+  rightUnitor := by
+    intro M N p
+    cases p with
+    | up p =>
+      cases p
+      exact ⟨rfl⟩
+  inv_right := by
+    intro M N p
+    cases p with
+    | up p =>
+      cases p
+      exact ⟨rfl⟩
+  inv_left := by
+    intro M N p
+    cases p with
+    | up p =>
+      cases p
+      exact ⟨rfl⟩
+  hom3_refl := fun α => ⟨rfl⟩
+  hom4_refl := fun η => ⟨rfl⟩
+  hom5_refl := fun ω => ⟨rfl⟩
+  pentagon_coh := by
+    intro M N P Q R p q r s
+    exact ⟨Subsingleton.elim _ _⟩
+  triangle_coh := by
+    intro M N P p q
+    exact ⟨Subsingleton.elim _ _⟩
+  interchange_coh := by
+    intro M N P p p' q q' α β
+    exact ⟨Subsingleton.elim _ _⟩
 
 namespace OmegaGroupoid
 

@@ -273,28 +273,28 @@ def refl (α : Sort u) : SortEquiv α α where
 end SortEquiv
 
 /-- The packed 0-cells carried by a reflexive globular tower. -/
-abbrev Tower0 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower0 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   T.Cell0
 
 /-- The packed 1-cells carried by a reflexive globular tower. -/
-abbrev Tower1 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower1 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   Σ (M N : T.Cell0), T.Cell1 M N
 
 /-- The packed 2-cells carried by a reflexive globular tower. -/
-abbrev Tower2 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower2 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   Σ (M N : T.Cell0) (p q : T.Cell1 M N), T.Cell2 p q
 
 /-- The packed 3-cells carried by a reflexive globular tower. -/
-abbrev Tower3 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower3 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   Σ (M N : T.Cell0) (p q : T.Cell1 M N) (α β : T.Cell2 p q), T.Cell3 α β
 
 /-- The packed 4-cells carried by a reflexive globular tower. -/
-abbrev Tower4 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower4 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   Σ (M N : T.Cell0) (p q : T.Cell1 M N) (α β : T.Cell2 p q)
     (η θ : T.Cell3 α β), T.Cell4 η θ
 
 /-- The packed 5-cells carried by a reflexive globular tower. -/
-abbrev Tower5 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Type _ :=
+abbrev Tower5 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
   Σ (M N : T.Cell0) (p q : T.Cell1 M N) (α β : T.Cell2 p q)
     (η θ : T.Cell3 α β) (ω ξ : T.Cell4 η θ), T.Cell5 ω ξ
 

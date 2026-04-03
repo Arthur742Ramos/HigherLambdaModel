@@ -1,4 +1,6 @@
 import HigherLambdaModel.KInfinity.Construction
+import HigherLambdaModel.Lambda.Coherence
+import HigherLambdaModel.Simplicial.OmegaGroupoid
 
 /-!
 # Properties of the `K∞` Tower
@@ -242,6 +244,172 @@ theorem remark_4_3 (x y : KInfinityCHPO.Obj) :
       ((projectToLevel 1 x).toFun (projectToLevel 0 y)) := by
   simpa [application] using proposition_4_3 x y
 
+/-! ## Generic Coherence Instance -/
+
+/-- The canonical weak omega-groupoid on the concrete carrier of `K∞`, with
+all higher cells above dimension `1` given by iterated identity types. This
+lets the concrete model inherit the generic coherence theorem stack without
+adding any `K∞`-specific higher-conversion axioms. -/
+def kInfinityOmegaGroupoid : HigherLambdaModel.Simplicial.OmegaGroupoid :=
+  HigherLambdaModel.Simplicial.equalityOmegaGroupoid KInfinityCHPO.Obj
+
+private abbrev KInfinityReflexiveTower :=
+  kInfinityOmegaGroupoid.toReflexiveGlobularTower
+
+private def KInfinityCell : Nat → Type _
+  | 0 => HigherLambdaModel.Lambda.Coherence.Tower0 KInfinityReflexiveTower
+  | 1 => HigherLambdaModel.Lambda.Coherence.Tower1 KInfinityReflexiveTower
+  | 2 => HigherLambdaModel.Lambda.Coherence.Tower2 KInfinityReflexiveTower
+  | 3 => HigherLambdaModel.Lambda.Coherence.Tower3 KInfinityReflexiveTower
+  | 4 => HigherLambdaModel.Lambda.Coherence.Tower4 KInfinityReflexiveTower
+  | 5 => HigherLambdaModel.Lambda.Coherence.Tower5 KInfinityReflexiveTower
+  | n + 6 => Σ (x y : KInfinityCell (n + 5)), PLift (x = y)
+
+private def kInfinitySource : {n : Nat} → KInfinityCell (n + 1) → KInfinityCell n
+  | 0, ⟨A, _, _⟩ => A
+  | 1, ⟨A, B, p, _, _⟩ => ⟨A, B, p⟩
+  | 2, ⟨A, B, p, q, α, _, _⟩ => ⟨A, B, p, q, α⟩
+  | 3, ⟨A, B, p, q, α, β, η, _, _⟩ => ⟨A, B, p, q, α, β, η⟩
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, _, _⟩ => ⟨A, B, p, q, α, β, η, θ, ω⟩
+  | _ + 5, ⟨x, _, _⟩ => x
+
+private def kInfinityTarget : {n : Nat} → KInfinityCell (n + 1) → KInfinityCell n
+  | 0, ⟨_, B, _⟩ => B
+  | 1, ⟨A, B, _, q, _⟩ => ⟨A, B, q⟩
+  | 2, ⟨A, B, p, q, _, β, _⟩ => ⟨A, B, p, q, β⟩
+  | 3, ⟨A, B, p, q, α, β, _, θ, _⟩ => ⟨A, B, p, q, α, β, θ⟩
+  | 4, ⟨A, B, p, q, α, β, η, θ, _, ξ, _⟩ => ⟨A, B, p, q, α, β, η, θ, ξ⟩
+  | _ + 5, ⟨_, y, _⟩ => y
+
+private theorem kInfinityGlobularSrc :
+    {n : Nat} → (x : KInfinityCell (n + 2)) →
+      kInfinitySource (kInfinitySource x) = kInfinitySource (kInfinityTarget x)
+  | 0, ⟨A, B, p, q, α⟩ => rfl
+  | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
+  | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
+  | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
+  | n + 4, ⟨x, y, h⟩ => by
+      cases h with
+      | up h =>
+          cases h
+          rfl
+
+private theorem kInfinityGlobularTgt :
+    {n : Nat} → (x : KInfinityCell (n + 2)) →
+      kInfinityTarget (kInfinitySource x) = kInfinityTarget (kInfinityTarget x)
+  | 0, ⟨A, B, p, q, α⟩ => rfl
+  | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
+  | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
+  | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
+  | n + 4, ⟨x, y, h⟩ => by
+      cases h with
+      | up h =>
+          cases h
+          rfl
+
+/-- The all-dimensional conversion tower on `K∞`, expressed through the packed
+low-dimensional cells of its canonical identity-type omega-groupoid. -/
+def kInfinityTower : HigherLambdaModel.Simplicial.GlobularTower where
+  Cell := KInfinityCell
+  source := kInfinitySource
+  target := kInfinityTarget
+  globular_src := kInfinityGlobularSrc
+  globular_tgt := kInfinityGlobularTgt
+
+/-- The concrete `K∞` model satisfies the generic admissibility hypotheses. -/
+def kInfinityAdmissibleHigherLambdaModel :
+    HigherLambdaModel.Lambda.Coherence.AdmissibleHigherLambdaModel where
+  tower := kInfinityTower
+  omegaGroupoid := kInfinityOmegaGroupoid
+  cell0Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell1Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell2Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell3Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  realize4 := fun x => x
+  realize5 := fun x => x
+
+/-- The generic coherence theorem specialized to the concrete `K∞` model. -/
+def kInfinityHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+      kInfinityAdmissibleHigherLambdaModel :=
+  HigherLambdaModel.Lambda.Coherence.higherConversionCoherenceData
+    kInfinityAdmissibleHigherLambdaModel
+
+/-- `K∞` inherits the full generic omega-groupoid coherence package. -/
+theorem kInfinity_higher_conversions_form_omegaGroupoid :
+    Nonempty
+      (HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+        kInfinityAdmissibleHigherLambdaModel) :=
+  HigherLambdaModel.Lambda.Coherence.higherConversions_form_omegaGroupoid
+    kInfinityAdmissibleHigherLambdaModel
+
+/-- The reflexive tower recovered from the generic coherence theorem for `K∞`.
+-/
+abbrev reflexiveKInfinityTower :
+    HigherLambdaModel.Simplicial.ReflexiveGlobularTower :=
+  HigherLambdaModel.Lambda.Coherence.realizedTower
+    kInfinityAdmissibleHigherLambdaModel
+
+/-- The `K∞` tower packaged above is definitionally the realized tower of its
+specialized coherence theorem. -/
+theorem kInfinityHigherConversionCoherence_realizedTower :
+    HigherLambdaModel.Lambda.Coherence.realizedTower
+      kInfinityAdmissibleHigherLambdaModel = reflexiveKInfinityTower :=
+  rfl
+
+/-- Paths in the canonical `K∞` omega-groupoid. -/
+abbrev KInfinityPath (A B : KInfinityCHPO.Obj) : Type :=
+  kInfinityOmegaGroupoid.Hom A B
+
+/-- Two-cells between parallel `K∞` paths. -/
+abbrev KInfinityPath2
+    {A B : KInfinityCHPO.Obj} (p q : KInfinityPath A B) : Type :=
+  kInfinityOmegaGroupoid.Hom2 p q
+
+/-- Lift an ordinary equality of `K∞` points to a 1-cell in the canonical
+omega-groupoid. -/
+def kInfinityPathOfEq {A B : KInfinityCHPO.Obj} (h : A = B) : KInfinityPath A B :=
+  ⟨h⟩
+
+/-- Lift an equality of parallel `K∞` paths to a 2-cell in the canonical
+omega-groupoid. -/
+def kInfinityPath2OfEq
+    {A B : KInfinityCHPO.Obj} {p q : KInfinityPath A B}
+    (h : p = q) : KInfinityPath2 p q :=
+  ⟨h⟩
+
+/-- The generic pentagon 4-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityPentagon4
+    {A B C D E : KInfinityCHPO.Obj}
+    (p : KInfinityPath A B) (q : KInfinityPath B C)
+    (r : KInfinityPath C D) (s : KInfinityPath D E) :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.pentagon4
+    kInfinityOmegaGroupoid p q r s
+
+/-- The generic pentagon 5-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityPentagon5
+    {A B C D E : KInfinityCHPO.Obj}
+    (p : KInfinityPath A B) (q : KInfinityPath B C)
+    (r : KInfinityPath C D) (s : KInfinityPath D E) :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.pentagon5
+    kInfinityOmegaGroupoid p q r s
+
+/-- The generic interchange 4-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityHexagon4
+    {A B C : KInfinityCHPO.Obj}
+    {p p' : KInfinityPath A B} {q q' : KInfinityPath B C}
+    (α : KInfinityPath2 p p') (β : KInfinityPath2 q q') :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.hexagon4
+    kInfinityOmegaGroupoid α β
+
+/-- The generic interchange 5-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityHexagon5
+    {A B C : KInfinityCHPO.Obj}
+    {p p' : KInfinityPath A B} {q q' : KInfinityPath B C}
+    (α : KInfinityPath2 p p') (β : KInfinityPath2 q q') :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.hexagon5
+    kInfinityOmegaGroupoid α β
+
 /-! ## Proposition 4.4 -/
 
 /-- The chosen homotopy-group presentation of `K∞`, obtained by reading the
@@ -275,7 +443,7 @@ theorem proposition_4_4 : IsNonTrivialKanComplex KInfinityKanComplex := by
     have hpred' : (((n - 1).succ - 1).succ) = (n - 1).succ := by
       exact Nat.succ_pred_eq_of_pos (Nat.succ_pos (n - 1))
     have hx0 : projectToLevel 0 x = some ⟨n - 1, false⟩ := by
-      simpa [x] using project_embedBase_self (x := some ⟨n - 1, false⟩)
+      simp [x]
     have hGroup : TypeNontrivial (sphereHomotopyGroup n ⟨n - 1, false⟩) := by
       rw [sphereHomotopyGroup, hEq, hpred']
       simpa using bool_typeNontrivial
@@ -301,11 +469,11 @@ noncomputable def interp1Beta : KInfinityCHPO.Obj :=
 
 @[simp] theorem interp1Eta_level0 :
     projectToLevel 0 interp1Eta = some s1Left := by
-  simpa [interp1Eta] using project_embedBase_self (x := some s1Left)
+  simp [interp1Eta]
 
 @[simp] theorem interp1Beta_level0 :
     projectToLevel 0 interp1Beta = some s1Right := by
-  simpa [interp1Beta] using project_embedBase_self (x := some s1Right)
+  simp [interp1Beta]
 
 /-- Example 4.2: the chosen β/η interpretations are distinct in `K∞`. -/
 theorem example_4_2 : interp1Beta ≠ interp1Eta := by
