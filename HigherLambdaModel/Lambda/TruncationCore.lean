@@ -11,6 +11,7 @@ contractibility of the higher-cell spaces.
 -/
 
 import HigherLambdaModel.Lambda.Coherence
+import HigherLambdaModel.Lambda.NTerms
 
 namespace HigherLambdaModel.Lambda.TruncationCore
 
@@ -95,9 +96,92 @@ model, viewed through the generic simplicial interface. -/
 abbrev ReflexiveLambdaTower :=
   HigherLambdaModel.Simplicial.ReflexiveGlobularTower
 
+/-- The proposition-level 0-truncation of the 1-cell space of an
+omega-groupoid. -/
+def OmegaGroupoid0Truncation
+    (G : HigherLambdaModel.Simplicial.OmegaGroupoid) (M N : G.Obj) : Prop :=
+  Nonempty (G.Hom M N)
+
+private def higherDerivMap {A B : Type _} (f : A → B) :
+    {x y : A} → HigherDeriv x y → HigherDeriv (f x) (f y)
+  | _, _, .refl x => HigherDeriv.refl (f x)
+  | _, _, .symm h => HigherDeriv.symm (higherDerivMap f h)
+  | _, _, .trans h₁ h₂ =>
+      HigherDeriv.trans (higherDerivMap f h₁) (higherDerivMap f h₂)
+
+private def liftLambdaCell3 {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} (η : HigherTerms.Homotopy3 α β) :
+    HigherTerms.Cell 3 :=
+  ⟨M, N, p, q, α, β, η⟩
+
+private def liftLambdaCell4 {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} {η θ : HigherTerms.Homotopy3 α β}
+    (ω : HigherTerms.HigherDeriv η θ) :
+    HigherTerms.Cell 4 :=
+  ⟨liftLambdaCell3 η, liftLambdaCell3 θ, higherDerivMap liftLambdaCell3 ω⟩
+
+private def lambdaRealize4 :
+    HigherLambdaModel.Lambda.Coherence.Tower4
+      HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower →
+    HigherTerms.Cell 4
+  | ⟨M, N, p, q, α, β, η, θ, ω⟩ =>
+      liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+        (α := α) (β := β) (η := η) (θ := θ) ω
+
+private def lambdaRealize5 :
+    HigherLambdaModel.Lambda.Coherence.Tower5
+      HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower →
+    HigherTerms.Cell 5
+  | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩ =>
+      ⟨liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+          (α := α) (β := β) (η := η) (θ := θ) ω,
+        liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+          (α := α) (β := β) (η := η) (θ := θ) ξ,
+        higherDerivMap
+          (liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+            (α := α) (β := β) (η := η) (θ := θ))
+          μ⟩
+
+/-- The explicit higher λ-conversion tower is admissible for the generic
+coherence theorem. -/
+def lambdaAdmissibleHigherLambdaModel :
+    HigherLambdaModel.Lambda.Coherence.AdmissibleHigherLambdaModel where
+  tower := HigherLambdaModel.Lambda.NTerms.lambdaTower
+  omegaGroupoid := HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+  cell0Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell1Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell2Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  cell3Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
+  realize4 := lambdaRealize4
+  realize5 := lambdaRealize5
+
+/-- The generic coherence theorem specialized to the constructive higher
+λ-conversion tower. -/
+def lambdaHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+      lambdaAdmissibleHigherLambdaModel :=
+  HigherLambdaModel.Lambda.Coherence.higherConversionCoherenceData
+    lambdaAdmissibleHigherLambdaModel
+
+/-- The constructive higher λ-conversion tower satisfies the generic coherence
+theorem over the canonical omega-groupoid API. -/
+theorem lambda_higher_conversions_form_omegaGroupoid :
+    Nonempty
+      (HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+        lambdaAdmissibleHigherLambdaModel) :=
+  HigherLambdaModel.Lambda.Coherence.higherConversions_form_omegaGroupoid
+    lambdaAdmissibleHigherLambdaModel
+
 /-- The canonical higher-cell data coming from λ-terms and explicit paths. -/
 def reflexiveLambdaTower : ReflexiveLambdaTower :=
-  HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower
+  HigherLambdaModel.Lambda.Coherence.realizedTower lambdaAdmissibleHigherLambdaModel
+
+/-- The generic coherence theorem recovers the canonical reflexive lambda
+tower obtained directly from `lambdaOmegaGroupoid`. -/
+theorem lambdaHigherConversionCoherence_realizedTower :
+    HigherLambdaModel.Lambda.Coherence.realizedTower
+      lambdaAdmissibleHigherLambdaModel = reflexiveLambdaTower :=
+  rfl
 
 /-! ## Consequences -/
 

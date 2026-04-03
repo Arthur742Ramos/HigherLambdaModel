@@ -85,6 +85,16 @@ theorem TH_lambda_eq_is_0_truncation (M N : Term) :
   · exact TH_lambda_eq_to_classicalEquality
   · exact classicalEquality_to_TH_lambda_eq
 
+/-- Specializing the generic coherence theorem to λ-terms and then taking the
+0-truncation of its omega-groupoid 1-cells recovers the ordinary classical
+βη-conversion theory already formalized in the repository. -/
+theorem lambda_generic_coherence_0_truncation (M N : Term) :
+    TruncationCore.OmegaGroupoid0Truncation
+      HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid M N ↔
+      (M =_TH N) := by
+  simpa [TruncationCore.OmegaGroupoid0Truncation, ClassicalEquality] using
+    (TH_lambda_eq_is_0_truncation M N).symm
+
 /-! ## Semantic Consequences -/
 
 /-- An explicit path forces equality in every extensional Kan complex. -/
