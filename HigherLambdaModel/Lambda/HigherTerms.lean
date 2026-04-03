@@ -68,7 +68,18 @@ theorem concat_assoc {M N P Q : Term}
 
 /-- Left identity for concatenation. -/
 theorem concat_refl_left {M N : Term} (p : ReductionSeq M N) :
-    concat (refl M) p = p := rfl
+    concat (refl M) p = p := by
+  -- Case-split to show concat(refl, p) computes to p in each branch.
+  cases p with
+  | refl M =>
+      change refl M = refl M
+      rfl
+  | step s rest =>
+      change step s rest = step s rest
+      rfl
+  | stepInv s rest =>
+      change stepInv s rest = stepInv s rest
+      rfl
 
 /-- Right identity for concatenation. -/
 theorem concat_refl_right {M N : Term} (p : ReductionSeq M N) :
@@ -549,8 +560,18 @@ def target : {n : Nat} → Cell (n + 1) → Cell n
 /-- Globularity on source boundaries for the recursive higher-cell tower. -/
 theorem globular_source : {n : Nat} → (x : Cell (n + 2)) →
     source (source x) = source (target x)
-  | 0, ⟨_, _, _, _, _⟩ => rfl
-  | 1, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | 0, ⟨M, N, p, q, α⟩ => by
+      -- A 2-cell ⟨M, N, p, q, α⟩ has source = ⟨M,N,p⟩, target = ⟨M,N,q⟩
+      let cell : Cell 2 := ⟨M, N, p, q, α⟩
+      calc
+        source (source cell) = M := by rfl
+        _ = source (target cell) := by rfl
+  | 1, ⟨M, N, p, q, α, β, η⟩ => by
+      let cell : Cell 3 := ⟨M, N, p, q, α, β, η⟩
+      let boundary : Cell 1 := ⟨M, N, p⟩
+      calc
+        source (source cell) = boundary := by rfl
+        _ = source (target cell) := by rfl
   | _ + 2, ⟨x, y, h⟩ => by
       cases HigherDeriv.toEq h
       rfl
@@ -558,8 +579,17 @@ theorem globular_source : {n : Nat} → (x : Cell (n + 2)) →
 /-- Globularity on target boundaries for the recursive higher-cell tower. -/
 theorem globular_target : {n : Nat} → (x : Cell (n + 2)) →
     target (source x) = target (target x)
-  | 0, ⟨_, _, _, _, _⟩ => rfl
-  | 1, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | 0, ⟨M, N, p, q, α⟩ => by
+      let cell : Cell 2 := ⟨M, N, p, q, α⟩
+      calc
+        target (source cell) = N := by rfl
+        _ = target (target cell) := by rfl
+  | 1, ⟨M, N, p, q, α, β, η⟩ => by
+      let cell : Cell 3 := ⟨M, N, p, q, α, β, η⟩
+      let boundary : Cell 1 := ⟨M, N, q⟩
+      calc
+        target (source cell) = boundary := by rfl
+        _ = target (target cell) := by rfl
   | _ + 2, ⟨x, y, h⟩ => by
       cases HigherDeriv.toEq h
       rfl

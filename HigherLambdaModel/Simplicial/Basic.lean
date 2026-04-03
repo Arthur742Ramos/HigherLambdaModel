@@ -65,31 +65,52 @@ def comp {ℓ m n : Nat} (g : DeltaHom m n) (f : DeltaHom ℓ m) : DeltaHom ℓ 
 
 @[simp]
 theorem id_apply {n : Nat} (a : Fin (n + 1)) :
-    id n a = a :=
-  rfl
+    id n a = a := by
+  change a = a
+  exact Eq.refl a
 
 @[simp]
 theorem comp_apply {ℓ m n : Nat} (g : DeltaHom m n) (f : DeltaHom ℓ m) (a : Fin (ℓ + 1)) :
-    comp g f a = g (f a) :=
-  rfl
+    comp g f a = g (f a) := by
+  change g (f a) = g (f a)
+  exact Eq.refl (g (f a))
 
 @[simp]
 theorem id_comp {m n : Nat} (f : DeltaHom m n) :
     comp (id n) f = f := by
-  ext a
-  rfl
+  apply DeltaHom.ext
+  intro a
+  calc
+    comp (id n) f a = id n (f a) := by
+      rw [comp_apply]
+    _ = f a := by
+      rw [id_apply]
 
 @[simp]
 theorem comp_id {m n : Nat} (f : DeltaHom m n) :
     comp f (id m) = f := by
-  ext a
-  rfl
+  apply DeltaHom.ext
+  intro a
+  calc
+    comp f (id m) a = f (id m a) := by
+      rw [comp_apply]
+    _ = f a := by
+      rw [id_apply]
 
 theorem comp_assoc {k ℓ m n : Nat}
     (h : DeltaHom m n) (g : DeltaHom ℓ m) (f : DeltaHom k ℓ) :
     comp h (comp g f) = comp (comp h g) f := by
-  ext a
-  rfl
+  apply DeltaHom.ext
+  intro a
+  calc
+    comp h (comp g f) a = h ((comp g f) a) := by
+      rw [comp_apply]
+    _ = h (g (f a)) := by
+      rw [comp_apply]
+    _ = (comp h g) (f a) := by
+      exact (comp_apply h g (f a)).symm
+    _ = comp (comp h g) f a := by
+      exact (comp_apply (comp h g) f a).symm
 
 end DeltaHom
 
@@ -181,32 +202,53 @@ def comp {X Y Z : SSet} (g : Hom Y Z) (f : Hom X Y) : Hom X Z where
 
 @[simp]
 theorem id_app {X : SSet} (n : Nat) (σ : X.Simplex n) :
-    id X n σ = σ :=
-  rfl
+    id X n σ = σ := by
+  change σ = σ
+  exact Eq.refl σ
 
 @[simp]
 theorem comp_app {X Y Z : SSet} (g : Hom Y Z) (f : Hom X Y) (n : Nat)
     (σ : X.Simplex n) :
-    comp g f n σ = g n (f n σ) :=
-  rfl
+    comp g f n σ = g n (f n σ) := by
+  change g.app n (f.app n σ) = g.app n (f.app n σ)
+  exact Eq.refl (g.app n (f.app n σ))
 
 @[simp]
 theorem id_comp {X Y : SSet} (f : Hom X Y) :
     comp (id Y) f = f := by
-  ext n σ
-  rfl
+  apply Hom.ext
+  intro n σ
+  calc
+    comp (id Y) f n σ = id Y n (f n σ) := by
+      rw [comp_app]
+    _ = f n σ := by
+      rw [id_app]
 
 @[simp]
 theorem comp_id {X Y : SSet} (f : Hom X Y) :
     comp f (id X) = f := by
-  ext n σ
-  rfl
+  apply Hom.ext
+  intro n σ
+  calc
+    comp f (id X) n σ = f n (id X n σ) := by
+      rw [comp_app]
+    _ = f n σ := by
+      rw [id_app]
 
 theorem comp_assoc {W X Y Z : SSet}
     (h : Hom Y Z) (g : Hom X Y) (f : Hom W X) :
     comp h (comp g f) = comp (comp h g) f := by
-  ext n σ
-  rfl
+  apply Hom.ext
+  intro n σ
+  calc
+    comp h (comp g f) n σ = h n ((comp g f) n σ) := by
+      rw [comp_app]
+    _ = h n (g n (f n σ)) := by
+      rw [comp_app]
+    _ = (comp h g) n (f n σ) := by
+      exact (comp_app h g n (f n σ)).symm
+    _ = comp (comp h g) f n σ := by
+      exact (comp_app (comp h g) f n σ).symm
 
 end Hom
 

@@ -34,12 +34,17 @@ def TypeInfinite (α : Type u) : Prop :=
 def TypeNontrivial (α : Type u) : Prop :=
   ∃ x y : α, x ≠ y
 
-theorem nat_typeInfinite : TypeInfinite Nat :=
-  ⟨fun n => n, fun _ _ h => h⟩
+theorem nat_typeInfinite : TypeInfinite Nat := by
+  refine ⟨fun n => n, ?_⟩
+  intro m n hmn
+  -- The identity embedding is injective: id m = id n unfolds to m = n.
+  calc
+    m = (fun k : Nat => k) m := by rfl
+    _ = (fun k : Nat => k) n := hmn
+    _ = n := by rfl
 
 theorem bool_typeNontrivial : TypeNontrivial Bool := by
-  refine ⟨false, true, ?_⟩
-  simp
+  exact ⟨false, true, by decide⟩
 
 /-! ## Constant Kan Complexes -/
 
@@ -52,28 +57,46 @@ def constantSSet (α : Type u) : SSet where
   degen := fun _ _ x => x
   face_degen0_eq := by
     intro σ
-    rfl
+    -- face₀ ∘ degen₀ = id because both are the identity on α.
+    calc (fun _ _ (x : α) => x) 0 0 ((fun _ _ (x : α) => x) 0 0 σ)
+        = (fun _ _ (x : α) => x) 0 0 σ := by rfl
+      _ = σ := by rfl
   face_degen0_succ := by
     intro σ
-    rfl
+    calc (fun _ _ (x : α) => x) 0 1 ((fun _ _ (x : α) => x) 0 0 σ)
+        = (fun _ _ (x : α) => x) 0 0 σ := by rfl
+      _ = σ := by rfl
   face_face := by
     intro n σ i j hij hj
-    rfl
+    -- Both sides reduce to σ through the constant face map.
+    calc (fun _ _ (x : α) => x) n i ((fun _ _ (x : α) => x) (n + 1) (j + 1) σ)
+        = σ := by rfl
+      _ = (fun _ _ (x : α) => x) n j ((fun _ _ (x : α) => x) (n + 1) i σ) := by rfl
   face_degen_lt := by
     intro n σ i j hij hj
-    rfl
+    calc (fun _ _ (x : α) => x) (n + 1) i ((fun _ _ (x : α) => x) (n + 1) j σ)
+        = σ := by rfl
+      _ = (fun _ _ (x : α) => x) n (j - 1) ((fun _ _ (x : α) => x) n i σ) := by rfl
   face_degen_eq := by
     intro n σ i hi
-    rfl
+    calc (fun _ _ (x : α) => x) (n + 1) i ((fun _ _ (x : α) => x) (n + 1) i σ)
+        = (fun _ _ (x : α) => x) (n + 1) i σ := by rfl
+      _ = σ := by rfl
   face_degen_succ := by
     intro n σ i hi
-    rfl
+    calc (fun _ _ (x : α) => x) (n + 1) (i + 1) ((fun _ _ (x : α) => x) (n + 1) i σ)
+        = (fun _ _ (x : α) => x) (n + 1) i σ := by rfl
+      _ = σ := by rfl
   face_degen_gt := by
     intro n σ i j hji hi
-    rfl
+    calc (fun _ _ (x : α) => x) (n + 1) i ((fun _ _ (x : α) => x) (n + 1) j σ)
+        = σ := by rfl
+      _ = (fun _ _ (x : α) => x) n j ((fun _ _ (x : α) => x) n (i - 1) σ) := by rfl
   degen_degen := by
     intro n σ i j hij hj
-    rfl
+    calc (fun _ _ (x : α) => x) (n + 1) (j + 1) ((fun _ _ (x : α) => x) n i σ)
+        = σ := by rfl
+      _ = (fun _ _ (x : α) => x) (n + 1) i ((fun _ _ (x : α) => x) n j σ) := by rfl
 
 private def constantHornPivot {n i : Nat} (_hi : i ≤ n + 1) : Nat :=
   if i = 0 then 1 else 0

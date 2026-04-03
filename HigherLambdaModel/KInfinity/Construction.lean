@@ -97,7 +97,12 @@ noncomputable def initialPair : ProjectionPair (K 0) (K 1) where
   retract := by
     apply ContinuousMap.ext
     intro x
-    rfl
+    -- Unfold: (f₀⁻ ∘ f₀⁺)(x) = f₀⁻(f₀⁺(x)) = (f₀⁺ x)(⊥₀) = x
+    calc
+      (ContinuousMap.comp f0Minus f0Plus) x = f0Minus (f0Plus x) := by rfl
+      _ = (f0Plus x).toFun bottom0 := by rfl
+      _ = x := by rw [f0Plus_apply x bottom0]
+      _ = (ContinuousMap.id (K 0)) x := by rfl
   section_le := by
     intro g
     refine Exponential.rel_mk ?_
@@ -106,9 +111,18 @@ noncomputable def initialPair : ProjectionPair (K 0) (K 1) where
   emb_strict := by
     apply ContinuousMap.ext
     intro y
-    rfl
+    -- f₀⁺(⊥₀)(y) = ⊥₀ = ⊥₁(y)
+    calc
+      (f0Plus ((K 0).bottom)).toFun y = (K 0).bottom := by
+        rw [f0Plus_apply ((K 0).bottom) y]
+      _ = ((K 1).bottom).toFun y := by rfl
   proj_strict := by
-    rfl
+    -- f₀⁻(⊥₁) = ⊥₁(⊥₀) = ⊥₀
+    calc
+      f0Minus ((K 1).bottom) = ((K 1).bottom).toFun bottom0 := by
+        rw [f0Minus_apply]
+      _ = bottom0 := by rfl
+      _ = (K 0).bottom := by rfl
 
 /-! ## Definition 4.7: recursive projection pairs -/
 

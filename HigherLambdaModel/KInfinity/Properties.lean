@@ -25,6 +25,19 @@ open Classical
 open HigherLambdaModel.Domain
 open HigherLambdaModel.Lambda.HomotopyOrder
 
+/-! ## Stage Algebraicity and Scott Domain Structure -/
+
+/-- Every stage `Kₙ` of Definition 4.5 is algebraic at level 0. -/
+theorem stage_algebraic_zero : Algebraic (K 0) :=
+  Flat.algebraic SpherePoint
+
+/-- Stage-wise bounded completeness combined with algebraicity at level 0
+gives us the full Homotopy Scott Domain at level 0. -/
+noncomputable def stage_scottDomain_zero : HomotopyScottDomain where
+  carrier := K 0
+  algebraic := stage_algebraic_zero
+  boundedComplete := Flat.boundedComplete SpherePoint
+
 /-! ## Remark 4.1 and Proposition 4.1 -/
 
 /-- Every stage `Kₙ` of Definition 4.5 is bounded complete. This is the
