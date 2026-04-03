@@ -682,8 +682,8 @@ noncomputable def Homotopy2_whiskerRightRefl_target_subset_HoTFTTetrahedron
   ReductionSeq_comp_refl_subset_HoTFTTetrahedron p s
 
 /-- A first boundary-aware 4-simplex comparison for `whiskerRightRefl`. This
-matches the source and target tetrahedra by inserting one extra boundary face;
-the remaining gap is only the final normalization into `HoTFT3`. -/
+matches the source and target tetrahedra by inserting one extra boundary face,
+before the final normalization step into `HoTFT3`. -/
 noncomputable def Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron
     {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
     HoTFTTetrahedron
@@ -701,6 +701,39 @@ noncomputable def Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron
           (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
           (ExtensionalKan.reductionSeq_in_HoTFT1 s))) :=
   ExtensionalKan.homotopy2_whiskerRightRefl_in_HoTFTTetrahedron p s
+
+/-- The normalized boundary-aware HoTFT tetrahedron for `whiskerRightRefl`.
+Its final face is already the reflexive 2-cell on the semantic composite. -/
+noncomputable def Homotopy2_whiskerRightRefl_bridge_subset_HoTFTTetrahedron
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFTTetrahedron
+      (HoTFT2.toTriangle (HoTFT2.refl (HoTFT1.refl N)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 s))))
+      (HoTFT2.toTriangle
+        (HoTFT2.whiskerRight
+          (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.toTriangle
+        (HoTFT2.refl
+          (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (ExtensionalKan.reductionSeq_in_HoTFT1 s)))) :=
+  ExtensionalKan.homotopy2_whiskerRightRefl_bridge_in_HoTFTTetrahedron p s
+
+/-- Right whiskering preserves reflexive 2-cells up to a proof-relevant HoTFT
+3-cell. -/
+noncomputable def Homotopy2_whiskerRightRefl_subset_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerRight
+        (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p))
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s))
+      (HoTFT2.refl
+        (HoTFT1.comp (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s))) :=
+  ExtensionalKan.homotopy2_whiskerRightRefl_in_HoTFT3 p s
 
 /-- Every computational 2-term packages a semantic HoTFT 2-conversion between
 the semantic 1-cells induced by its boundary reduction sequences. -/

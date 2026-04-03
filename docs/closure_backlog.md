@@ -169,7 +169,10 @@ Progress so far:
 - Added a reusable horn-filling construction `KanComplex.tetrahedronPath3` for comparing compatible tetrahedra and lifting the result back to a semantic 3-cell via `TheoryTetrahedron.path3` and `HoTFTTetrahedron.path3`.
 - Used that new comparison layer to normalize `whiskerLeftRefl` all the way into the existing `HoTFT3` interface via `homotopy2_whiskerLeftRefl_in_HoTFT3` and `Homotopy2_whiskerLeftRefl_subset_HoTFT3`.
 - Added a more general boundary-aware 4-simplex comparison `KanComplex.tetrahedronComparisonTetrahedron` with semantic and HoTFT lifts (`TheoryTetrahedron.comparison`, `HoTFTTetrahedron.comparison`) for tetrahedra that still differ on one outer face.
-- Applied that broader comparison to `whiskerRightRefl`, producing an explicit intermediate HoTFT tetrahedron witness `Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron` whose only remaining gap is final normalization into `HoTFT3`.
+- Applied that broader comparison to `whiskerRightRefl`, producing an explicit intermediate HoTFT tetrahedron witness `Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron`.
+- Added the low-level simplicial normalization `KanComplex.whiskerRightReflPath3`, together with its auxiliary boundary-replacement tetrahedra, to turn that intermediate witness into a genuine semantic 3-cell.
+- Lifted that normalization through the semantic and HoTFT layers via `homotopy2_whiskerRightRefl_in_Theory3`, `homotopy2_whiskerRightRefl_in_HoTFT3`, and `Homotopy2_whiskerRightRefl_subset_HoTFT3`.
+- Folded `whiskerLeftRefl` into the restricted `StructuralHomotopy3` interpretation by adding the structural normalization bridge `reductionSeq_whiskerLeftRefl_in_Theory3` / `reductionSeq_whiskerLeftRefl_in_HoTFT3` and the corresponding `.whiskerLeftRefl` branches.
 
 ## Issue 5: Generic coherence theorem
 
@@ -260,15 +263,12 @@ Acceptance criteria:
 
 ## Immediate next action
 
-Use the new intermediate `whiskerRightRefl` tetrahedron to design the final
-normalization step into `HoTFT3`. The next proof cannot be a generic
-contraction of an arbitrary loop-shaped `Path2 p p` to `reflPath2 p`, because
-that is not available in a general Kan complex. The remaining gap is therefore
-the specific normalization of the `whiskerRightRefl` tetrahedron using the
-existing whiskering, composition, and unitor data already formalized here.
+The two short-term blockers that were singled out here are now resolved:
 
-Separately, `whiskerLeftRefl` is now normalized at the direct semantic / HoTFT
-layer, but it is not yet folded into the restricted `StructuralHomotopy3`
-fragment. The missing bridge there is between structural whiskering along an
-explicit reduction sequence (`reductionSeq_whiskerLeft_*`) and direct semantic
-whiskering by the whole interpreted path.
+- `whiskerRightRefl` is normalized into `Theory3` and `HoTFT3` by the concrete simplicial bridge `KanComplex.whiskerRightReflPath3` and its semantic / HoTFT lifts.
+- `whiskerLeftRefl` is folded into the restricted `StructuralHomotopy3` fragment via the structural normalization bridges `reductionSeq_whiskerLeftRefl_in_Theory3` and `reductionSeq_whiskerLeftRefl_in_HoTFT3`.
+
+The next unresolved work inside Issue 4 is to keep extending the restricted
+semantic 3-cell fragment beyond these reflexive whiskering witnesses and to
+normalize the remaining primitive constructors that still only live in the full
+`Homotopy3Deriv` layer.
