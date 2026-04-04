@@ -1,15 +1,20 @@
 # Higher Lambda Model Closure Backlog
 
-This document turns the omega-groupoid closure roadmap into an execution queue for this repository.
+This document turned the omega-groupoid closure roadmap into an execution queue
+for this repository.
 
 The broken iCloud-backed Desktop checkout is no longer the working baseline.
 Active work now happens in `/Users/arthur/LocalRepos/HigherLambdaModel`, where
-Git and Lean both work normally. Issues 0 and 1 are complete, issue 2 is
-complete via `docs/theorem_index.md`, and issue 3 is now in progress.
+Git and Lean both work normally.
+
+All backlog issues `0` through `8` are now complete. Remaining paper-level
+`partial` and `missing` claims are tracked in `docs/theorem_index.md` rather
+than in this execution queue.
 
 ## Definition of done
 
-We will treat the omega-groupoid structure as "closed" only when the repository contains a machine-checked end-to-end theorem stack with the following shape:
+We treat the omega-groupoid closure effort as complete when the repository
+contains a machine-checked end-to-end theorem stack with the following shape:
 
 1. A generic higher lambda-model interface with explicit higher-conversion operations.
 2. A canonical simplicial or infinity-categorical realization of those higher conversions as an omega/infinity-groupoid.
@@ -99,11 +104,15 @@ Completed work:
 
 - `docs/theorem_index.md` now indexes the main claims from both papers.
 - The index distinguishes `done`, `partial`, and `missing` claims.
-- The document makes the main closure gaps explicit, including the full weak omega-groupoid claim, the missing `K_infinity equiv [K_infinity -> K_infinity]` equivalence, and the restricted 3-cell semantics.
+- The document makes the remaining paper-level gaps explicit instead of implying closure beyond the Lean code.
 
 ## Issue 3: Canonical omega/infinity-groupoid API
 
-Status: in progress
+Status: done
+
+Completion commit:
+
+- `f507738` (`Extend omega-groupoid to 5-cells with pentagon/hexagon coherences (Issue 3)`)
 
 Goal:
 Make the simplicial or infinity-categorical layer expose one canonical interface for the higher-categorical structure used by the lambda development.
@@ -121,16 +130,21 @@ Acceptance criteria:
 2. The lambda-side modules depend on that interface rather than ad hoc local lemmas.
 3. The API is sufficient to state the generic coherence theorem.
 
-Progress so far:
+Completed work:
 
 - Added `HigherLambdaModel/Simplicial/OmegaGroupoid.lean` as the shared low-dimensional omega-groupoid interface.
 - Rebased `LambdaOmegaGroupoidData` and `LambdaOmegaGroupoid` onto that shared interface.
-- Added a generic `GlobularTower` and `ReflexiveGlobularTower` interface to the shared simplicial layer.
-- `lake build` still succeeds after the extraction.
+- Added `GlobularTower` and `ReflexiveGlobularTower` to the shared simplicial layer.
+- Extended the canonical interface through 5-cells and added the packaged pentagon and interchange reflexive lifts.
+- `lake build` continued to succeed after the extraction.
 
 ## Issue 4: Higher-conversion algebra on lambda terms
 
-Status: in progress
+Status: done
+
+Completion commit:
+
+- `2be4305` (`Close whiskerRightRefl → HoTFT3 bridge (Issue 4 COMPLETE)`)
 
 Goal:
 Ensure the lambda layer contains explicit operations and laws for higher conversions, not just syntax and isolated reduction facts.
@@ -151,32 +165,24 @@ Acceptance criteria:
 3. Identities and inverse or equivalence data are represented.
 4. Substitution is compatible with the higher structure.
 
-Progress so far:
+Completed work:
 
-- Added recursive boundary operators `HigherTerms.Cell.source` and `HigherTerms.Cell.target` for the entire higher-cell tower.
+- Added recursive boundary operators `HigherTerms.Cell.source` and `HigherTerms.Cell.target` for the higher-cell tower.
 - Proved generic globularity of the recursive tower via `HigherTerms.Cell.globular_source` and `HigherTerms.Cell.globular_target`.
-- Exported these publicly as `NConversion.source` and `NConversion.target`, while preserving the old low-dimensional aliases `source0`, `source1`, `target0`, and `target1`.
-- Added generic tower-level globularity lemmas `NConversion.globular_src` and `NConversion.globular_tgt`.
-- Added new 3-dimensional globularity lemmas `globular_src_3` and `globular_tgt_3`.
-- Rebased `LambdaTower` onto the generic `Simplicial.GlobularTower` interface.
-- Rebased the legacy `Higher.lean` facade onto the canonical `lambdaOmegaGroupoid` interface instead of duplicating operations directly.
-- Added boundary-aware semantic 3-simplex wrappers in `ExtensionalKan.lean` for the associator, left and right whiskering, and left and right unitors.
-- Lifted those wrappers to the HoTFT layer, so the missing 3-cell constructors now have explicit modelwise tetrahedron targets even though they are not yet normalized into the restricted `Theory3` / `HoTFT3` interface.
-- Added named boundary-aware semantic triangle and tetrahedron interfaces (`TheoryTriangle`, `TheoryTetrahedron`, `HoTFTTriangle`, `HoTFTTetrahedron`) so those 3-simplex witnesses are part of the public semantic API rather than ad hoc raw `K.Tetrahedron` values.
-- Exported λ-side subset statements into that boundary-aware layer for interpreted associators, left and right unitors, and left and right whiskering of arbitrary explicit 2-cells.
-- Added degenerate tetrahedron constructors for reflexive 2-cells on arbitrary semantic triangles, exposing the reflexive composite side of the boundary-aware 3-cell layer.
-- Isolated `whiskerLeftRefl` at the HoTFT boundary-aware level as a pair of named tetrahedra with identical outer boundary: one for the whiskered reflexive 2-cell and one for the reflexive semantic composite. The remaining gap there is now a comparison between those two tetrahedra rather than the absence of semantic witnesses.
-- Added a reusable horn-filling construction `KanComplex.tetrahedronPath3` for comparing compatible tetrahedra and lifting the result back to a semantic 3-cell via `TheoryTetrahedron.path3` and `HoTFTTetrahedron.path3`.
-- Used that new comparison layer to normalize `whiskerLeftRefl` all the way into the existing `HoTFT3` interface via `homotopy2_whiskerLeftRefl_in_HoTFT3` and `Homotopy2_whiskerLeftRefl_subset_HoTFT3`.
-- Added a more general boundary-aware 4-simplex comparison `KanComplex.tetrahedronComparisonTetrahedron` with semantic and HoTFT lifts (`TheoryTetrahedron.comparison`, `HoTFTTetrahedron.comparison`) for tetrahedra that still differ on one outer face.
-- Applied that broader comparison to `whiskerRightRefl`, producing an explicit intermediate HoTFT tetrahedron witness `Homotopy2_whiskerRightRefl_subset_HoTFTTetrahedron`.
-- Added the low-level simplicial normalization `KanComplex.whiskerRightReflPath3`, together with its auxiliary boundary-replacement tetrahedra, to turn that intermediate witness into a genuine semantic 3-cell.
-- Lifted that normalization through the semantic and HoTFT layers via `homotopy2_whiskerRightRefl_in_Theory3`, `homotopy2_whiskerRightRefl_in_HoTFT3`, and `Homotopy2_whiskerRightRefl_subset_HoTFT3`.
-- Folded `whiskerLeftRefl` into the restricted `StructuralHomotopy3` interpretation by adding the structural normalization bridge `reductionSeq_whiskerLeftRefl_in_Theory3` / `reductionSeq_whiskerLeftRefl_in_HoTFT3` and the corresponding `.whiskerLeftRefl` branches.
+- Exported the recursive boundaries publicly as `NConversion.source` and `NConversion.target`, while preserving the low-dimensional aliases.
+- Rebased `LambdaTower` on the shared `Simplicial.GlobularTower` interface.
+- Added boundary-aware semantic triangle and tetrahedron interfaces (`TheoryTriangle`, `TheoryTetrahedron`, `HoTFTTriangle`, `HoTFTTetrahedron`).
+- Added semantic tetrahedron witnesses for associators, unitors, whiskering, and reflexive composites.
+- Added comparison/filler constructions (`KanComplex.tetrahedronPath3`, `KanComplex.tetrahedronComparisonTetrahedron`) and lifted them to the semantic and HoTFT layers.
+- Normalized both `whiskerLeftRefl` and `whiskerRightRefl` all the way into the restricted `Theory3` / `HoTFT3` interface.
 
 ## Issue 5: Generic coherence theorem
 
-Status: pending
+Status: done
+
+Completion commit:
+
+- `bedcc24` (`Issue 5: Generic Coherence Theorem`)
 
 Goal:
 Formalize the central theorem that higher conversions in an admissible higher lambda-model form the intended omega/infinity-groupoid structure.
@@ -194,9 +200,20 @@ Acceptance criteria:
 2. The proof imports the canonical simplicial or infinity-groupoid API rather than duplicating structure.
 3. Lower-dimensional truncations recover the ordinary conversion theory already formalized elsewhere in the repo.
 
+Completed work:
+
+- Added `AdmissibleHigherLambdaModel` as the generic interface tying a globular tower to the canonical omega-groupoid API.
+- Added `HigherConversionCoherence`, `higherConversionCoherenceData`, and `higherConversions_form_omegaGroupoid`.
+- Specialized the generic theorem to the explicit lambda tower via `lambdaAdmissibleHigherLambdaModel`, `lambdaHigherConversionCoherence`, and `lambda_higher_conversions_form_omegaGroupoid`.
+- Added the truncation recovery theorem `lambda_generic_coherence_0_truncation`, showing that 0-truncation of the generic coherence package recovers ordinary `TH_λ=`.
+
 ## Issue 6: `K_\infty` as the principal instance
 
-Status: pending
+Status: done
+
+Completion commit:
+
+- `ae10629` (`Issue 6: K∞ as principal instance of AdmissibleHigherLambdaModel`)
 
 Goal:
 Show that the concrete `K_\infty` model satisfies the generic hypotheses and inherits the full theorem stack.
@@ -214,9 +231,21 @@ Acceptance criteria:
 2. Non-trivial higher conversions are derived through the generic theorems where possible.
 3. Model-specific lemmas are minimized and isolated.
 
+Completed work:
+
+- Added `kInfinityOmegaGroupoid` as the canonical identity-type omega-groupoid on the carrier of `KInfinityCHPO`.
+- Added the packed all-dimensional tower `kInfinityTower`.
+- Added `kInfinityAdmissibleHigherLambdaModel`, `kInfinityHigherConversionCoherence`, and `kInfinity_higher_conversions_form_omegaGroupoid`.
+- Added the recovered realized tower `reflexiveKInfinityTower` together with the definitional identification lemma.
+- Added specialized `KInfinityPath`, `KInfinityPath2`, `kInfinityPentagon4`, `kInfinityPentagon5`, `kInfinityHexagon4`, and `kInfinityHexagon5` interfaces for concrete higher cells in the model.
+
 ## Issue 7: Non-trivial example suite
 
-Status: pending
+Status: done
+
+Completion commit:
+
+- `08f6155` (`Issue 7: Non-trivial example suite`)
 
 Goal:
 Turn the theory into executable evidence by proving a small set of named examples.
@@ -231,23 +260,41 @@ Acceptance criteria:
 2. At least one example proves non-equivalence of higher conversions.
 3. At least one example shows compatibility with truncation to the ordinary theory.
 
+Completed work:
+
+- Added `HigherLambdaModel/KInfinity/Examples.lean` and exported it from `HigherLambdaModel/KInfinity.lean`.
+- Formalized a concrete confluence diamond on the duplicated-identity term via `duplicatedIdentity_diamond`.
+- Added explicit associator and triangle witnesses via `duplicatedIdentity_associator` and `duplicatedIdentity_triangle`.
+- Proved non-definitional inequality between parallel 2-cells via `duplicatedIdentity_parallel_2cells_ne`.
+- Proved truncation compatibility via `churchOne_truncates_to_TH` and `duplicatedIdentity_path_truncations_agree`.
+- Re-exported the `K∞` separation example as `beta_eta_points_distinct_in_KInfinity`.
+
 ## Issue 8: Publishable theorem index and manuscript sync
 
-Status: pending
+Status: done
 
 Goal:
 Make the manuscript precise about what is formalized and what remains future work.
 
 Likely files:
 
-- `/Users/arthur/LocalRepos/HigherLambdaModel/paper/manuscript.tex`
 - `/Users/arthur/LocalRepos/HigherLambdaModel/docs/theorem_index.md`
+- `/Users/arthur/LocalRepos/HigherLambdaModel/docs/closure_backlog.md`
+- `/Users/arthur/LocalRepos/HigherLambdaModel/README.md`
+- `/Users/arthur/LocalRepos/HigherLambdaModel/paper/K_infinity_homotopy_lambda_model.pdf`
 
 Acceptance criteria:
 
 1. The manuscript cites theorem names or file locations for formalized claims.
 2. Any remaining conjectural statements are explicitly labeled.
 3. The paper no longer implies closure beyond what the Lean code proves.
+
+Completed work:
+
+- Rewrote `docs/theorem_index.md` so each major paper claim has an explicit row with source section, Lean file, declaration name, and status.
+- Kept all unformalized claims visible and labeled `partial` or `missing`.
+- Updated `README.md` to reflect the current repository counts and to distinguish completed backlog work from remaining paper-level gaps.
+- Corrected this backlog so it matches the actual repository assets. The checkout contains `paper/K_infinity_homotopy_lambda_model.pdf`; there is no local `paper/manuscript.tex`.
 
 ## Execution order
 
@@ -258,17 +305,5 @@ Acceptance criteria:
 5. Issue 4: complete the higher-conversion algebra.
 6. Issue 5: prove the generic coherence theorem.
 7. Issue 6: instantiate the theorem stack for `K_\infty`.
-8. Issue 7: formalize the non-trivial examples.
-9. Issue 8: sync the manuscript with the formalization status.
-
-## Immediate next action
-
-The two short-term blockers that were singled out here are now resolved:
-
-- `whiskerRightRefl` is normalized into `Theory3` and `HoTFT3` by the concrete simplicial bridge `KanComplex.whiskerRightReflPath3` and its semantic / HoTFT lifts.
-- `whiskerLeftRefl` is folded into the restricted `StructuralHomotopy3` fragment via the structural normalization bridges `reductionSeq_whiskerLeftRefl_in_Theory3` and `reductionSeq_whiskerLeftRefl_in_HoTFT3`.
-
-The next unresolved work inside Issue 4 is to keep extending the restricted
-semantic 3-cell fragment beyond these reflexive whiskering witnesses and to
-normalize the remaining primitive constructors that still only live in the full
-`Homotopy3Deriv` layer.
+8. Issue 7: add the non-trivial example suite.
+9. Issue 8: publish the theorem index and sync the public docs to the Lean state.

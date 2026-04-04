@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![arXiv](https://img.shields.io/badge/arXiv-2111.07092-b31b1b.svg)](https://arxiv.org/abs/2111.07092)
 
-*Formalizing "The Theory of an Arbitrary Higher Lambda-Model" by Martinez-Rivillas and de Queiroz*
+*Formalizing "The Theory of an Arbitrary Higher λ-Model" and "The K∞ Homotopy λ-Model"*
 
 </div>
 
@@ -16,110 +16,95 @@
 
 ## Overview
 
-This project reveals a surprising truth: **the untyped lambda calculus has hidden homotopic structure**.
+This repository formalizes the higher-conversion viewpoint on the untyped
+lambda calculus together with the concrete `K∞` model developed by
+Martínez-Rivillas and de Queiroz.
 
-In classical lambda calculus, two terms are beta-eta equivalent if *some* reduction path connects them. But this view discards important structure: there may be **many different paths** between terms, and these paths themselves can be related by **homotopies**.
+At the proposition level, the current top-line theorem is:
 
-```
-         M                    The space of reductions
-        /|\                   forms a weak omega-groupoid:
-       / | \
-      /  |  \                 - 0-cells: Lambda terms
-     p   q   r                - 1-cells: Reduction sequences
-      \  |  /                 - 2-cells: Homotopies between paths
-       \ | /                  - n-cells (n >= 3): Trivial (extensionality)
-        \|/
-         N
-```
+**`TH_λ= ⊆ HoTFT`**
 
-**Main Theorem (TH_lambda = HoTFT):** Every equation provable in classical lambda calculus is valid in all homotopic lambda-models (extensional Kan complexes).
+Every classical `βη`-equality provable in the lambda calculus is valid in all
+extensional Kan-complex models formalized here. On top of that proposition-level
+result, the repository now contains:
+
+- an explicit tower of higher conversions and higher terms,
+- a canonical omega-groupoid/coherence API shared across the codebase,
+- a generic admissible-model coherence package,
+- a concrete admissible `K∞` instance,
+- and a small suite of concrete higher-conversion examples.
+
+The exact paper-level coverage is tracked in
+[`docs/theorem_index.md`](./docs/theorem_index.md). Completed execution work is
+tracked in [`docs/closure_backlog.md`](./docs/closure_backlog.md).
+
+## Repository Snapshot
+
+Current snapshot, excluding `.lake`:
+
+- `31` Lean files
+- `13,492` lines of Lean
+- `204` named `theorem` / `lemma` declarations
+- no local `axiom`, `sorry`, or `admit` declarations
+- all closure backlog issues `0` through `8` completed
 
 ## Key Results Formalized
 
-| Result | File | Description |
-|--------|------|-------------|
-| **Beta-Soundness** | `ExtensionalKan.lean` | `(lambda M) N = M[N]` in all models |
-| **Eta-Soundness** | `ExtensionalKan.lean` | `lambda x. M x = M` when `x not in FV(M)` |
-| **TH_lambda subset HoTFT** | `NTerms.lean` | Classical lambda-theory embeds in HoTFT |
-| **Pi_n -> Sigma_n** | `NTerms.lean` | n-terms embed into n-conversions |
-| **BetaEta Compatibility** | `BetaEtaConfluence.lean` | Constructive common-extension layer for parallel paths |
-
-## The Tower of n-Conversions
-
-The formalization captures the full hierarchy of higher conversions:
-
-```lean
-def NConversion : Nat -> Sort _
-  | 0 => Term
-  | 1 => Σ (M N : Term), ReductionSeq M N
-  | 2 => Σ (M N : Term) (p q : ReductionSeq M N), Homotopy2 p q
-  | 3 => Σ (M N : Term) (p q : ReductionSeq M N) (α β : Homotopy2 p q), Homotopy3 α β
-  | n + 4 => PSigma (fun x : NConversion (n + 3) =>
-      PSigma (fun y : NConversion (n + 3) => x = y))
-```
-
-Low dimensions are carried by explicit constructive witnesses. Above dimension 3,
-the tower continues internally via Lean identity types instead of collapsing to a
-dummy terminal object.
+| Result | Lean file(s) | Status |
+| --- | --- | --- |
+| Extensional Kan-complex semantics and substitution-compatible interpretation | `HigherLambdaModel/Lambda/ExtensionalKan.lean` | `done` |
+| β- and η-soundness | `HigherLambdaModel/Lambda/ExtensionalKan.lean` | `done` |
+| Classical theory embeds into HoTFT: `TH_λ= ⊆ HoTFT` | `HigherLambdaModel/Lambda/NTerms.lean` | `done` |
+| Higher terms embed into higher conversions: `Πₙ ⊆ Σₙ` | `HigherLambdaModel/Lambda/NTerms.lean` | `done` |
+| Canonical omega-groupoid API and generic coherence packaging | `HigherLambdaModel/Simplicial/OmegaGroupoid.lean`, `HigherLambdaModel/Lambda/Coherence.lean`, `HigherLambdaModel/Lambda/TruncationCore.lean`, `HigherLambdaModel/Lambda/Truncation.lean` | `done` |
+| Concrete admissible `K∞` instance | `HigherLambdaModel/KInfinity/Properties.lean` | `done` |
+| Non-trivial example suite | `HigherLambdaModel/KInfinity/Examples.lean` | `done` |
+| Paper-level exactness for the full `K∞ ≃ [K∞ → K∞]` story | `docs/theorem_index.md` | `partial` / `missing` |
 
 ## Project Structure
 
-```
+```text
 HigherLambdaModel/
+|-- Domain/
+|   |-- CHPO.lean              # Complete homotopy partial orders and projective limits
+|   +-- ScottDomain.lean       # Homotopy Scott domains and exponential constructions
 |-- Lambda/
-|   |-- Term.lean              # De Bruijn lambda-terms, substitution
-|   |-- Reduction.lean         # Beta/eta reduction, conversion
-|   |-- HigherTerms.lean       # Explicit paths, homotopies, omega-groupoid
-|   |-- ExtensionalKan.lean    # Kan complexes, interpretation, soundness
-|   |-- NTerms.lean            # n-terms, n-conversions, main theorems
-|   |-- SubstLemma.lean        # Substitution lemma for interpretation
-|   |-- TruncationCore.lean    # h-levels and truncation
-|   |-- BetaEtaConfluence.lean # Confluence via Metatheory
-|   +-- Coherence.lean         # Higher coherence laws
-+-- lakefile.toml              # Build configuration
+|   |-- Term.lean              # De Bruijn lambda terms, shifting, substitution
+|   |-- Reduction.lean         # β/η reduction, conversion, and explicit paths
+|   |-- HigherTerms.lean       # Constructive higher-cell tower
+|   |-- ExtensionalKan.lean    # Kan-complex semantics and HoTFT layers
+|   |-- NTerms.lean            # n-terms, n-conversions, and TH_λ= ⊆ HoTFT
+|   |-- Coherence.lean         # Canonical omega-groupoid structure on λ-terms
+|   |-- TruncationCore.lean    # Generic coherence packaging and realized towers
+|   |-- Truncation.lean        # 0-truncation back to ordinary βη-theory
+|   |-- ChurchRosserProof.lean # Church-Rosser transfer from Metatheory
+|   +-- BetaEtaConfluence.lean # Constructive common-extension compatibility layer
+|-- Simplicial/
+|   |-- Basic.lean             # Simplicial infrastructure
+|   |-- Limits.lean            # Categorical/simplicial limit helpers
+|   |-- InfinityCategory.lean  # Infinity-categorical packaging
+|   +-- OmegaGroupoid.lean     # Shared omega-groupoid API
+|-- KInfinity/
+|   |-- NonTrivial.lean        # Section 4 non-triviality interfaces and N⁺
+|   |-- Construction.lean      # The K₀, K₁, ... tower and h-projection pairs
+|   |-- Properties.lean        # Proposition-level `K∞` consequences
+|   +-- Examples.lean          # Concrete higher-conversion example suite
+|-- docs/
+|   |-- theorem_index.md       # Paper-to-Lean claim matrix
+|   +-- closure_backlog.md     # Completed closure roadmap
+|-- paper/
+|   +-- K_infinity_homotopy_lambda_model.pdf
++-- lakefile.toml
 ```
 
-**4,290+ lines** of verified Lean 4 code with **no sorrys**.
-
-## Mathematical Background
-
-### Extensional Kan Complexes
-
-An **extensional Kan complex** is a model of lambda calculus where:
-
-```lean
-structure ExtensionalKanComplex extends ReflexiveKanComplex where
-  -- Every object equals G(F(x)) - full extensionality
-  epsilon : forall x, x = G (F x)
-```
-
-Here `F : K -> [K -> K]` extracts a function from an object, and `G : [K -> K] -> K` abstracts a function into an object. The eta law `F(G(f)) = f` plus extensionality `x = G(F(x))` ensures that objects *are* their functional behavior.
-
-### Interpretation
-
-Lambda terms are interpreted in any extensional Kan complex:
-
-```lean
-noncomputable def interpret (K : ReflexiveKanComplex)
-    (rho : Nat -> K.Obj) : Term -> K.Obj
-  | var n => rho n
-  | app M N => K.app (interpret K rho M) (interpret K rho N)
-  | lam M => K.G (fun f => interpret K (rho[f/0]) M)
-```
-
-The **soundness theorems** prove this interpretation respects beta and eta:
-
-- **Beta**: `interpret K rho ((lam M) @ N) = interpret K rho (M[N])`
-- **Eta**: `interpret K rho (lam (M @ var 0)) = interpret K rho M` (when 0 not free in M)
-
-## Installation
+## Building
 
 ### Prerequisites
 
-- [Lean 4](https://lean-lang.org/) (v4.24.0 or compatible)
-- [Lake](https://github.com/leanprover/lean4/tree/master/src/lake) (included with Lean)
+- [Lean 4](https://lean-lang.org/) `v4.24.0`
+- [Lake](https://github.com/leanprover/lean4/tree/master/src/lake) (bundled with Lean)
 
-### Building
+### Build
 
 ```bash
 git clone https://github.com/Arthur742Ramos/HigherLambdaModel.git
@@ -129,95 +114,82 @@ lake build
 
 ### Dependencies
 
-Automatically fetched by Lake:
+Lake fetches:
 
-- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Related path-theoretic infrastructure (not used directly by the current higher-cell core)
-- [Metatheory](https://github.com/Arthur742Ramos/Metatheory) - External Church-Rosser/confluence development
+- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean)
+- [Metatheory](https://github.com/Arthur742Ramos/Metatheory)
 
-## Examples
+The remaining external proof-theoretic dependency of note is `Metatheory`,
+which supplies the Church-Rosser transfer used in
+`HigherLambdaModel/Lambda/ChurchRosserProof.lean`.
 
-The formalization includes the standard lambda calculus combinators:
+## Concrete Example Suite
 
-```lean
--- Identity: lambda x. x
-def I : Term := lam (var 0)
+`HigherLambdaModel/KInfinity/Examples.lean` packages concrete witnesses rather
+than just abstract interfaces. The current examples include:
 
--- K combinator: lambda x. lambda y. x
-def K : Term := lam (lam (var 1))
+- a confluence diamond on the duplicated-identity term: `duplicatedIdentity_diamond`,
+- explicit associator and triangle witnesses: `duplicatedIdentity_associator`,
+  `duplicatedIdentity_triangle`,
+- a proof that two parallel 2-cells are not definitionally equal:
+  `duplicatedIdentity_parallel_2cells_ne`,
+- compatibility with ordinary proposition-level theory:
+  `churchOne_truncates_to_TH`,
+- and the `K∞` point-separation witness:
+  `beta_eta_points_distinct_in_KInfinity`.
 
--- S combinator: lambda x. lambda y. lambda z. x z (y z)
-def S : Term := lam (lam (lam (app (app (var 2) (var 0)) (app (var 1) (var 0)))))
+## Closure Status
 
--- Fixed-point combinator Y
-def Y : Term :=
-  lam (app (lam (app (var 1) (app (var 0) (var 0))))
-           (lam (app (var 1) (app (var 0) (var 0)))))
+The closure backlog in [`docs/closure_backlog.md`](./docs/closure_backlog.md)
+is complete. That means the repository now has:
 
--- Church numerals, booleans, pairs...
-def church (n : Nat) : Term := ...
-def tru : Term := K
-def fls : Term := lam (lam (var 0))
-```
+- a shared omega-groupoid API,
+- explicit higher-conversion algebra on lambda terms,
+- a generic coherence theorem,
+- a concrete `K∞` admissible-model instance,
+- and an example suite exercising the infrastructure.
 
-## Formalization Status
+It does **not** mean that every statement in the source papers is formalized
+verbatim. The remaining paper-level partials and missing claims are deliberate,
+documented, and visible in [`docs/theorem_index.md`](./docs/theorem_index.md).
 
-### Fully Proven
+The main paper-level gaps still tracked there are:
 
-- [x] Core lambda calculus (terms, substitution, shifting)
-- [x] Beta and eta reduction relations
-- [x] Extensional Kan complex definitions
-- [x] Interpretation and substitution lemma
-- [x] Beta-soundness and eta-soundness
-- [x] Single-step soundness with congruence
-- [x] Main theorem: TH_lambda subset HoTFT
-- [x] n-terms and n-conversions tower
-- [x] Beta-confluence (via Metatheory library)
-- [x] Constructive higher-cell/coherence layer for explicit βη paths
-
-### Current Proof Status
-
-The repository currently has no local `axiom`, `sorry`, or `admit` declarations
-in its `.lean` sources. The remaining external proof-theoretic dependency of note
-is `Metatheory`, which is used for the Church-Rosser transfer in
-`ChurchRosserProof.lean`.
+- the full paper-strength `K∞ ≃ [K∞ → K∞]` equivalence,
+- the exact paper statements of Proposition 4.1, Proposition 4.2,
+  Proposition 4.3, and Remark 4.3,
+- the full paper-strength Proposition 4.4 and Example 4.2,
+- and a stronger all-dimensional constructive omega-groupoid story beyond the
+  current explicit 5-cell core plus recursive identity tower.
 
 ## Theory Summary
 
-### Definition 2.9: Theory of a Kan Complex
+The main proposition-level interfaces remain:
 
 ```lean
 def TheoryEq (K : ExtensionalKanComplex) (M N : Term) : Prop :=
   forall rho, interpret K rho M = interpret K rho N
-```
 
-### Definition 2.10: Homotopy Type-Free Theory
-
-```lean
 def HoTFT_eq (M N : Term) : Prop :=
   forall K : ExtensionalKanComplex, TheoryEq K M N
-```
 
-### Definition 3.2: Classical Lambda Theory
-
-```lean
 def TH_lambda_eq (M N : Term) : Prop :=
   BetaEtaConv M N
-```
 
-### Main Theorem
-
-```lean
-theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =betaeta N) :
+theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =_TH N) :
     M =_HoTFT N
 ```
 
-**Significance:** Classical lambda calculus faithfully embeds into homotopic models. The higher structure is a *conservative extension*.
+The generic coherence layer additionally packages the explicit higher
+conversion tower through the shared simplicial interface and proves that
+0-truncation recovers ordinary `TH_λ=`.
 
 ## References
 
-### Primary Source
+### Primary Sources
 
-> Martinez-Rivillas, A. and de Queiroz, R. (2021). *The Theory of an Arbitrary Higher Lambda-Model*. [arXiv:2111.07092](https://arxiv.org/abs/2111.07092)
+- Martínez-Rivillas, A. and de Queiroz, R. (2021). *The Theory of an Arbitrary Higher λ-Model*. [arXiv:2111.07092](https://arxiv.org/abs/2111.07092)
+- Martínez-Rivillas, A. and de Queiroz, R. *The K∞ Homotopy λ-Model*. Local copy in [`paper/K_infinity_homotopy_lambda_model.pdf`](./paper/K_infinity_homotopy_lambda_model.pdf)
 
 ### Background
 
@@ -226,33 +198,28 @@ theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =betaeta N) :
 - Lumsdaine, P. L. (2009). "Weak omega-categories from intensional type theory". *TLCA*.
 - Univalent Foundations Program (2013). *Homotopy Type Theory*. Institute for Advanced Study.
 
-### Related Formalizations
-
-- [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean) - Related computational-path infrastructure
-- [Metatheory](https://github.com/Arthur742Ramos/Metatheory) - Rewriting theory and Church-Rosser
-
 ## Contributing
 
-Contributions welcome! Particularly:
+Contributions are welcome. The highest-signal directions are:
 
-- Internalizing more of the confluence development currently imported from Metatheory
-- Refining the higher-cell tower above dimension 3
-- Adding more examples and applications
-- Extending to typed lambda calculi
-- Connecting to other formalizations of HoTT
+- strengthening the remaining `partial` and `missing` rows in `docs/theorem_index.md`,
+- internalizing more of the confluence story now imported from `Metatheory`,
+- extending the direct semantic treatment of higher 3-cells,
+- and pushing the `K∞` layer from chosen-data shadows to exact paper statements.
 
 ## License
 
-[MIT License](./LICENSE) - see LICENSE file for details.
+[MIT License](./LICENSE)
 
 ## Acknowledgments
 
-This formalization is based on the theoretical work of Martinez-Rivillas and de Queiroz. Thanks to Arthur Ramos for the Metatheory and related Lean infrastructure libraries.
+This formalization is based on the work of Martínez-Rivillas and de Queiroz.
+Thanks to Arthur Ramos for the supporting Lean infrastructure libraries.
 
 ---
 
 <div align="center">
 
-*All theorems mechanically verified by the Lean 4 proof assistant.*
+*All declarations included in this repository are mechanically verified by Lean 4; paper-level coverage gaps are tracked explicitly in `docs/theorem_index.md`.*
 
 </div>
