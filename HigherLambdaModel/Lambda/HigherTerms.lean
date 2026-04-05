@@ -471,6 +471,9 @@ inductive StructuralHomotopy3 :
   | whiskerLeftRefl {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
       StructuralHomotopy3 (whiskerLeft r (Homotopy2.refl p))
         (Homotopy2.refl (ReductionSeq.concat r p))
+  | whiskerRightRefl {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+      StructuralHomotopy3 (whiskerRight (Homotopy2.refl p) s)
+        (Homotopy2.refl (ReductionSeq.concat p s))
   | interchange {M N P : Term}
       {p p' : ReductionSeq M N} {q q' : ReductionSeq N P}
       (α : Homotopy2 p p') (β : Homotopy2 q q') :
@@ -489,6 +492,8 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
   | .trans η θ => Homotopy3.trans η.toHomotopy3 θ.toHomotopy3
   | .whiskerLeftRefl r p =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftRefl r p)
+  | .whiskerRightRefl p s =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerRightRefl p s)
   | .interchange α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.interchange α β)
 

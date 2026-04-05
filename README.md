@@ -155,10 +155,13 @@ documented, and visible in [`docs/theorem_index.md`](./docs/theorem_index.md).
 
 The main paper-level gaps still tracked there are:
 
-- the full paper-strength `K∞ ≃ [K∞ → K∞]` equivalence,
-- the exact paper statements of Proposition 4.1, Proposition 4.2,
-  Proposition 4.3, and Remark 4.3,
-- the full paper-strength Proposition 4.4 and Example 4.2,
+- the exact paper-strength `K∞` Homotopy Scott Domain statement of
+  Proposition 4.1 (the remaining missing step is the generic algebraicity
+  theorem for the inverse limit, beyond the current finite-stage
+  approximation witness),
+- the full interpreted beta/eta separation statement of Example 4.2,
+- a direct semantic interpretation of the full primitive `Homotopy3Deriv`
+  language rather than only the current structural fragment,
 - and a stronger all-dimensional constructive omega-groupoid story beyond the
   current explicit 5-cell core plus recursive identity tower.
 
@@ -181,8 +184,10 @@ theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =_TH N) :
 ```
 
 The generic coherence layer additionally packages the explicit higher
-conversion tower through the shared simplicial interface and proves that
-0-truncation recovers ordinary `TH_λ=`.
+conversion tower through the shared simplicial interface, proves that
+0-truncation recovers ordinary `TH_λ=`, and now compares that explicit tower
+with the shared recursive-identity omega tower used by both the constructive
+λ-term model and the concrete `K∞` model.
 
 ## References
 

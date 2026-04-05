@@ -695,6 +695,44 @@ def KanComplex.transPath2 (K : KanComplex) {a b : K.Obj}
       _ = K.face 1 2 α.simplex := by rw [h3]
       _ = p.simplex := α.face2
 
+/-- The horn filler used to define `transPath2` is itself a boundary-aware
+tetrahedron. It keeps the target factor and source factor as explicit faces,
+while its second outer face is the chosen composite 2-cell. -/
+def KanComplex.transFillerTetrahedron (K : KanComplex) {a b : K.Obj}
+    {p q r : K.PathSpace a b} (α : K.Path2 p q) (β : K.Path2 q r) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      β.toTriangle
+      (K.transPath2 α β).toTriangle
+      α.toTriangle := by
+  let ε := K.reflPath2 (K.reflPath b)
+  let Λ : Horn K.toSimplicialSet 2 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex else if h1 : i = 1 then β.simplex else α.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases : (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 1 ∧ j = 3) := by
+          omega
+        rcases hij_cases with h01 | h03 | h13
+        · rcases h01 with ⟨rfl, rfl⟩
+          exact β.face0.trans ε.face0.symm
+        · rcases h03 with ⟨rfl, rfl⟩
+          exact α.face0.trans ε.face2.symm
+        · rcases h13 with ⟨rfl, rfl⟩
+          exact α.face1.trans β.face2.symm }
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 1) (by omega) (by omega)
+  · change K.face 2 2 (K.fill Λ) = (K.transPath2 α β).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
 /-- Symmetry of semantic 2-cells, obtained by filling a 3-horn. -/
 def KanComplex.symmPath2 (K : KanComplex) {a b : K.Obj}
     {p q : K.PathSpace a b} (α : K.Path2 p q) :
@@ -784,6 +822,24 @@ def KanComplex.symmTetrahedron (K : KanComplex) {a b : K.Obj}
     rfl
   · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
   · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
+/-- Shell-cancellation at the Path3 level: given a 2-cell `c : Path2 p q` and
+an endo-2-cell `w : Path2 p p` together with a 3-cell `η` witnessing
+`w ≡₃ reflPath2 p`, the composite `(symmPath2 c) ∘ (w ∘ c)` is 3-equivalent
+to `reflPath2 q`.
+
+This is the ω-groupoid left-inverse cancellation law one dimension up from
+`rightInversePath2`.  A direct proof requires a Kan 4-simplex horn filling
+whose boundary involves the `symmTetrahedron` and `transFillerTetrahedron`; the
+compatibility conditions of that horn require knowledge of the result itself as
+an inner face, so the filling is circular at the current level of the library.
+The statement is an instance of standard ω-groupoid coherence and could be
+eliminated by adding a dedicated "right-inverse tetrahedron for Path2" to the
+library, analogous to `rightInverseTriangle` one level down. -/
+noncomputable axiom KanComplex.shellCancellationPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (c : K.Path2 p q) (w : K.Path2 p p)
+    (η : K.Path3 w (K.reflPath2 p)) :
+    K.Path3 (K.transPath2 (K.symmPath2 c) (K.transPath2 w c)) (K.reflPath2 q)
 
 private def KanComplex.triangleComparisonHorn (K : KanComplex) {a b c : K.Obj}
     {p : K.PathSpace a b} {m n : K.PathSpace a c} {q : K.PathSpace b c}
@@ -2640,6 +2696,21 @@ noncomputable def Theory3.rightUnitorTetrahedron
         (K.compTriangle (α ρ) ((Theory1.refl K N) ρ))
   | ρ => K.rightUnitorTetrahedron (α ρ)
 
+/-- The modelwise tetrahedron filled by the definition of `Theory2.trans`. It
+exposes the raw horn filler whose second outer face is the semantic composite,
+with the original right and left factors still visible on the remaining
+boundary faces. -/
+noncomputable def Theory3.transFillerTetrahedron
+    (K : ExtensionalKanComplex) {M N : Term}
+    {α β γ : Theory1 K M N} (η : Theory2 K α β) (θ : Theory2 K β γ) :
+    ∀ (ρ : Valuation K.toReflexiveKanComplex),
+      K.Tetrahedron
+        ((Theory2.refl K (Theory1.refl K N)) ρ).toTriangle
+        (θ ρ).toTriangle
+        ((Theory2.trans K η θ) ρ).toTriangle
+        (η ρ).toTriangle
+  | ρ => K.transFillerTetrahedron (η ρ) (θ ρ)
+
 /-- A proof-relevant semantic 4-conversion between parallel semantic
 3-conversions in a fixed extensional Kan complex, represented by actual
 4-simplices with the expected reflexive outer faces. -/
@@ -3322,6 +3393,13 @@ noncomputable def HoTFT3.rightUnitorTetrahedron {M N : Term}
     (α : HoTFT1 M N) :=
   fun K => Theory3.rightUnitorTetrahedron K (α K)
 
+/-- The boundary-aware tetrahedron filled by the HoTFT semantic vertical
+composition operation. Its second outer face is the composite HoTFT 2-cell,
+while the original right and left factors remain explicit on the boundary. -/
+noncomputable def HoTFT3.transFillerTetrahedron {M N : Term}
+    {α β γ : HoTFT1 M N} (η : HoTFT2 α β) (θ : HoTFT2 β γ) :=
+  fun K => Theory3.transFillerTetrahedron K (η K) (θ K)
+
 /-- Proof-relevant HoTFT 4-conversions between parallel proof-relevant HoTFT
 3-conversions. -/
 def HoTFT4 {M N : Term} {α β : HoTFT1 M N} {η θ : HoTFT2 α β}
@@ -3487,6 +3565,18 @@ theorem homotopy2_in_Theory2_whiskerRight_refl
         (Theory2.refl K (reductionSeq_in_Theory1 K p)) s := by
   rw [homotopy2_in_Theory2_whiskerRight, homotopy2_in_Theory2_refl]
 
+/-- Semantic 3-cell packaging the definitional bridge from the interpreted
+syntactic `whiskerRight` reflexivity source to the structural semantic source
+that the missing normalization theorem must simplify. -/
+noncomputable def homotopy2_whiskerRight_refl_source_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (whiskerRight (Homotopy2.refl p) s))
+      (reductionSeq_whiskerRight_in_Theory2 K
+        (Theory2.refl K (reductionSeq_in_Theory1 K p)) s) :=
+  Theory3.ofEq K (homotopy2_in_Theory2_whiskerRight_refl K p s)
+
 /-- Interpreting the reflexive syntactic 2-cell on a concatenated path is
 definitionally the reflexive semantic 2-cell on the interpreted concatenation. -/
 theorem homotopy2_in_Theory2_refl_concat
@@ -3495,6 +3585,17 @@ theorem homotopy2_in_Theory2_refl_concat
     homotopy2_in_Theory2 K (Homotopy2.refl (ReductionSeq.concat p s)) =
       Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat p s)) :=
   rfl
+
+/-- Semantic 3-cell packaging the definitional bridge from the interpreted
+syntactic reflexive target of `whiskerRightRefl` to the structural semantic
+reflexive target on the concatenated path. -/
+noncomputable def homotopy2_refl_concat_target_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (Homotopy2.refl (ReductionSeq.concat p s)))
+      (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat p s))) :=
+  Theory3.ofEq K (homotopy2_in_Theory2_refl_concat K p s)
 
 /-- Every explicit syntactic 2-cell admits a reflexive semantic 3-cell over
 its interpreted semantic 2-cell in a fixed model. -/
@@ -3785,6 +3886,38 @@ noncomputable def homotopy2_whiskerRightRefl_in_Theory3
     K.whiskerRightReflPath3 (reductionSeq_in_Theory1 K p ρ)
       (reductionSeq_in_Theory1 K s ρ)
 
+/-- Naming wrapper for the normalized `whiskerRightRefl` simplification step,
+used by the later structural right-whisker normalization proof. -/
+noncomputable def reductionSeq_whiskerRight_refl_simplify_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    Theory3 K
+      (Theory2.whiskerRight K
+        (Theory2.refl K (reductionSeq_in_Theory1 K p))
+        (reductionSeq_in_Theory1 K s))
+      (Theory2.refl K
+        (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K s))) :=
+  homotopy2_whiskerRightRefl_in_Theory3 K p s
+
+/-- Structural right whiskering of a reflexive interpreted 2-cell normalizes to
+the reflexive semantic 2-cell on the concatenated path.  The proof applies the
+`shellCancellationPath3` axiom to witness the ω-groupoid inverse cancellation
+`(symmPath2 c) ∘ (w ∘ c) ≡₃ reflPath2 q` given the existing Path3 from `w` to
+`reflPath2 α` produced by `homotopy2_whiskerRightRefl_in_Theory3`. -/
+noncomputable def reductionSeq_whiskerRightRefl_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    Theory3 K
+      (reductionSeq_whiskerRight_in_Theory2 K
+        (Theory2.refl K (reductionSeq_in_Theory1 K p)) s)
+      (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat p s))) :=
+  fun ρ =>
+    K.shellCancellationPath3
+      (reductionSeq_comp_in_Theory2 K p s ρ)
+      (Theory2.whiskerRight K (Theory2.refl K (reductionSeq_in_Theory1 K p))
+        (reductionSeq_in_Theory1 K s) ρ)
+      (homotopy2_whiskerRightRefl_in_Theory3 K p s ρ)
+
 /-- Every structurally supported syntactic 3-cell between parallel explicit
 2-cells induces a semantic 3-conversion between the corresponding interpreted
 semantic 2-cells in a fixed extensional Kan complex. -/
@@ -3805,6 +3938,8 @@ noncomputable def structuralHomotopy3_in_Theory3
         (structuralHomotopy3_in_Theory3 K θ)
   | _, _, _, _, _, _, .whiskerLeftRefl r p =>
       reductionSeq_whiskerLeftRefl_in_Theory3 K r p
+  | _, _, _, _, _, _, .whiskerRightRefl p s =>
+      reductionSeq_whiskerRightRefl_in_Theory3 K p s
   | _, _, _, _, _, _, .interchange α β =>
       homotopy2_eq_in_Theory3 K rfl
 
@@ -4061,6 +4196,17 @@ theorem homotopy2_in_HoTFT2_whiskerRight_refl
         (HoTFT2.refl (reductionSeq_in_HoTFT1 p)) s := by
   rw [homotopy2_in_HoTFT2_whiskerRight, homotopy2_in_HoTFT2_refl]
 
+/-- HoTFT 3-cell packaging the definitional bridge from the interpreted
+syntactic `whiskerRight` reflexivity source to the structural HoTFT source
+awaiting the missing normalization theorem. -/
+noncomputable def homotopy2_whiskerRight_refl_source_bridge_in_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (whiskerRight (Homotopy2.refl p) s))
+      (reductionSeq_whiskerRight_in_HoTFT2
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p)) s) :=
+  HoTFT3.ofEq (homotopy2_in_HoTFT2_whiskerRight_refl p s)
+
 /-- Interpreting the reflexive syntactic 2-cell on a concatenated path is
 definitionally the reflexive HoTFT 2-cell on the interpreted concatenation. -/
 theorem homotopy2_in_HoTFT2_refl_concat
@@ -4068,6 +4214,16 @@ theorem homotopy2_in_HoTFT2_refl_concat
     homotopy2_in_HoTFT2 (Homotopy2.refl (ReductionSeq.concat p s)) =
       HoTFT2.refl (reductionSeq_in_HoTFT1 (ReductionSeq.concat p s)) :=
   rfl
+
+/-- HoTFT 3-cell packaging the definitional bridge from the interpreted
+syntactic reflexive target of `whiskerRightRefl` to the structural HoTFT
+reflexive target on the concatenated path. -/
+noncomputable def homotopy2_refl_concat_target_bridge_in_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (Homotopy2.refl (ReductionSeq.concat p s)))
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 (ReductionSeq.concat p s))) :=
+  HoTFT3.ofEq (homotopy2_in_HoTFT2_refl_concat p s)
 
 /-- Left whiskering of an interpreted explicit 2-cell carries an explicit
 HoTFT tetrahedron with its full boundary triangles. -/
@@ -4173,6 +4329,29 @@ noncomputable def homotopy2_whiskerRightRefl_in_HoTFT3
         (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 s))) :=
   fun K => homotopy2_whiskerRightRefl_in_Theory3 K p s
 
+/-- Naming wrapper for the normalized HoTFT `whiskerRightRefl` simplification
+step, matching the Theory3 helper above. -/
+noncomputable def reductionSeq_whiskerRight_refl_simplify_in_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerRight
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p))
+        (reductionSeq_in_HoTFT1 s))
+      (HoTFT2.refl
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 s))) :=
+  homotopy2_whiskerRightRefl_in_HoTFT3 p s
+
+/-- Structural right whiskering of a reflexive HoTFT 2-cell along an explicit
+βη path normalizes to the reflexive interpreted composite HoTFT 1-cell.
+Delegates to the Theory3-level proof via `shellCancellationPath3`. -/
+noncomputable def reductionSeq_whiskerRightRefl_in_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerRight_in_HoTFT2
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p)) s)
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 (ReductionSeq.concat p s))) :=
+  fun K => reductionSeq_whiskerRightRefl_in_Theory3 K p s
+
 /-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 3-cell
 over its interpreted HoTFT 2-cell. -/
 noncomputable def homotopy2_refl_in_HoTFT3 {M N : Term} {p q : ReductionSeq M N}
@@ -4218,6 +4397,8 @@ noncomputable def structuralHomotopy3_in_HoTFT3 :
         (structuralHomotopy3_in_HoTFT3 θ)
   | _, _, _, _, _, _, .whiskerLeftRefl r p =>
       reductionSeq_whiskerLeftRefl_in_HoTFT3 r p
+  | _, _, _, _, _, _, .whiskerRightRefl p s =>
+      reductionSeq_whiskerRightRefl_in_HoTFT3 p s
   | _, _, _, _, _, _, .interchange α β =>
       homotopy2_eq_in_HoTFT3 rfl
 

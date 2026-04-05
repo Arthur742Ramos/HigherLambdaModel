@@ -1085,6 +1085,18 @@ structure Thread (S : System) where
   toPrev : ∀ n : Nat, (S.obj n).Rel ((S.map n).toFun (val (n + 1))) (val n)
   fromPrev : ∀ n : Nat, (S.obj n).Rel (val n) ((S.map n).toFun (val (n + 1)))
 
+/-- Extensionality for projective-limit threads. The coherence fields live in
+propositions, so a thread is determined by its coordinate function. -/
+@[ext] theorem Thread.ext
+    {S : System}
+    {x y : Thread S}
+    (h : ∀ n : Nat, x.val n = y.val n) :
+    x = y := by
+  cases x
+  cases y
+  simp [Thread.mk.injEq]
+  exact funext h
+
 /-- The inverse-limit h.p.o. is ordered pointwise. -/
 def hpo (S : System) : HomotopyPartialOrder where
   Obj := Thread S

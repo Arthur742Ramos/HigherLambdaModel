@@ -155,6 +155,164 @@ def lambdaAdmissibleHigherLambdaModel :
   realize4 := lambdaRealize4
   realize5 := lambdaRealize5
 
+private abbrev lambdaOmegaReflexiveTower : ReflexiveLambdaTower :=
+  HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower
+
+/-- The shared all-dimensional omega tower induced directly from the canonical
+lambda omega-groupoid. -/
+def lambdaOmegaTower : HigherLambdaModel.Simplicial.GlobularTower :=
+  HigherLambdaModel.Lambda.Coherence.omegaGroupoidTower
+    HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+
+private def lambdaOmegaCell0Equiv :
+    HigherLambdaModel.Lambda.Coherence.SortEquiv
+      (lambdaOmegaTower.Cell 0)
+      (HigherLambdaModel.Lambda.Coherence.Tower0 lambdaOmegaReflexiveTower) where
+  toFun := fun x => x.down
+  invFun := fun x => ⟨x⟩
+  left_inv := by
+    intro x
+    cases x
+    rfl
+  right_inv := by
+    intro x
+    rfl
+
+private def lambdaOmegaCell1Equiv :
+    HigherLambdaModel.Lambda.Coherence.SortEquiv
+      (lambdaOmegaTower.Cell 1)
+      (HigherLambdaModel.Lambda.Coherence.Tower1 lambdaOmegaReflexiveTower) where
+  toFun := fun ⟨M, N, p⟩ => ⟨M.down, N.down, p.down⟩
+  invFun := fun ⟨M, N, p⟩ => ⟨⟨M⟩, ⟨N⟩, ⟨p⟩⟩
+  left_inv := by
+    intro x
+    cases x with
+    | mk M rest =>
+        cases rest with
+        | mk N p =>
+            cases M
+            cases N
+            cases p
+            rfl
+  right_inv := by
+    intro x
+    cases x
+    rfl
+
+private def lambdaOmegaCell2Equiv :
+    HigherLambdaModel.Lambda.Coherence.SortEquiv
+      (lambdaOmegaTower.Cell 2)
+      (HigherLambdaModel.Lambda.Coherence.Tower2 lambdaOmegaReflexiveTower) where
+  toFun := fun ⟨M, N, p, q, α⟩ => ⟨M.down, N.down, p.down, q.down, α.down⟩
+  invFun := fun ⟨M, N, p, q, α⟩ => ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩⟩
+  left_inv := by
+    intro x
+    cases x with
+    | mk M rest =>
+        cases rest with
+        | mk N rest =>
+            cases rest with
+            | mk p rest =>
+                cases rest with
+                | mk q α =>
+                    cases M
+                    cases N
+                    cases p
+                    cases q
+                    cases α
+                    rfl
+  right_inv := by
+    intro x
+    cases x
+    rfl
+
+private def lambdaOmegaCell3Equiv :
+    HigherLambdaModel.Lambda.Coherence.SortEquiv
+      (lambdaOmegaTower.Cell 3)
+      (HigherLambdaModel.Lambda.Coherence.Tower3 lambdaOmegaReflexiveTower) where
+  toFun := fun ⟨M, N, p, q, α, β, η⟩ =>
+    ⟨M.down, N.down, p.down, q.down, α.down, β.down, η.down⟩
+  invFun := fun ⟨M, N, p, q, α, β, η⟩ =>
+    ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩⟩
+  left_inv := by
+    intro x
+    cases x with
+    | mk M rest =>
+        cases rest with
+        | mk N rest =>
+            cases rest with
+            | mk p rest =>
+                cases rest with
+                | mk q rest =>
+                    cases rest with
+                    | mk α rest =>
+                        cases rest with
+                        | mk β η =>
+                            cases M
+                            cases N
+                            cases p
+                            cases q
+                            cases α
+                            cases β
+                            cases η
+                            rfl
+  right_inv := by
+    intro x
+    cases x
+    rfl
+
+private def lambdaOmegaRealize4 :
+    HigherLambdaModel.Lambda.Coherence.Tower4 lambdaOmegaReflexiveTower →
+      lambdaOmegaTower.Cell 4
+  | ⟨M, N, p, q, α, β, η, θ, ω⟩ =>
+      ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩, ⟨ω⟩⟩
+
+private def lambdaOmegaRealize5 :
+    HigherLambdaModel.Lambda.Coherence.Tower5 lambdaOmegaReflexiveTower →
+      lambdaOmegaTower.Cell 5
+  | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩ =>
+      ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩, ⟨ω⟩, ⟨ξ⟩, ⟨μ⟩⟩
+
+/-- The shared omega-groupoid tower on λ-terms is also admissible for the
+generic coherence theorem. This reuses the all-dimensional identity-completion
+constructor rather than the explicit recursive `HigherTerms.Cell` tower. -/
+def lambdaOmegaAdmissibleHigherLambdaModel :
+    HigherLambdaModel.Lambda.Coherence.AdmissibleHigherLambdaModel where
+  tower := lambdaOmegaTower
+  omegaGroupoid := HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+  cell0Equiv := lambdaOmegaCell0Equiv
+  cell1Equiv := lambdaOmegaCell1Equiv
+  cell2Equiv := lambdaOmegaCell2Equiv
+  cell3Equiv := lambdaOmegaCell3Equiv
+  realize4 := lambdaOmegaRealize4
+  realize5 := lambdaOmegaRealize5
+
+/-- The generic coherence theorem specialized to the shared omega-groupoid tower
+on λ-terms. -/
+def lambdaOmegaHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+      lambdaOmegaAdmissibleHigherLambdaModel :=
+  HigherLambdaModel.Lambda.Coherence.higherConversionCoherenceData
+    lambdaOmegaAdmissibleHigherLambdaModel
+
+/-- The shared omega-groupoid tower on λ-terms satisfies the generic coherence
+theorem as well. -/
+theorem lambdaOmega_higher_conversions_form_omegaGroupoid :
+    Nonempty
+      (HigherLambdaModel.Lambda.Coherence.HigherConversionCoherence
+        lambdaOmegaAdmissibleHigherLambdaModel) :=
+  HigherLambdaModel.Lambda.Coherence.higherConversions_form_omegaGroupoid
+    lambdaOmegaAdmissibleHigherLambdaModel
+
+/-- The explicit higher-cell tower package and the shared omega-groupoid tower
+package recover the same low-dimensional reflexive λ-core. -/
+theorem lambdaAdmissible_realizedTower_eq_lambdaOmega_realizedTower :
+    HigherLambdaModel.Lambda.Coherence.realizedTower
+      lambdaAdmissibleHigherLambdaModel =
+        HigherLambdaModel.Lambda.Coherence.realizedTower
+          lambdaOmegaAdmissibleHigherLambdaModel :=
+  rfl
+
 /-- The generic coherence theorem specialized to the constructive higher
 λ-conversion tower. -/
 def lambdaHigherConversionCoherence :
@@ -182,6 +340,14 @@ theorem lambdaHigherConversionCoherence_realizedTower :
     HigherLambdaModel.Lambda.Coherence.realizedTower
       lambdaAdmissibleHigherLambdaModel = reflexiveLambdaTower :=
   rfl
+
+/-- The shared omega-groupoid tower package recovers the same reflexive λ-core
+obtained directly from `lambdaOmegaGroupoid`. -/
+theorem lambdaOmegaHigherConversionCoherence_realizedTower :
+    HigherLambdaModel.Lambda.Coherence.realizedTower
+      lambdaOmegaAdmissibleHigherLambdaModel = reflexiveLambdaTower := by
+  simpa [reflexiveLambdaTower] using
+    lambdaAdmissible_realizedTower_eq_lambdaOmega_realizedTower.symm
 
 /-! ## Consequences -/
 

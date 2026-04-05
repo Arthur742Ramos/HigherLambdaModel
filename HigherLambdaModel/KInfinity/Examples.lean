@@ -175,4 +175,50 @@ theorem beta_eta_points_distinct_in_KInfinity :
     interp1Beta ≠ interp1Eta :=
   example_4_2
 
+/-- The chosen β- and η-side points of Example 4.2 admit no 1-cell in the
+canonical `K∞` omega-groupoid. -/
+theorem beta_eta_points_disconnected_in_KInfinity :
+    ¬ Nonempty (KInfinityPath interp1Beta interp1Eta) :=
+  example_4_2_not_connected
+
+/-- Consequently the chosen β- and η-side points of Example 4.2 admit no
+parallel 2-cell in the canonical `K∞` omega-groupoid. -/
+theorem beta_eta_points_no_2cell_in_KInfinity
+    {p q : KInfinityPath interp1Beta interp1Eta} :
+    ¬ Nonempty (KInfinityPath2 p q) := by
+  intro h
+  rcases h with ⟨α⟩
+  exact example_4_2_no_path2 α
+
+/-- Consequently the chosen β- and η-side points of Example 4.2 admit no
+parallel 3-cell in the canonical `K∞` omega-groupoid. -/
+theorem beta_eta_points_no_3cell_in_KInfinity
+    {p q : KInfinityPath interp1Beta interp1Eta}
+    {α β : KInfinityPath2 p q} :
+    ¬ Nonempty (KInfinityPath3 α β) := by
+  intro h
+  rcases h with ⟨η⟩
+  exact example_4_2_no_path3 η
+
+/-- Consequently the chosen β- and η-side points of Example 4.2 admit no
+parallel 4-cell in the canonical `K∞` omega-groupoid. -/
+theorem beta_eta_points_no_4cell_in_KInfinity
+    {p q : KInfinityPath interp1Beta interp1Eta}
+    {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β} :
+    ¬ Nonempty (KInfinityPath4 η θ) := by
+  intro h
+  rcases h with ⟨ω⟩
+  exact example_4_2_no_path4 ω
+
+/-- Consequently the chosen β- and η-side points of Example 4.2 admit no
+parallel 5-cell in the canonical `K∞` omega-groupoid. -/
+theorem beta_eta_points_no_5cell_in_KInfinity
+    {p q : KInfinityPath interp1Beta interp1Eta}
+    {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β}
+    {ω ξ : KInfinityPath4 η θ} :
+    ¬ Nonempty (KInfinityPath5 ω ξ) := by
+  intro h
+  rcases h with ⟨μ⟩
+  exact example_4_2_no_path5 μ
+
 end HigherLambdaModel.KInfinity

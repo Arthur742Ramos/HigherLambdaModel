@@ -243,6 +243,11 @@ noncomputable def fMinus (n : Nat) : ContinuousMap (K (n + 1)) (K n) :=
     ContinuousMap.comp (fMinus n) (fPlus n) = ContinuousMap.id (K n) :=
   (pair n).retract
 
+@[simp] theorem fMinus_fPlus_apply
+    (n : Nat) (x : (K n).Obj) :
+    (fMinus n).toFun ((fPlus n).toFun x) = x := by
+  simpa [ContinuousMap.comp] using congrArg (fun g => g.toFun x) (fMinus_comp_fPlus n)
+
 theorem fPlus_fMinus_le (n : Nat) (x : (K (n + 1)).Obj) :
     (K (n + 1)).Rel (fPlus n (fMinus n x)) x :=
   (pair n).section_le x
@@ -328,6 +333,19 @@ def castLevel
     {n : Nat} (x : (K n).Obj) :
     castLevel rfl x = x := rfl
 
+theorem castLevel_proof_irrel
+    {n m : Nat} (h₁ h₂ : n = m) (x : (K n).Obj) :
+    castLevel h₁ x = castLevel h₂ x := by
+  cases h₁
+  cases h₂
+  rfl
+
+@[simp] theorem castLevel_eq_self
+    {n : Nat} (h : n = n) (x : (K n).Obj) :
+    castLevel h x = x := by
+  rw [castLevel_proof_irrel h rfl x]
+  rfl
+
 /-- Repeated application of the h-embeddings `fₙ⁺`. -/
 noncomputable def projectUp
     (n : Nat) (x : (K n).Obj) :
@@ -374,6 +392,22 @@ theorem projectUp_monotone
       rw [projectUp_succ, projectUp_succ]
       exact (fPlus (n + k)).monotone' (projectUp_monotone n hxy k)
 
+/-- Repeated application of the h-embeddings packaged as a continuous map. -/
+noncomputable def projectUpContinuous
+    (n : Nat) :
+    (k : Nat) → ContinuousMap (K n) (K (n + k))
+  | 0 => ContinuousMap.id (K n)
+  | k + 1 => ContinuousMap.comp (fPlus (n + k)) (projectUpContinuous n k)
+
+@[simp] theorem projectUpContinuous_apply
+    (n : Nat) (x : (K n).Obj) :
+    ∀ k : Nat, projectUpContinuous n k x = projectUp n x k
+  | 0 => rfl
+  | k + 1 => by
+      change (fPlus (n + k)) (projectUpContinuous n k x) =
+        (fPlus (n + k)).toFun (projectUp n x k)
+      rw [projectUpContinuous_apply n x k]
+
 /-- Repeated application of the h-projections `fₙ⁻`. -/
 noncomputable def projectDown
     (n : Nat) (x : (K n).Obj) :
@@ -384,6 +418,22 @@ noncomputable def projectDown
       else
         have hm' : m + 1 ≤ n := by omega
         (fMinus m).toFun (projectDown n x (m + 1) hm')
+termination_by m hm => n - m
+decreasing_by
+  omega
+
+/-- Repeated application of the h-projections packaged as a continuous map. -/
+noncomputable def projectDownContinuous
+    (n : Nat) :
+    (m : Nat) → m ≤ n → ContinuousMap (K n) (K m)
+  | m, hm =>
+      if hlt : m < n then by
+        exact ContinuousMap.comp (fMinus m)
+          (projectDownContinuous n (m + 1) (Nat.succ_le_of_lt hlt))
+      else by
+        have hmn : m = n := by omega
+        cases hmn
+        exact ContinuousMap.id (K n)
 termination_by m hm => n - m
 decreasing_by
   omega
@@ -403,6 +453,32 @@ theorem projectDown_step
     lhs
     unfold projectDown
   simp [hmn]
+
+@[simp] theorem projectDownContinuous_apply
+    (n : Nat) (x : (K n).Obj) :
+    ∀ {m : Nat} (hm : m ≤ n),
+      projectDownContinuous n m hm x = projectDown n x m hm
+  | m, hm => by
+      by_cases hlt : m < n
+      · rw [projectDown_step (n := n) (x := x) (m := m) hlt]
+        conv =>
+          lhs
+          unfold projectDownContinuous
+        simp [hlt]
+        change (fMinus m).toFun
+            ((projectDownContinuous n (m + 1) (Nat.succ_le_of_lt hlt)).toFun x) =
+          (fMinus m).toFun (projectDown n x (m + 1) (by omega))
+        rw [projectDownContinuous_apply n x (Nat.succ_le_of_lt hlt)]
+      · have hmn : m = n := by omega
+        cases hmn
+        conv =>
+          lhs
+          unfold projectDownContinuous
+        conv =>
+          rhs
+          unfold projectDown
+        simp [hlt]
+        rfl
 
 @[simp] theorem projectDown_bottom
     (n : Nat) :
@@ -434,6 +510,24 @@ theorem projectDown_monotone
         exact (fMinus m).monotone'
           (projectDown_monotone n hxy (m := m + 1) (by omega))
 termination_by m _hm => n - m
+decreasing_by
+  omega
+
+theorem projectDown_succ
+    (n : Nat) (x : (K (n + 1)).Obj) :
+    ∀ {m : Nat} (hm : m ≤ n),
+      projectDown (n + 1) x m (by omega) =
+        projectDown n ((fMinus n).toFun x) m hm
+  | m, hm => by
+      by_cases hmn : m = n
+      · subst m
+        rw [projectDown_step (n := n + 1) (x := x) (m := n) (by omega)]
+        simp
+      · have hlt : m < n := by omega
+        rw [projectDown_step (n := n + 1) (x := x) (m := m) (by omega)]
+        rw [projectDown_step (n := n) (x := (fMinus n).toFun x) (m := m) hlt]
+        rw [projectDown_succ n x (m := m + 1) (by omega)]
+termination_by m _ => n - m
 decreasing_by
   omega
 
