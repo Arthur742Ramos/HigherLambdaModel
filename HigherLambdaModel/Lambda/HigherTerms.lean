@@ -450,8 +450,8 @@ end Homotopy3
 
 This keeps only the constructors already matched by explicit simplicial
 operations in `ExtensionalKan`: reflexivity, literal equality of 2-cells,
-symmetry, vertical composition, the `whiskerLeftRefl` witness already
-normalized semantically in `ExtensionalKan`, and the interchange witness
+symmetry, vertical composition, the reflexive left and right whiskering
+witnesses, the left-whiskering symmetry witness, and the interchange witness
 coming from the chosen definition of horizontal composition. The remaining
 primitive constructors of `Homotopy3Deriv` stay in the full syntax but are not
 yet included in this restricted fragment. -/
@@ -474,6 +474,14 @@ inductive StructuralHomotopy3 :
   | whiskerRightRefl {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
       StructuralHomotopy3 (whiskerRight (Homotopy2.refl p) s)
         (Homotopy2.refl (ReductionSeq.concat p s))
+  | whiskerLeftTrans {L M N : Term} (r : ReductionSeq L M)
+      {p q s : ReductionSeq M N} (α : Homotopy2 p q) (β : Homotopy2 q s) :
+      StructuralHomotopy3 (whiskerLeft r (Homotopy2.trans α β))
+        (Homotopy2.trans (whiskerLeft r α) (whiskerLeft r β))
+  | whiskerLeftSymm {L M N : Term} (r : ReductionSeq L M)
+      {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+      StructuralHomotopy3 (whiskerLeft r (Homotopy2.symm α))
+        (Homotopy2.symm (whiskerLeft r α))
   | interchange {M N P : Term}
       {p p' : ReductionSeq M N} {q q' : ReductionSeq N P}
       (α : Homotopy2 p p') (β : Homotopy2 q q') :
@@ -494,6 +502,10 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftRefl r p)
   | .whiskerRightRefl p s =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerRightRefl p s)
+  | .whiskerLeftTrans r α β =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftTrans r α β)
+  | .whiskerLeftSymm r α =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftSymm r α)
   | .interchange α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.interchange α β)
 

@@ -149,19 +149,43 @@ is complete. That means the repository now has:
 - a concrete `K∞` admissible-model instance,
 - and an example suite exercising the infrastructure.
 
+In particular, the current `K∞` Example 4.2 development now separates the
+chosen β-side and η-side points not only through the explicit 1/2/3/4/5-cell
+omega-groupoid core, but through every dimension of the current recursively
+completed all-dimensional `kInfinityTower` whenever the 0-boundary is that same
+β/η pair.
+
 It does **not** mean that every statement in the source papers is formalized
 verbatim. The remaining paper-level partials and missing claims are deliberate,
 documented, and visible in [`docs/theorem_index.md`](./docs/theorem_index.md).
 
 The main paper-level gaps still tracked there are:
 
-- the exact paper-strength `K∞` Homotopy Scott Domain statement of
-  Proposition 4.1 (the remaining missing step is the generic algebraicity
-  theorem for the inverse limit, beyond the current finite-stage
-  approximation witness),
-- the full interpreted beta/eta separation statement of Example 4.2,
+Proposition 4.1 is now fully internalized: `kInfinity_algebraic`,
+`kInfinity_boundedComplete`, and `kInfinityScottDomain` close the exact `K∞`
+Homotopy Scott Domain statement, so the remaining paper-facing obstructions are
+now semantic rather than domain-theoretic.
+
+- the full interpreted beta/eta separation statement of Example 4.2
+  (the repository now packages the strongest honest current endpoint as
+  `proposition_4_4_example_4_2`, combining the completed non-trivial homotopy
+  λ-model witness with the full β/η point-separation suite through the explicit
+  1/2/3/4/5-cell hierarchy and the recursively completed all-dimensional tower;
+  the current missing ingredient is still a bridge from the Section 4
+  `NonTrivialHomotopyLambdaModel` / `ReflexiveCHPO` packaging into the
+  `ReflexiveKanComplex`-based term interpretation used by `ExtensionalKan`;
+  the sharp mismatch is that `ReflexiveCHPO` only exposes reify/reflect on
+  **continuous** self-maps in the CHPO exponential, while `ExtensionalKan`
+  expects `G` on the full function space `Obj → Obj` together with the Kan-side
+  η-law),
 - a direct semantic interpretation of the full primitive `Homotopy3Deriv`
-  language rather than only the current structural fragment,
+  language rather than only the current structural fragment (the structural
+  fragment now reaches reflexivity, equality, symmetry, transitivity,
+  reflexive left/right whiskering, left-whisker transitivity, left-whisker
+  symmetry, and interchange; outside that structural fragment, the direct
+  primitive coverage now also includes triangle, right-whisker transitivity,
+  forward and inverse right-whisker symmetry, and the second interchange
+  form, so the remaining gap has narrowed to pentagon),
 - and a stronger all-dimensional constructive omega-groupoid story beyond the
   current explicit 5-cell core plus recursive identity tower.
 

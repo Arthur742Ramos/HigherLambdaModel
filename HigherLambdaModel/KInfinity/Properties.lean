@@ -9,13 +9,11 @@ This file packages the remaining Section 4 results in the chosen-data style
 used throughout the repository.
 
 The generic Section 3 layer already provides the full c.h.p.o. and continuous
-map infrastructure needed for the `Kₙ` tower. What is still absent from the
-library is a generic theorem identifying the inverse limit `K∞` itself as a
-`HomotopyScottDomain` by way of finite-step bases for the whole tower. We
-therefore record Proposition 4.1 through an explicit witness structure that
-exposes the domain-theoretic data already constructed here: bounded
-completeness of every stage and the continuous coordinate projections from the
-inverse limit.
+map infrastructure needed for the `Kₙ` tower. The library still does not offer
+a completely generic inverse-limit Scott-domain theorem for arbitrary towers,
+but this file now proves Proposition 4.1 directly for the concrete `K∞`
+construction and records the resulting domain-theoretic witness data alongside
+the remaining Section 4 results.
 
 The non-triviality theorem and the β/η example are fully internalized using
 the chosen homotopy-group data introduced in `NonTrivial.lean`.
@@ -63,6 +61,712 @@ noncomputable def baseUp (x : (K 0).Obj) : (n : Nat) → (K n).Obj
 
 @[simp] theorem baseUp_succ (x : (K 0).Obj) (n : Nat) :
     baseUp x (n + 1) = (fPlus n).toFun (baseUp x n) := rfl
+
+/-- The canonical stage-by-stage image of a base point remains compact at every
+finite level of the Section 4 tower. -/
+theorem baseUp_compact (x : (K 0).Obj) :
+    ∀ n : Nat, IsCompact (K n) (baseUp x n)
+  | 0 => by
+      simpa [K] using (Flat.isCompact (α := SpherePoint) x)
+  | n + 1 => by
+      simpa [baseUp_succ] using fPlus_compact n (baseUp_compact x n)
+
+/-- Compact stage points generate compact step functions in the next stage of
+the `K∞` tower. This gives a uniform concrete family of compact endomaps above
+every finite level. -/
+theorem stage_stepFunction_compact (n : Nat) {a b : (K n).Obj}
+    (ha : IsCompact (K n) a) (hb : IsCompact (K n) b) :
+    IsCompact (K (n + 1)) (stepFunction a ha b) := by
+  simpa [K] using
+    (stepFunction_compact (K := K n) (L := K n) a ha b hb)
+
+/-- A chosen compact step-approximation datum for a target endomap of the
+stage-`n` domain. This is the stage-specialized form of the generic
+`StepApproxDatum` interface from the Scott-domain layer. -/
+abbrev StageStepApproxDatum (n : Nat) (f : (K (n + 1)).Obj) :=
+  StepApproxDatum (K := K n) (L := K n) f
+
+/-- Any finite family of chosen compact step approximants below a stage-`n + 1`
+endomap admits a chosen compact-below least upper bound at that same stage. -/
+theorem exists_listStageStepApproxDatum_compactBelow_isLeastUpperBound
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps : List (StageStepApproxDatum n f)) :
+    ∃ h : (K (n + 1)).Obj,
+      compactBelow (K (n + 1)) f h ∧
+      (K (n + 1)).IsLeastUpperBound
+        (fun g => g ∈ steps.map StepApproxDatum.toMap) h := by
+  simpa [K] using
+    (exists_listStepApproxDatum_compactBelow_isLeastUpperBound
+      (K := K n)
+      (L := K n)
+      (hL := stage_boundedComplete n)
+      f
+      steps)
+
+/-- A chosen stage-`n + 1` finite-step approximant assembled from a finite list
+of compact step data below a target endomap. -/
+noncomputable def assembleStageStepApproximants
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps : List (StageStepApproxDatum n f)) :
+    (K (n + 1)).Obj :=
+  assembleStepApproximants (K := K n) (L := K n) (stage_boundedComplete n) f steps
+
+/-- The chosen assembled stage approximant remains compact-below the target
+endomap. -/
+theorem assembleStageStepApproximants_compactBelow
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps : List (StageStepApproxDatum n f)) :
+    compactBelow (K (n + 1)) f (assembleStageStepApproximants n f steps) := by
+  simpa [assembleStageStepApproximants, K] using
+    (assembleStepApproximants_compactBelow
+      (K := K n)
+      (L := K n)
+      (hL := stage_boundedComplete n)
+      f
+      steps)
+
+/-- The chosen assembled stage approximant is the least upper bound of the
+finite family of step maps from which it is built. -/
+theorem assembleStageStepApproximants_isLeastUpperBound
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps : List (StageStepApproxDatum n f)) :
+    (K (n + 1)).IsLeastUpperBound
+      (fun g => g ∈ steps.map StepApproxDatum.toMap)
+      (assembleStageStepApproximants n f steps) := by
+  simpa [assembleStageStepApproximants, K] using
+    (assembleStepApproximants_isLeastUpperBound
+      (K := K n)
+      (L := K n)
+      (hL := stage_boundedComplete n)
+      f
+      steps)
+
+/-- Enlarging the finite list of stage-step data enlarges the chosen assembled
+stage approximant. -/
+theorem assembleStageStepApproximants_mono
+    (n : Nat) (f : (K (n + 1)).Obj)
+    {steps₁ steps₂ : List (StageStepApproxDatum n f)}
+    (hsubset : ∀ d : StageStepApproxDatum n f, d ∈ steps₁ → d ∈ steps₂) :
+    (K (n + 1)).Rel
+      (assembleStageStepApproximants n f steps₁)
+      (assembleStageStepApproximants n f steps₂) := by
+  simpa [assembleStageStepApproximants, K] using
+    (assembleStepApproximants_mono
+      (K := K n)
+      (L := K n)
+      (hL := stage_boundedComplete n)
+      (f := f)
+      (steps₁ := steps₁)
+      (steps₂ := steps₂)
+      hsubset)
+
+/-- The assembled stage approximant for a list is below the one assembled from
+any append-extension of that list on the right. -/
+theorem assembleStageStepApproximants_le_append_right
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps₁ steps₂ : List (StageStepApproxDatum n f)) :
+    (K (n + 1)).Rel
+      (assembleStageStepApproximants n f steps₁)
+      (assembleStageStepApproximants n f (steps₁ ++ steps₂)) := by
+  refine assembleStageStepApproximants_mono n f ?_
+  intro d hd
+  exact List.mem_append.mpr (Or.inl hd)
+
+/-- The assembled stage approximant for a list is below the one assembled from
+any append-extension of that list on the left. -/
+theorem assembleStageStepApproximants_le_append_left
+    (n : Nat) (f : (K (n + 1)).Obj)
+    (steps₁ steps₂ : List (StageStepApproxDatum n f)) :
+    (K (n + 1)).Rel
+      (assembleStageStepApproximants n f steps₂)
+      (assembleStageStepApproximants n f (steps₁ ++ steps₂)) := by
+  refine assembleStageStepApproximants_mono n f ?_
+  intro d hd
+  exact List.mem_append.mpr (Or.inr hd)
+
+/-- The predicate of finite stage-step approximants assembled from finite lists
+of compact step data below a fixed target endomap. -/
+private def stageFiniteStepApproxPred
+    (n : Nat) (f : (K (n + 1)).Obj) :
+    (K (n + 1)).Obj → Prop :=
+  fun g => ∃ steps : List (StageStepApproxDatum n f),
+    g = assembleStageStepApproximants n f steps
+
+/-- Every assembled finite stage-step approximant lies compact-below the target
+endomap from which it is built. -/
+private theorem stageFiniteStepApproxPred_compactBelow
+    (n : Nat) (f : (K (n + 1)).Obj)
+    {g : (K (n + 1)).Obj}
+    (hg : stageFiniteStepApproxPred n f g) :
+    compactBelow (K (n + 1)) f g := by
+  rcases hg with ⟨steps, rfl⟩
+  exact assembleStageStepApproximants_compactBelow n f steps
+
+/-- The assembled finite stage-step approximants form a directed family under
+list concatenation. -/
+private theorem stageFiniteStepApproxPred_directed
+    (n : Nat) (f : (K (n + 1)).Obj) :
+    (K (n + 1)).Directed (stageFiniteStepApproxPred n f) := by
+  refine ⟨⟨assembleStageStepApproximants n f [], ⟨[], rfl⟩⟩, ?_⟩
+  intro g h hg hh
+  rcases hg with ⟨stepsG, rfl⟩
+  rcases hh with ⟨stepsH, rfl⟩
+  refine ⟨assembleStageStepApproximants n f (stepsG ++ stepsH), ⟨stepsG ++ stepsH, rfl⟩, ?_, ?_⟩
+  · exact assembleStageStepApproximants_le_append_right n f stepsG stepsH
+  · exact assembleStageStepApproximants_le_append_left n f stepsG stepsH
+
+/-- If stage `Kₙ` is algebraic, the finite stage-step approximants assembled
+below a stage-`n + 1` endomap already have that endomap as their least upper
+bound. -/
+private theorem stageFiniteStepApproxPred_isLub_of_stageAlgebraic
+    (n : Nat) (hAlg : Algebraic (K n))
+    (f : (K (n + 1)).Obj) :
+    (K (n + 1)).IsLeastUpperBound (stageFiniteStepApproxPred n f) f := by
+  constructor
+  · intro g hg
+    exact (stageFiniteStepApproxPred_compactBelow n f hg).2
+  · intro w hw
+    refine Exponential.rel_mk ?_
+    intro x
+    have hUpperCompactBelow :
+        (K n).IsUpperBound (compactBelow (K n) (f.toFun x)) (w.toFun x) := by
+      intro b hb
+      let X : (K n).Obj → Prop := image f.toFun (compactBelow (K n) x)
+      have hDirX : (K n).Directed X := f.directed_image ((hAlg x).1)
+      have hChosenX :
+          (K n).IsLeastUpperBound X ((K n).sup X hDirX) :=
+        (K n).sup_spec X hDirX
+      have hExactX :
+          (K n).IsLeastUpperBound X (f.toFun x) :=
+        (ContinuousMap.compactApproximation (K := K n) (L := K n) (hK := hAlg) f) x
+      have hEqvX :
+          (K n).Rel ((K n).sup X hDirX) (f.toFun x) ∧
+            (K n).Rel (f.toFun x) ((K n).sup X hDirX) :=
+        equivalent_of_isLeastUpperBound
+          (K n).toHomotopyPartialOrder
+          hChosenX
+          hExactX
+      have hbSupX : (K n).Rel b ((K n).sup X hDirX) :=
+        (K n).rel_trans hb.2 hEqvX.2
+      rcases hb.1 X hDirX hbSupX with ⟨y, hy, hby⟩
+      rcases hy with ⟨c, hc, rfl⟩
+      let d : StageStepApproxDatum n f := {
+        source := c
+        sourceCompact := hc.1
+        target := b
+        targetCompactBelow := ⟨hb.1, hby⟩
+      }
+      have hStepBelow :
+          (K (n + 1)).Rel d.toMap (assembleStageStepApproximants n f [d]) := by
+        exact (assembleStageStepApproximants_isLeastUpperBound n f [d]).1 (by
+          simp)
+      have hAssembledBelowW :
+          (K (n + 1)).Rel (assembleStageStepApproximants n f [d]) w :=
+        hw ⟨[d], rfl⟩
+      have hbx :
+          (K n).Rel b (w.toFun x) := by
+        have hStepAtX :
+            (K n).Rel (d.toMap.toFun x) (w.toFun x) :=
+          (Exponential.rel_iff.mp
+            ((K (n + 1)).rel_trans hStepBelow hAssembledBelowW)) x
+        simpa [d, StepApproxDatum.toMap, stepFunction, hc.2] using hStepAtX
+      exact hbx
+    exact (hAlg (f.toFun x)).2.2 hUpperCompactBelow
+
+/-- Under algebraicity of stage `Kₙ`, every compact-below approximant of a
+stage-`n + 1` endomap is dominated by one of the assembled finite-step
+approximants below that endomap. -/
+private theorem stageFiniteStepApproxPred_cofinal_compactBelow
+    (n : Nat) (hAlg : Algebraic (K n))
+    (f : (K (n + 1)).Obj)
+    {g : (K (n + 1)).Obj}
+    (hg : compactBelow (K (n + 1)) f g) :
+    ∃ h : (K (n + 1)).Obj,
+      stageFiniteStepApproxPred n f h ∧ (K (n + 1)).Rel g h := by
+  let X : (K (n + 1)).Obj → Prop := stageFiniteStepApproxPred n f
+  have hDir : (K (n + 1)).Directed X := stageFiniteStepApproxPred_directed n f
+  have hChosen :
+      (K (n + 1)).IsLeastUpperBound X ((K (n + 1)).sup X hDir) :=
+    (K (n + 1)).sup_spec X hDir
+  have hExact :
+      (K (n + 1)).IsLeastUpperBound X f :=
+    stageFiniteStepApproxPred_isLub_of_stageAlgebraic n hAlg f
+  have hEqv :
+      (K (n + 1)).Rel ((K (n + 1)).sup X hDir) f ∧
+        (K (n + 1)).Rel f ((K (n + 1)).sup X hDir) :=
+    equivalent_of_isLeastUpperBound
+      (K (n + 1)).toHomotopyPartialOrder
+      hChosen
+      hExact
+  have hgSup : (K (n + 1)).Rel g ((K (n + 1)).sup X hDir) :=
+    (K (n + 1)).rel_trans hg.2 hEqv.2
+  rcases hg.1 X hDir hgSup with ⟨h, hhX, hgh⟩
+  exact ⟨h, hhX, hgh⟩
+
+/-- Algebraicity propagates one step up the `K` tower once the previous stage is
+known algebraic. -/
+private theorem stage_algebraic_succ
+    (n : Nat) (hAlg : Algebraic (K n)) :
+    Algebraic (K (n + 1)) := by
+  intro f
+  constructor
+  · refine ⟨⟨assembleStageStepApproximants n f [], ?_⟩, ?_⟩
+    · exact stageFiniteStepApproxPred_compactBelow n f ⟨[], rfl⟩
+    · intro g h hg hh
+      rcases stageFiniteStepApproxPred_cofinal_compactBelow n hAlg f hg with
+        ⟨g', hg'X, hgg'⟩
+      rcases stageFiniteStepApproxPred_cofinal_compactBelow n hAlg f hh with
+        ⟨h', hh'X, hhh'⟩
+      rcases hg'X with ⟨stepsG, rfl⟩
+      rcases hh'X with ⟨stepsH, rfl⟩
+      refine ⟨assembleStageStepApproximants n f (stepsG ++ stepsH), ?_, ?_, ?_⟩
+      · exact stageFiniteStepApproxPred_compactBelow n f ⟨stepsG ++ stepsH, rfl⟩
+      · exact (K (n + 1)).rel_trans hgg'
+          (assembleStageStepApproximants_le_append_right n f stepsG stepsH)
+      · exact (K (n + 1)).rel_trans hhh'
+          (assembleStageStepApproximants_le_append_left n f stepsG stepsH)
+  · constructor
+    · intro g hg
+      exact hg.2
+    · intro w hw
+      have hBasisUpper : (K (n + 1)).IsUpperBound (stageFiniteStepApproxPred n f) w := by
+        intro g hg
+        exact hw (stageFiniteStepApproxPred_compactBelow n f hg)
+      exact (stageFiniteStepApproxPred_isLub_of_stageAlgebraic n hAlg f).2 hBasisUpper
+
+private theorem stageOne_directed_unique_some
+    {X : (K 0).Obj → Prop}
+    (hX : (K 0).Directed X)
+    {a b : SpherePoint}
+    (ha : X (some a)) (hb : X (some b)) :
+    a = b := by
+  simpa [K, NPlus] using
+    (Flat.directed_unique_some (α := SpherePoint) hX ha hb)
+
+private def stageOneFiniteApproxFun
+    (f : (K 1).Obj)
+    (support : List SpherePoint) :
+    (K 0).Obj → (K 0).Obj
+  | none => f.toFun none
+  | some a => if a ∈ support then f.toFun (some a) else f.toFun none
+
+/-- A finite-support approximant for endomaps of the flat base stage `K₀`. It
+keeps the exact values of `f` on the chosen support and otherwise falls back to
+the bottom value `f ⊥₀`. -/
+private noncomputable def stageOneFiniteApprox
+    (f : (K 1).Obj)
+    (support : List SpherePoint) :
+    (K 1).Obj where
+  toFun := stageOneFiniteApproxFun f support
+  monotone' := by
+    intro x y hxy
+    cases x with
+    | none =>
+        cases y with
+        | none =>
+            simpa [stageOneFiniteApproxFun] using (K 0).rel_refl (f.toFun none)
+        | some a =>
+            by_cases ha : a ∈ support
+            · simpa [stageOneFiniteApproxFun, ha] using f.monotone' hxy
+            · simpa [stageOneFiniteApproxFun, ha] using (K 0).rel_refl (f.toFun none)
+    | some a =>
+        cases y with
+        | none =>
+            have : False := by
+              simpa [K, NPlus, Flat.chpo_rel_iff, Flat.rel] using hxy
+            cases this
+        | some b =>
+            have hab : a = b := by
+              simpa [K, NPlus, Flat.chpo_rel_iff, Flat.rel] using hxy
+            subst hab
+            by_cases ha : a ∈ support <;> simp [stageOneFiniteApproxFun, ha]
+  preserves_sup := by
+    intro X hX
+    by_cases hSome : ∃ a : SpherePoint, X (some a)
+    · let a : SpherePoint := Classical.choose hSome
+      have ha : X (some a) := Classical.choose_spec hSome
+      have hSupEq : (K 0).sup X hX = some a := by
+        have hSup : (K 0).Rel (some a) ((K 0).sup X hX) :=
+          ((K 0).sup_spec X hX).1 ha
+        cases hEq : (K 0).sup X hX with
+        | none =>
+            have hSupNone := hSup
+            rw [hEq] at hSupNone
+            have : False := by
+              simpa [K, NPlus, Flat.chpo_rel_iff, Flat.rel] using hSupNone
+            cases this
+        | some b =>
+            have hSupSome := hSup
+            rw [hEq] at hSupSome
+            have hab : a = b := by
+              simpa [K, NPlus, Flat.chpo_rel_iff, Flat.rel] using hSupSome
+            simpa [hab] using hEq
+      by_cases haSupport : a ∈ support
+      · have hPoint :
+          ∀ x : (K 0).Obj, X x → stageOneFiniteApproxFun f support x = f.toFun x := by
+            intro x hx
+            cases x with
+            | none => rfl
+            | some b =>
+                have hba : b = a := stageOne_directed_unique_some hX hx ha
+                subst hba
+                simp [stageOneFiniteApproxFun, haSupport]
+        have hSupPoint :
+            stageOneFiniteApproxFun f support ((K 0).sup X hX) =
+              f.toFun ((K 0).sup X hX) := by
+          rw [hSupEq]
+          simp [stageOneFiniteApproxFun, haSupport]
+        constructor
+        · intro z hz
+          rcases hz with ⟨x, hx, rfl⟩
+          rw [hPoint x hx, hSupPoint]
+          exact (f.preserves_sup X hX).1 ⟨x, hx, rfl⟩
+        · intro w hw
+          rw [hSupPoint]
+          exact (f.preserves_sup X hX).2 <| by
+            intro z hz
+            rcases hz with ⟨x, hx, rfl⟩
+            simpa [hPoint x hx] using hw ⟨x, hx, rfl⟩
+      · have hPoint :
+          ∀ x : (K 0).Obj, X x → stageOneFiniteApproxFun f support x = f.toFun none := by
+            intro x hx
+            cases x with
+            | none => rfl
+            | some b =>
+                have hba : b = a := stageOne_directed_unique_some hX hx ha
+                subst hba
+                simp [stageOneFiniteApproxFun, haSupport]
+        have hSupPoint :
+            stageOneFiniteApproxFun f support ((K 0).sup X hX) = f.toFun none := by
+          rw [hSupEq]
+          simp [stageOneFiniteApproxFun, haSupport]
+        constructor
+        · intro z hz
+          rcases hz with ⟨x, hx, rfl⟩
+          rw [hPoint x hx, hSupPoint]
+          exact (K 0).rel_refl (f.toFun none)
+        · intro w hw
+          rw [hSupPoint]
+          exact hw ⟨some a, ha, by simp [stageOneFiniteApproxFun, haSupport]⟩
+    · have hSupEq : (K 0).sup X hX = none := by
+        have hUpper : (K 0).IsUpperBound X none := by
+          intro x hx
+          cases x with
+          | none =>
+              exact (K 0).rel_refl none
+          | some a =>
+              exact False.elim (hSome ⟨a, hx⟩)
+        have hSupLe : (K 0).Rel ((K 0).sup X hX) none :=
+          ((K 0).sup_spec X hX).2 hUpper
+        cases hEq : (K 0).sup X hX with
+        | none => rfl
+        | some a =>
+            have hSupLeSome := hSupLe
+            rw [hEq] at hSupLeSome
+            have : False := by
+              simpa [K, NPlus, Flat.chpo_rel_iff, Flat.rel] using hSupLeSome
+            cases this
+      have hPoint :
+          ∀ x : (K 0).Obj, X x → stageOneFiniteApproxFun f support x = f.toFun none := by
+            intro x hx
+            cases x with
+            | none => rfl
+            | some a =>
+                exact False.elim (hSome ⟨a, hx⟩)
+      have hSupPoint :
+          stageOneFiniteApproxFun f support ((K 0).sup X hX) = f.toFun none := by
+        rw [hSupEq]
+        rfl
+      rcases hX.1 with ⟨x, hx⟩
+      have hxNone : x = none := by
+        cases x with
+        | none => rfl
+        | some a =>
+            exact False.elim (hSome ⟨a, hx⟩)
+      subst hxNone
+      constructor
+      · intro z hz
+        rcases hz with ⟨x, hxX, rfl⟩
+        rw [hPoint x hxX, hSupPoint]
+        exact (K 0).rel_refl (f.toFun none)
+      · intro w hw
+        rw [hSupPoint]
+        exact hw ⟨none, hx, rfl⟩
+
+@[simp] private theorem stageOneFiniteApprox_none
+    (f : (K 1).Obj) (support : List SpherePoint) :
+    (stageOneFiniteApprox f support).toFun none = f.toFun none := rfl
+
+@[simp] private theorem stageOneFiniteApprox_some
+    (f : (K 1).Obj) (support : List SpherePoint) (a : SpherePoint) :
+    (stageOneFiniteApprox f support).toFun (some a) =
+      if a ∈ support then f.toFun (some a) else f.toFun none := rfl
+
+private theorem stageOneFiniteApprox_below
+    (f : (K 1).Obj)
+    (support : List SpherePoint) :
+    (K 1).Rel (stageOneFiniteApprox f support) f := by
+  refine Exponential.rel_mk ?_
+  intro x
+  cases x with
+  | none =>
+      simpa using (K 0).rel_refl (f.toFun none)
+  | some a =>
+      by_cases ha : a ∈ support
+      · simpa [stageOneFiniteApprox_some, ha] using
+          (K 0).rel_refl (f.toFun (some a))
+      · simpa [stageOneFiniteApprox_some, ha] using
+          f.monotone' ((K 0).bottom_le (some a))
+
+private theorem stageOneFiniteApprox_support_mono
+    (f : (K 1).Obj)
+    {support support' : List SpherePoint}
+    (hsub : ∀ a : SpherePoint, a ∈ support → a ∈ support') :
+    (K 1).Rel (stageOneFiniteApprox f support) (stageOneFiniteApprox f support') := by
+  refine Exponential.rel_mk ?_
+  intro x
+  cases x with
+  | none =>
+      simpa using (K 0).rel_refl (f.toFun none)
+  | some a =>
+      by_cases ha : a ∈ support
+      · have ha' : a ∈ support' := hsub a ha
+        simpa [stageOneFiniteApprox_some, ha, ha'] using
+          (K 0).rel_refl (f.toFun (some a))
+      · by_cases ha' : a ∈ support'
+        · simpa [stageOneFiniteApprox_some, ha, ha'] using
+            f.monotone' ((K 0).bottom_le (some a))
+        · simpa [stageOneFiniteApprox_some, ha, ha'] using
+            (K 0).rel_refl (f.toFun none)
+
+private theorem stageOneFiniteApprox_map_mono
+    {g f : (K 1).Obj}
+    (hgf : (K 1).Rel g f)
+    (support : List SpherePoint) :
+    (K 1).Rel (stageOneFiniteApprox g support) (stageOneFiniteApprox f support) := by
+  refine Exponential.rel_mk ?_
+  intro x
+  cases x with
+  | none =>
+      simpa using (Exponential.rel_iff.mp hgf) none
+  | some a =>
+      by_cases ha : a ∈ support
+      · simpa [stageOneFiniteApprox_some, ha] using
+          (Exponential.rel_iff.mp hgf) (some a)
+      · simpa [stageOneFiniteApprox_some, ha] using
+          (Exponential.rel_iff.mp hgf) none
+
+private theorem stageOneFiniteApprox_compact_aux
+    {F : (K 1).Obj → Prop}
+    (hF : (K 1).Directed F)
+    (approx : (K 1).Obj) :
+    ∀ xs : List (K 0).Obj,
+      (∀ x, x ∈ xs → ∃ g, F g ∧ (K 0).Rel (approx.toFun x) (g.toFun x)) →
+      ∃ g, F g ∧ ∀ x, x ∈ xs → (K 0).Rel (approx.toFun x) (g.toFun x)
+  | [], _ => by
+      rcases hF.1 with ⟨g, hg⟩
+      exact ⟨g, hg, by intro x hx; cases hx⟩
+  | x :: xs, hxs => by
+      rcases hxs x (by simp) with ⟨gx, hgx, hxgx⟩
+      rcases stageOneFiniteApprox_compact_aux hF approx xs
+          (by
+            intro y hy
+            exact hxs y (by simp [hy])) with
+        ⟨gxs, hgxs, hxsUpper⟩
+      rcases hF.2 hgx hgxs with ⟨g, hg, hgxg, hgxsg⟩
+      refine ⟨g, hg, ?_⟩
+      intro y hy
+      simp at hy
+      cases hy with
+      | inl hyEq =>
+          simpa [hyEq] using
+            (K 0).rel_trans hxgx ((Exponential.rel_iff.mp hgxg) x)
+      | inr hyTail =>
+          exact (K 0).rel_trans
+            (hxsUpper y hyTail)
+            ((Exponential.rel_iff.mp hgxsg) y)
+
+private theorem stageOneFiniteApprox_compact
+    (f : (K 1).Obj)
+    (support : List SpherePoint) :
+    IsCompact (K 1) (stageOneFiniteApprox f support) := by
+  intro F hF hApproxSup
+  let approx := stageOneFiniteApprox f support
+  let tracked : List (K 0).Obj := none :: support.map some
+  have hTracked :
+      ∀ x, x ∈ tracked → ∃ g, F g ∧ (K 0).Rel (approx.toFun x) (g.toFun x) := by
+        intro x hx
+        have hxCompact : IsCompact (K 0) (approx.toFun x) := by
+          simpa [K] using (Flat.isCompact (α := SpherePoint) (approx.toFun x))
+        have hxSup : (K 0).Rel (approx.toFun x) (((K 1).sup F hF).toFun x) :=
+          (Exponential.rel_iff.mp hApproxSup) x
+        rcases hxCompact (Exponential.evalPred F x) (Exponential.directed_eval hF x) hxSup with
+          ⟨y, hy, hxy⟩
+        rcases hy with ⟨g, hg, rfl⟩
+        exact ⟨g, hg, hxy⟩
+  rcases stageOneFiniteApprox_compact_aux hF approx tracked hTracked with
+    ⟨g, hg, hgTracked⟩
+  refine ⟨g, hg, Exponential.rel_mk ?_⟩
+  intro x
+  cases x with
+  | none =>
+      exact hgTracked none (by simp [tracked])
+  | some a =>
+      by_cases ha : a ∈ support
+      · have hMem : some a ∈ tracked := by
+          simp [tracked, List.mem_map, ha]
+        exact hgTracked (some a) hMem
+      · have hNone : (K 0).Rel (approx.toFun none) (g.toFun none) :=
+          hgTracked none (by simp [tracked])
+        have hMono : (K 0).Rel (g.toFun none) (g.toFun (some a)) :=
+          g.monotone' ((K 0).bottom_le (some a))
+        simpa [approx, stageOneFiniteApproxFun, ha] using
+          (K 0).rel_trans hNone hMono
+
+private def stageOneApproxPred
+    (f : (K 1).Obj) :
+    (K 1).Obj → Prop :=
+  fun g => ∃ support : List SpherePoint, g = stageOneFiniteApprox f support
+
+private theorem stageOneApproxPred_compactBelow
+    (f : (K 1).Obj)
+    {g : (K 1).Obj}
+    (hg : stageOneApproxPred f g) :
+    compactBelow (K 1) f g := by
+  rcases hg with ⟨support, rfl⟩
+  exact ⟨stageOneFiniteApprox_compact f support, stageOneFiniteApprox_below f support⟩
+
+private theorem stageOneApproxPred_directed
+    (f : (K 1).Obj) :
+    (K 1).Directed (stageOneApproxPred f) := by
+  refine ⟨⟨stageOneFiniteApprox f [], ⟨[], rfl⟩⟩, ?_⟩
+  intro g h hg hh
+  rcases hg with ⟨supportG, rfl⟩
+  rcases hh with ⟨supportH, rfl⟩
+  refine ⟨stageOneFiniteApprox f (supportG ++ supportH), ⟨supportG ++ supportH, rfl⟩, ?_, ?_⟩
+  · exact stageOneFiniteApprox_support_mono f
+      (support := supportG)
+      (support' := supportG ++ supportH)
+      (by
+        intro a ha
+        exact List.mem_append.mpr (Or.inl ha))
+  · exact stageOneFiniteApprox_support_mono f
+      (support := supportH)
+      (support' := supportG ++ supportH)
+      (by
+        intro a ha
+        exact List.mem_append.mpr (Or.inr ha))
+
+private theorem stageOneApproxPred_isLub
+    (f : (K 1).Obj) :
+    (K 1).IsLeastUpperBound (stageOneApproxPred f) f := by
+  constructor
+  · intro g hg
+    rcases hg with ⟨support, rfl⟩
+    exact stageOneFiniteApprox_below f support
+  · intro w hw
+    refine Exponential.rel_mk ?_
+    intro x
+    cases x with
+    | none =>
+        exact (Exponential.rel_iff.mp (hw ⟨[], rfl⟩)) none
+    | some a =>
+        simpa [stageOneFiniteApprox_some] using
+          (Exponential.rel_iff.mp (hw ⟨[a], rfl⟩)) (some a)
+
+private theorem stageOneApproxPred_cofinal_compactBelow
+    (f : (K 1).Obj)
+    {g : (K 1).Obj}
+    (hg : compactBelow (K 1) f g) :
+    ∃ h : (K 1).Obj, stageOneApproxPred f h ∧ (K 1).Rel g h := by
+  let X : (K 1).Obj → Prop := stageOneApproxPred g
+  have hDir : (K 1).Directed X := stageOneApproxPred_directed g
+  have hChosen :
+      (K 1).IsLeastUpperBound X ((K 1).sup X hDir) :=
+    (K 1).sup_spec X hDir
+  have hExact : (K 1).IsLeastUpperBound X g :=
+    stageOneApproxPred_isLub g
+  have hEqv :
+      (K 1).Rel ((K 1).sup X hDir) g ∧
+        (K 1).Rel g ((K 1).sup X hDir) :=
+    equivalent_of_isLeastUpperBound
+      (K 1).toHomotopyPartialOrder
+      hChosen
+      hExact
+  rcases hg.1 X hDir hEqv.2 with ⟨h, hhX, hgh⟩
+  rcases hhX with ⟨support, rfl⟩
+  refine ⟨stageOneFiniteApprox f support, ⟨support, rfl⟩, ?_⟩
+  exact (K 1).rel_trans hgh (stageOneFiniteApprox_map_mono hg.2 support)
+
+/-- The first successor stage `K₁ = [K₀ → K₀]` is algebraic: every continuous
+endomap of the flat base stage is the least upper bound of its finite-support
+approximants. -/
+theorem stage_algebraic_one : Algebraic (K 1) := by
+  intro f
+  constructor
+  · refine ⟨⟨stageOneFiniteApprox f [], ?_⟩, ?_⟩
+    · exact stageOneApproxPred_compactBelow f ⟨[], rfl⟩
+    · intro g h hg hh
+      rcases stageOneApproxPred_cofinal_compactBelow f hg with
+        ⟨g', ⟨supportG, rfl⟩, hgg'⟩
+      rcases stageOneApproxPred_cofinal_compactBelow f hh with
+        ⟨h', ⟨supportH, rfl⟩, hhh'⟩
+      refine ⟨stageOneFiniteApprox f (supportG ++ supportH), ?_, ?_, ?_⟩
+      · exact stageOneApproxPred_compactBelow f ⟨supportG ++ supportH, rfl⟩
+      · exact (K 1).rel_trans hgg'
+          (stageOneFiniteApprox_support_mono f
+            (support := supportG)
+            (support' := supportG ++ supportH)
+            (by
+              intro a ha
+              exact List.mem_append.mpr (Or.inl ha)))
+      · exact (K 1).rel_trans hhh'
+          (stageOneFiniteApprox_support_mono f
+            (support := supportH)
+            (support' := supportG ++ supportH)
+            (by
+              intro a ha
+              exact List.mem_append.mpr (Or.inr ha)))
+  · constructor
+    · intro g hg
+      exact hg.2
+    · intro w hw
+      have hBasisUpper : (K 1).IsUpperBound (stageOneApproxPred f) w := by
+        intro g hg
+        exact hw (stageOneApproxPred_compactBelow f hg)
+      exact (stageOneApproxPred_isLub f).2 hBasisUpper
+
+/-- Stage-wise bounded completeness together with the explicit finite-support
+approximation theorem gives the full Homotopy Scott Domain structure at level
+one. -/
+noncomputable def stage_scottDomain_one : HomotopyScottDomain where
+  carrier := K 1
+  algebraic := stage_algebraic_one
+  boundedComplete := stage_boundedComplete 1
+
+/-- The second successor stage `K₂ = [K₁ → K₁]` is algebraic, obtained from the
+generic finite-step successor construction over the already algebraic stage
+`K₁`. -/
+theorem stage_algebraic_two : Algebraic (K 2) :=
+  stage_algebraic_succ 1 stage_algebraic_one
+
+/-- The same successor-stage construction upgrades `K₂` to a full Homotopy
+Scott Domain. -/
+noncomputable def stage_scottDomain_two : HomotopyScottDomain where
+  carrier := K 2
+  algebraic := stage_algebraic_two
+  boundedComplete := stage_boundedComplete 2
+
+/-- All finite stages in the `K` tower are algebraic. -/
+theorem stage_algebraic : ∀ n : Nat, Algebraic (K n)
+  | 0 => stage_algebraic_zero
+  | n + 1 => stage_algebraic_succ n (stage_algebraic n)
+
+/-- All finite stages in the `K` tower are Homotopy Scott Domains. -/
+noncomputable def stage_scottDomain (n : Nat) : HomotopyScottDomain where
+  carrier := K n
+  algebraic := stage_algebraic n
+  boundedComplete := stage_boundedComplete n
 
 private theorem fPlus_castLevel
     {a b : Nat} (h : a = b) (y : (K a).Obj) :
@@ -1006,15 +1710,32 @@ theorem proposition_4_1_baseApprox_compact (x : KInfinityCHPO.Obj) :
   simpa [proposition_4_2_approximation] using
     embedBaseToLimit_compact (projectToLevel 0 x)
 
+/-- The base-stage approximation is already the least upper bound of the image of
+compact base-stage approximants under the canonical embedding into `K∞`. This is
+the first Proposition 4.1 statement phrased directly in Scott-domain language
+rather than only as a compact single approximant. -/
+theorem proposition_4_1_baseApproximation_isLub (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.IsLeastUpperBound
+      (image embedBaseToLimit (compactBelow (K 0) (projectToLevel 0 x)))
+      (proposition_4_2_approximation x) := by
+  simpa [CompactApproximation, proposition_4_2_approximation] using
+    (ContinuousMap.compactApproximation
+      (hK := stage_algebraic_zero)
+      embedBaseContinuous
+      (projectToLevel 0 x))
+
 /-- Chosen-data packaging of the Section 4.1 interface for `K∞`. Besides the
-per-stage bounded-completeness data and coordinate projections, the witness
-records both the compact level-zero approximation of each inverse-limit thread
-and the full directed finite-stage approximation family whose least upper bound
-is the original thread. This isolates the exact remaining gap to the generic
-algebraicity step needed to package `K∞` itself as a `HomotopyScottDomain`. -/
+per-stage Scott-domain data and coordinate projections, the witness records
+both the compact level-zero approximation of each inverse-limit thread and the
+full directed finite-stage approximation family whose least upper bound is the
+original thread. It also records the concrete compact step-function endomaps
+available uniformly at every successor stage, together with the final
+inverse-limit algebraic and bounded-complete witnesses that package `K∞`
+itself as a Homotopy Scott Domain. -/
 structure Proposition41Witness where
   stageBoundedComplete : ∀ n : Nat, BoundedComplete (K n)
   coordinateProjection : ∀ n : Nat, ContinuousMap KInfinityCHPO (K n)
+  finiteStageEmbedding : ∀ n : Nat, ContinuousMap (K n) KInfinityCHPO
   baseApproximation : KInfinityCHPO.Obj → KInfinityCHPO.Obj
   baseApproximation_finite :
     ∀ x : KInfinityCHPO.Obj, ∃ a : (K 0).Obj, baseApproximation x = embedBaseToLimit a
@@ -1025,11 +1746,48 @@ structure Proposition41Witness where
   baseApproximation_exact0 :
     ∀ x : KInfinityCHPO.Obj,
       projectToLevel 0 (baseApproximation x) = projectToLevel 0 x
+  baseApproximation_isLub :
+    ∀ x : KInfinityCHPO.Obj,
+      KInfinityCHPO.IsLeastUpperBound
+        (image embedBaseToLimit (compactBelow (K 0) (projectToLevel 0 x)))
+        (baseApproximation x)
   stageZeroAlgebraic : Algebraic (K 0)
+  stageOneAlgebraic : Algebraic (K 1)
+  stageTwoAlgebraic : Algebraic (K 2)
+  allFiniteStagesAlgebraic : ∀ n : Nat, Algebraic (K n)
+  kInfinityAlgebraic : Algebraic KInfinityCHPO
+  kInfinityBoundedComplete : BoundedComplete KInfinityCHPO
+  baseChainCompact :
+    ∀ x : (K 0).Obj, ∀ n : Nat, IsCompact (K n) (baseUp x n)
+  successorStageStepCompact :
+    ∀ n : Nat, ∀ {a b : (K n).Obj},
+      ∀ (ha : IsCompact (K n) a) (_hb : IsCompact (K n) b),
+        IsCompact (K (n + 1)) (stepFunction a ha b)
   finiteStageApproximation : Nat → KInfinityCHPO.Obj → KInfinityCHPO.Obj
   finiteStageApproximation_exact :
     ∀ n : Nat, ∀ x : KInfinityCHPO.Obj,
       projectToLevel n (finiteStageApproximation n x) = projectToLevel n x
+  finiteStageApproximation_exact_le :
+    ∀ {m n : Nat}, m ≤ n → ∀ x : KInfinityCHPO.Obj,
+      projectToLevel m (finiteStageApproximation n x) = projectToLevel m x
+  finiteStageApproximation_stable :
+    ∀ {m n : Nat}, m ≤ n → ∀ x : KInfinityCHPO.Obj,
+      finiteStageApproximation m (finiteStageApproximation n x) =
+        finiteStageApproximation m x
+  finiteStageCompactBelow_lift :
+    ∀ n : Nat, ∀ {x : KInfinityCHPO.Obj} {y : (K n).Obj},
+      compactBelow (K n) (projectToLevel n x) y →
+        compactBelow KInfinityCHPO x ((finiteStageEmbedding n) y)
+  finiteStageApproximation_compact_of_stageCompact :
+    ∀ n : Nat, ∀ x : KInfinityCHPO.Obj,
+      IsCompact (K n) (projectToLevel n x) →
+        IsCompact KInfinityCHPO (finiteStageApproximation n x)
+  finiteStageApproximation_isLub_of_stageAlgebraic :
+    ∀ n : Nat, Algebraic (K n) → ∀ x : KInfinityCHPO.Obj,
+      KInfinityCHPO.IsLeastUpperBound
+        (image (fun y => (finiteStageEmbedding n) y)
+          (compactBelow (K n) (projectToLevel n x)))
+        (finiteStageApproximation n x)
   finiteStageApproximation_below :
     ∀ n : Nat, ∀ x : KInfinityCHPO.Obj,
       KInfinityCHPO.Rel (finiteStageApproximation n x) x
@@ -1516,6 +2274,47 @@ termination_by m _ => n - m
 decreasing_by
   omega
 
+private theorem thread_projectDown
+    (x : KInfinityCHPO.Obj) (n : Nat) :
+    ∀ {m : Nat} (hm : m ≤ n),
+      (K m).Rel (projectToLevel m x) (projectDown n (projectToLevel n x) m hm)
+  | m, hm => by
+      by_cases hmn : m = n
+      · subst m
+        simpa using (K n).rel_refl (projectToLevel n x)
+      · have hlt : m < n := by omega
+        rw [projectDown_step (n := n) (x := projectToLevel n x) (m := m) hlt]
+        have hm' : m + 1 ≤ n := by omega
+        exact (K m).rel_trans
+          (x.fromPrev m)
+          ((fMinus m).monotone' (thread_projectDown x n hm'))
+termination_by m _ => n - m
+decreasing_by
+  omega
+
+/-- Every finite stage `Kₙ` is antisymmetric in the induced h.p.o. relation. -/
+theorem stage_antisymmetric :
+    ∀ n : Nat, ∀ {x y : (K n).Obj}, (K n).Rel x y → (K n).Rel y x → x = y
+  | 0, none, none, _, _ => rfl
+  | 0, none, some y, _, hyx => by
+      have : False := by
+        simpa [K, NPlus, Flat.hpo_rel_iff] using hyx
+      cases this
+  | 0, some x, none, hxy, _ => by
+      have : False := by
+        simpa [K, NPlus, Flat.hpo_rel_iff] using hxy
+      cases this
+  | 0, some x, some y, hxy, _ => by
+      have hEq : x = y := by
+        simpa [K, NPlus, Flat.hpo_rel_iff, Flat.rel] using hxy
+      exact congrArg some hEq
+  | n + 1, x, y, hxy, hyx => by
+      apply ContinuousMap.ext
+      intro z
+      exact stage_antisymmetric n
+        ((Exponential.rel_iff.mp hxy) z)
+        ((Exponential.rel_iff.mp hyx) z)
+
 private theorem stageApproximation_coord_below
     (x : KInfinityCHPO.Obj) (n : Nat) :
     ∀ m : Nat,
@@ -1547,6 +2346,26 @@ theorem proposition_4_2_stageApproximation_exact
     projectToLevel n (proposition_4_2_stageApproximation n x) = projectToLevel n x := by
   simp [proposition_4_2_stageApproximation, project_embedFiniteStage_exact]
 
+/-- The stage-`n` approximation is already exact on every lower coordinate. -/
+theorem proposition_4_2_stageApproximation_exact_le
+    {m n : Nat} (hmn : m ≤ n) (x : KInfinityCHPO.Obj) :
+    projectToLevel m (proposition_4_2_stageApproximation n x) = projectToLevel m x := by
+  change genericLevelCoords n (projectToLevel n x) m = projectToLevel m x
+  rw [genericLevelCoords_below n (projectToLevel n x) hmn]
+  apply stage_antisymmetric m
+  · exact projectDown_thread x n hmn
+  · exact thread_projectDown x n hmn
+
+/-- Truncating first to stage `n` and then to any lower stage `m ≤ n` is stable:
+it agrees with the direct stage-`m` approximation of the original thread. -/
+theorem proposition_4_2_stageApproximation_stable
+    {m n : Nat} (hmn : m ≤ n) (x : KInfinityCHPO.Obj) :
+    proposition_4_2_stageApproximation m (proposition_4_2_stageApproximation n x) =
+      proposition_4_2_stageApproximation m x := by
+  simpa [proposition_4_2_stageApproximation] using
+    congrArg (embedFiniteStageToLimit m)
+      (proposition_4_2_stageApproximation_exact_le hmn x)
+
 private theorem genericLevelCoords_zero_eq_baseUp
     (x : (K 0).Obj) :
     ∀ n : Nat, genericLevelCoords 0 x n = baseUp x n
@@ -1562,6 +2381,106 @@ theorem proposition_4_2_stageApproximation_below
     (n : Nat) (x : KInfinityCHPO.Obj) :
     KInfinityCHPO.Rel (proposition_4_2_stageApproximation n x) x := by
   exact Projective.rel_mk (S := system) (stageApproximation_coord_below x n)
+
+/-- Any embedded stage element lies below a thread whose matching coordinate
+dominates it. -/
+theorem embedFiniteStageToLimit_below_of_level
+    (n : Nat) {a : (K n).Obj} {x : KInfinityCHPO.Obj}
+    (ha : (K n).Rel a (projectToLevel n x)) :
+    KInfinityCHPO.Rel (embedFiniteStageToLimit n a) x := by
+  exact KInfinityCHPO.rel_trans
+    (embedFiniteStageToLimit_monotone n ha)
+    (proposition_4_2_stageApproximation_below n x)
+
+/-- If a finite-stage point is compact in `Kₙ`, its canonical embedding
+`fₙ,∞(x)` is compact in the inverse limit `K∞`. -/
+theorem embedFiniteStageToLimit_compact
+    (n : Nat) {x : (K n).Obj}
+    (hx : IsCompact (K n) x) :
+    IsCompact KInfinityCHPO (embedFiniteStageToLimit n x) := by
+  have hret :
+      ∀ z : (K n).Obj,
+        (K n).Rel
+            ((projectContinuous n).toFun ((embedFiniteStageContinuous n).toFun z))
+            z ∧
+          (K n).Rel z
+            ((projectContinuous n).toFun ((embedFiniteStageContinuous n).toFun z)) := by
+    intro z
+    change (K n).Rel (projectToLevel n (embedFiniteStageToLimit n z)) z ∧
+      (K n).Rel z (projectToLevel n (embedFiniteStageToLimit n z))
+    rw [project_embedFiniteStage_exact n z]
+    exact ⟨(K n).rel_refl z, (K n).rel_refl z⟩
+  have hsec :
+      ∀ y : KInfinityCHPO.Obj,
+        KInfinityCHPO.Rel
+          ((embedFiniteStageContinuous n).toFun ((projectContinuous n).toFun y))
+          y := by
+    intro y
+    change KInfinityCHPO.Rel (embedFiniteStageToLimit n (projectToLevel n y)) y
+    simpa [proposition_4_2_stageApproximation] using
+      proposition_4_2_stageApproximation_below n y
+  simpa using
+    compact_of_retraction
+      (embedFiniteStageContinuous n)
+      (projectContinuous n)
+      hret
+      hsec
+      hx
+
+/-- Any stage approximation is compact in `K∞` once its chosen stage coordinate
+is compact in `Kₙ`. -/
+theorem proposition_4_2_stageApproximation_compact_of_stageCompact
+    (n : Nat) (x : KInfinityCHPO.Obj)
+    (hx : IsCompact (K n) (projectToLevel n x)) :
+    IsCompact KInfinityCHPO (proposition_4_2_stageApproximation n x) := by
+  simpa [proposition_4_2_stageApproximation] using
+    embedFiniteStageToLimit_compact (n := n) hx
+
+/-- Any compact-below finite-stage approximant lifts to a compact-below
+approximant in the inverse limit `K∞`. -/
+theorem proposition_4_1_stageCompactBelow_lift
+    (n : Nat) {x : KInfinityCHPO.Obj} {y : (K n).Obj}
+    (hy : compactBelow (K n) (projectToLevel n x) y) :
+    compactBelow KInfinityCHPO x (embedFiniteStageToLimit n y) := by
+  refine ⟨embedFiniteStageToLimit_compact (n := n) hy.1, ?_⟩
+  exact KInfinityCHPO.rel_trans
+    (embedFiniteStageToLimit_monotone n hy.2)
+    (proposition_4_2_stageApproximation_below n x)
+
+/-- Whenever a finite stage `Kₙ` is algebraic, the stage-`n` approximation of a
+thread is already the least upper bound of the embedded compact-below
+approximants coming from that stage. -/
+theorem proposition_4_1_stageApproximation_isLub_of_stageAlgebraic
+    (n : Nat) (hAlg : Algebraic (K n)) (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.IsLeastUpperBound
+      (image (embedFiniteStageToLimit n) (compactBelow (K n) (projectToLevel n x)))
+      (proposition_4_2_stageApproximation n x) := by
+  simpa [CompactApproximation, proposition_4_2_stageApproximation] using
+    (ContinuousMap.compactApproximation
+      (hK := hAlg)
+      (embedFiniteStageContinuous n)
+      (projectToLevel n x))
+
+/-- The compact step-function witnesses from any finite stage remain compact
+after embedding into the inverse limit `K∞`. -/
+theorem embedFiniteStageStepFunctionToLimit_compact
+    (n : Nat) {a b : (K n).Obj}
+    (ha : IsCompact (K n) a) (hb : IsCompact (K n) b) :
+    IsCompact KInfinityCHPO
+      (embedFiniteStageToLimit (n + 1) (stepFunction a ha b)) := by
+  exact embedFiniteStageToLimit_compact (n := n + 1)
+    (stage_stepFunction_compact n ha hb)
+
+/-- In particular, the compact base chain yields compact successor-stage step
+functions in the inverse limit. -/
+theorem embedBaseStepFunctionToLimit_compact
+    (x y : (K 0).Obj) (n : Nat) :
+    IsCompact KInfinityCHPO
+      (embedFiniteStageToLimit (n + 1)
+        (stepFunction (baseUp x n) (baseUp_compact x n) (baseUp y n))) := by
+  exact embedFiniteStageStepFunctionToLimit_compact (n := n)
+    (a := baseUp x n) (b := baseUp y n)
+    (baseUp_compact x n) (baseUp_compact y n)
 
 private theorem stageApproximation_coord_directed
     (x : KInfinityCHPO.Obj) (n : Nat) :
@@ -1680,8 +2599,494 @@ theorem proposition_4_2_stageApproximation_sup_equiv
     KInfinityCHPO.toHomotopyPartialOrder
     (KInfinityCHPO.sup_spec
       (proposition_4_2_stageApproximationPred x)
-      (proposition_4_2_stageApproximationPred_directed x))
+    (proposition_4_2_stageApproximationPred_directed x))
     (proposition_4_2_stageApproximation_isLub x)
+
+/-- Predicate selecting the embedded compact-below finite-stage approximants of
+a fixed inverse-limit thread. -/
+private def kInfinityCompactApproxPred
+    (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.Obj → Prop :=
+  fun z =>
+    ∃ n : Nat, ∃ a : (K n).Obj,
+      compactBelow (K n) (projectToLevel n x) a ∧
+        z = embedFiniteStageToLimit n a
+
+private theorem kInfinityCompactApproxPred_compactBelow
+    (x : KInfinityCHPO.Obj)
+    {z : KInfinityCHPO.Obj}
+    (hz : kInfinityCompactApproxPred x z) :
+    compactBelow KInfinityCHPO x z := by
+  rcases hz with ⟨n, a, ha, rfl⟩
+  exact proposition_4_1_stageCompactBelow_lift n ha
+
+private theorem kInfinityCompactApproxPred_of_stageImage
+    (x : KInfinityCHPO.Obj) (n : Nat)
+    {z : KInfinityCHPO.Obj}
+    (hz : image (embedFiniteStageToLimit n)
+      (compactBelow (K n) (projectToLevel n x)) z) :
+    kInfinityCompactApproxPred x z := by
+  rcases hz with ⟨a, ha, rfl⟩
+  exact ⟨n, a, ha, rfl⟩
+
+/-- The embedded finite-stage compact-below approximants of a thread form a
+directed family in the inverse limit. -/
+private theorem kInfinityCompactApproxPred_directed
+    (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.Directed (kInfinityCompactApproxPred x) := by
+  constructor
+  · refine ⟨embedFiniteStageToLimit 0 (projectToLevel 0 x), ?_⟩
+    refine ⟨0, projectToLevel 0 x, ?_, rfl⟩
+    refine ⟨?_, (K 0).rel_refl _⟩
+    simpa [K] using (Flat.isCompact (α := SpherePoint) (projectToLevel 0 x))
+  · intro y z hy hz
+    rcases hy with ⟨n, a, ha, rfl⟩
+    rcases hz with ⟨m, b, hb, rfl⟩
+    let k := max n m
+    let Pk : KInfinityCHPO.Obj → Prop :=
+      image (embedFiniteStageToLimit k)
+        (compactBelow (K k) (projectToLevel k x))
+    have hDirPk : KInfinityCHPO.Directed Pk :=
+      (embedFiniteStageContinuous k).directed_image
+        ((stage_algebraic k (projectToLevel k x)).1)
+    have hExactPk :
+        KInfinityCHPO.IsLeastUpperBound Pk
+          (proposition_4_2_stageApproximation k x) :=
+      proposition_4_1_stageApproximation_isLub_of_stageAlgebraic
+        k (stage_algebraic k) x
+    have hEqvPk :
+        KInfinityCHPO.Rel
+            (KInfinityCHPO.sup Pk hDirPk)
+            (proposition_4_2_stageApproximation k x)
+          ∧
+          KInfinityCHPO.Rel
+            (proposition_4_2_stageApproximation k x)
+            (KInfinityCHPO.sup Pk hDirPk) :=
+      equivalent_of_isLeastUpperBound
+        KInfinityCHPO.toHomotopyPartialOrder
+        (KInfinityCHPO.sup_spec Pk hDirPk)
+        hExactPk
+    have hyBelowApprox :
+        KInfinityCHPO.Rel
+          (embedFiniteStageToLimit n a)
+          (proposition_4_2_stageApproximation k x) := by
+      apply embedFiniteStageToLimit_below_of_level n
+      rw [proposition_4_2_stageApproximation_exact_le
+        (m := n) (n := k) (Nat.le_max_left n m) x]
+      exact ha.2
+    have hzBelowApprox :
+        KInfinityCHPO.Rel
+          (embedFiniteStageToLimit m b)
+          (proposition_4_2_stageApproximation k x) := by
+      apply embedFiniteStageToLimit_below_of_level m
+      rw [proposition_4_2_stageApproximation_exact_le
+        (m := m) (n := k) (Nat.le_max_right n m) x]
+      exact hb.2
+    have hyBelowChosen :
+        KInfinityCHPO.Rel
+          (embedFiniteStageToLimit n a)
+          (KInfinityCHPO.sup Pk hDirPk) :=
+      KInfinityCHPO.rel_trans hyBelowApprox hEqvPk.2
+    have hzBelowChosen :
+        KInfinityCHPO.Rel
+          (embedFiniteStageToLimit m b)
+          (KInfinityCHPO.sup Pk hDirPk) :=
+      KInfinityCHPO.rel_trans hzBelowApprox hEqvPk.2
+    have hyCompact : IsCompact KInfinityCHPO (embedFiniteStageToLimit n a) :=
+      (proposition_4_1_stageCompactBelow_lift n ha).1
+    have hzCompact : IsCompact KInfinityCHPO (embedFiniteStageToLimit m b) :=
+      (proposition_4_1_stageCompactBelow_lift m hb).1
+    rcases hyCompact Pk hDirPk hyBelowChosen with ⟨y', hy'Pk, hyy'⟩
+    rcases hzCompact Pk hDirPk hzBelowChosen with ⟨z', hz'Pk, hzz'⟩
+    rcases hDirPk.2 hy'Pk hz'Pk with ⟨w, hwPk, hyw, hzw⟩
+    rcases hwPk with ⟨c, hc, rfl⟩
+    refine ⟨embedFiniteStageToLimit k c, ⟨k, c, hc, rfl⟩, ?_, ?_⟩
+    · exact KInfinityCHPO.rel_trans hyy' hyw
+    · exact KInfinityCHPO.rel_trans hzz' hzw
+
+/-- The embedded compact-below finite-stage approximants of a thread have that
+thread as their least upper bound in the inverse limit. -/
+private theorem kInfinityCompactApproxPred_isLub
+    (x : KInfinityCHPO.Obj) :
+    KInfinityCHPO.IsLeastUpperBound (kInfinityCompactApproxPred x) x := by
+  constructor
+  · intro y hy
+    exact (kInfinityCompactApproxPred_compactBelow x hy).2
+  · intro w hw
+    have hStageUpper :
+        ∀ n : Nat, KInfinityCHPO.Rel (proposition_4_2_stageApproximation n x) w := by
+      intro n
+      let Pn : KInfinityCHPO.Obj → Prop :=
+        image (embedFiniteStageToLimit n)
+          (compactBelow (K n) (projectToLevel n x))
+      have hUpperPn : KInfinityCHPO.IsUpperBound Pn w := by
+        intro y hy
+        exact hw (kInfinityCompactApproxPred_of_stageImage x n hy)
+      exact (proposition_4_1_stageApproximation_isLub_of_stageAlgebraic
+        n (stage_algebraic n) x).2 hUpperPn
+    exact (proposition_4_2_stageApproximation_isLub x).2 (by
+      intro y hy
+      rcases hy with ⟨n, rfl⟩
+      exact hStageUpper n)
+
+/-- Any compact-below approximant of a thread is dominated by an embedded
+compact-below finite-stage approximant. -/
+private theorem kInfinityCompactApproxPred_cofinal_compactBelow
+    (x : KInfinityCHPO.Obj)
+    {g : KInfinityCHPO.Obj}
+    (hg : compactBelow KInfinityCHPO x g) :
+    ∃ h : KInfinityCHPO.Obj,
+      kInfinityCompactApproxPred x h ∧ KInfinityCHPO.Rel g h := by
+  let X : KInfinityCHPO.Obj → Prop := kInfinityCompactApproxPred x
+  have hDir : KInfinityCHPO.Directed X := kInfinityCompactApproxPred_directed x
+  have hChosen :
+      KInfinityCHPO.IsLeastUpperBound X (KInfinityCHPO.sup X hDir) :=
+    KInfinityCHPO.sup_spec X hDir
+  have hExact :
+      KInfinityCHPO.IsLeastUpperBound X x :=
+    kInfinityCompactApproxPred_isLub x
+  have hEqv :
+      KInfinityCHPO.Rel (KInfinityCHPO.sup X hDir) x ∧
+        KInfinityCHPO.Rel x (KInfinityCHPO.sup X hDir) :=
+    equivalent_of_isLeastUpperBound
+      KInfinityCHPO.toHomotopyPartialOrder
+      hChosen
+      hExact
+  have hgSup : KInfinityCHPO.Rel g (KInfinityCHPO.sup X hDir) :=
+    KInfinityCHPO.rel_trans hg.2 hEqv.2
+  rcases hg.1 X hDir hgSup with ⟨h, hhX, hgh⟩
+  exact ⟨h, hhX, hgh⟩
+
+/-- The inverse limit `K∞` is algebraic: every thread is the least upper bound
+of its embedded compact-below finite-stage approximants. -/
+theorem kInfinity_algebraic : Algebraic KInfinityCHPO := by
+  intro x
+  constructor
+  · refine ⟨⟨embedFiniteStageToLimit 0 (projectToLevel 0 x), ?_⟩, ?_⟩
+    · exact kInfinityCompactApproxPred_compactBelow x
+        ⟨0, projectToLevel 0 x,
+          ⟨by simpa [K] using (Flat.isCompact (α := SpherePoint) (projectToLevel 0 x)),
+            (K 0).rel_refl _⟩,
+          rfl⟩
+    · intro g h hg hh
+      rcases kInfinityCompactApproxPred_cofinal_compactBelow x hg with
+        ⟨g', hg'X, hgg'⟩
+      rcases kInfinityCompactApproxPred_cofinal_compactBelow x hh with
+        ⟨h', hh'X, hhh'⟩
+      rcases (kInfinityCompactApproxPred_directed x).2 hg'X hh'X with
+        ⟨z, hzX, hg'z, hh'z⟩
+      refine ⟨z, kInfinityCompactApproxPred_compactBelow x hzX, ?_, ?_⟩
+      · exact KInfinityCHPO.rel_trans hgg' hg'z
+      · exact KInfinityCHPO.rel_trans hhh' hh'z
+  · constructor
+    · intro y hy
+      exact hy.2
+    · intro w hw
+      have hPredUpper : KInfinityCHPO.IsUpperBound (kInfinityCompactApproxPred x) w := by
+        intro y hy
+        exact hw (kInfinityCompactApproxPred_compactBelow x hy)
+      exact (kInfinityCompactApproxPred_isLub x).2 hPredUpper
+
+private def PreservesUpperBoundedLub
+    {A : CompleteHomotopyPartialOrder}
+    {B : CompleteHomotopyPartialOrder}
+    (f : ContinuousMap A B) : Prop :=
+  ∀ {X : A.Obj → Prop} {u z : A.Obj},
+    A.IsUpperBound X u →
+    A.IsLeastUpperBound X z →
+    B.IsLeastUpperBound (image f X) (f z)
+
+private theorem evalContinuous_preservesUpperBoundedLub
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (x : K.Obj) :
+    PreservesUpperBoundedLub (evalContinuous K L x) := by
+  intro F u z hu hz
+  let gx : L.Obj :=
+    Classical.choose <|
+      hL (Exponential.evalPred F x) ⟨u.toFun x, by
+        intro a ha
+        rcases ha with ⟨f, hf, rfl⟩
+        exact (Exponential.rel_iff.mp (hu hf)) x⟩
+  have hChosen :
+      L.IsLeastUpperBound (Exponential.evalPred F x) gx :=
+    Classical.choose_spec <|
+      hL (Exponential.evalPred F x) ⟨u.toFun x, by
+        intro a ha
+        rcases ha with ⟨f, hf, rfl⟩
+        exact (Exponential.rel_iff.mp (hu hf)) x⟩
+  have hBounded :
+      (Exponential.chpo K L).IsLeastUpperBound F (boundedSupMap hL F u hu) :=
+    boundedSupMap_spec hL F u hu
+  have hEqv :
+      (Exponential.chpo K L).Rel (boundedSupMap hL F u hu) z ∧
+        (Exponential.chpo K L).Rel z (boundedSupMap hL F u hu) :=
+    equivalent_of_isLeastUpperBound
+      (Exponential.chpo K L).toHomotopyPartialOrder
+      hBounded
+      hz
+  constructor
+  · intro a ha
+    rcases ha with ⟨f, hf, rfl⟩
+    exact (Exponential.rel_iff.mp (hz.1 hf)) x
+  · intro w hw
+    exact L.rel_trans
+      ((Exponential.rel_iff.mp hEqv.2) x)
+      (hChosen.2 hw)
+
+private theorem precomposeContinuous_preservesUpperBoundedLub
+    {A : CompleteHomotopyPartialOrder}
+    {B : CompleteHomotopyPartialOrder}
+    {C : CompleteHomotopyPartialOrder}
+    (hC : BoundedComplete C)
+    (f : ContinuousMap A B) :
+    PreservesUpperBoundedLub (precomposeContinuous (M := C) f) := by
+  intro F u z hu hz
+  constructor
+  · intro g hg
+    rcases hg with ⟨h, hh, rfl⟩
+    refine Exponential.rel_mk ?_
+    intro x
+    exact (Exponential.rel_iff.mp (hz.1 hh)) (f.toFun x)
+  · intro w hw
+    refine Exponential.rel_mk ?_
+    intro x
+    have hEval :=
+      evalContinuous_preservesUpperBoundedLub (hL := hC) (f.toFun x)
+        (X := F) (u := u) (z := z) hu hz
+    exact hEval.2 (by
+      intro a ha
+      rcases ha with ⟨g, hg, rfl⟩
+      exact (Exponential.rel_iff.mp (hw ⟨g, hg, rfl⟩)) x)
+
+private theorem postcomposeContinuous_preservesUpperBoundedLub
+    {A : CompleteHomotopyPartialOrder}
+    {B : CompleteHomotopyPartialOrder}
+    {C : CompleteHomotopyPartialOrder}
+    (hB : BoundedComplete B)
+    {g : ContinuousMap B C}
+    (hg : PreservesUpperBoundedLub g) :
+    PreservesUpperBoundedLub (postcomposeContinuous (K := A) g) := by
+  intro F u z hu hz
+  constructor
+  · intro h hh
+    rcases hh with ⟨f, hf, rfl⟩
+    refine Exponential.rel_mk ?_
+    intro x
+    have hEval :=
+      evalContinuous_preservesUpperBoundedLub (hL := hB) x
+        (X := F) (u := u) (z := z) hu hz
+    exact (hg
+      (u := u.toFun x)
+      (z := z.toFun x)
+      (X := Exponential.evalPred F x)
+      (by
+        intro a ha
+        rcases ha with ⟨f', hf', rfl⟩
+        exact (Exponential.rel_iff.mp (hu hf')) x)
+      (by simpa [Exponential.evalPred, evalContinuous] using hEval)).1
+        ⟨f.toFun x, ⟨f, hf, rfl⟩, rfl⟩
+  · intro w hw
+    refine Exponential.rel_mk ?_
+    intro x
+    have hEval :=
+      evalContinuous_preservesUpperBoundedLub (hL := hB) x
+        (X := F) (u := u) (z := z) hu hz
+    exact (hg
+      (u := u.toFun x)
+      (z := z.toFun x)
+      (X := Exponential.evalPred F x)
+      (by
+        intro a ha
+        rcases ha with ⟨f, hf, rfl⟩
+        exact (Exponential.rel_iff.mp (hu hf)) x)
+      (by simpa [Exponential.evalPred, evalContinuous] using hEval)).2 (by
+        intro a ha
+        rcases ha with ⟨b, hb, rfl⟩
+        rcases hb with ⟨f, hf, rfl⟩
+        exact (Exponential.rel_iff.mp (hw ⟨f, hf, rfl⟩)) x)
+
+private theorem mapMinus_preservesUpperBoundedLub
+    {A : CompleteHomotopyPartialOrder}
+    {B : CompleteHomotopyPartialOrder}
+    (hB : BoundedComplete B)
+    (p : ProjectionPair A B)
+    (hproj : PreservesUpperBoundedLub p.proj) :
+    PreservesUpperBoundedLub (mapMinus p) := by
+  intro F u z hu hz
+  let G : (Exponential.chpo A B).Obj → Prop :=
+    image (precomposeContinuous (M := B) p.emb) F
+  have hUpperG :
+      (Exponential.chpo A B).IsUpperBound G ((precomposeContinuous (M := B) p.emb).toFun u) := by
+    intro g hg
+    rcases hg with ⟨f, hf, rfl⟩
+    exact (precomposeContinuous (M := B) p.emb).monotone' (hu hf)
+  have hLubG :
+      (Exponential.chpo A B).IsLeastUpperBound
+        G
+        ((precomposeContinuous (M := B) p.emb).toFun z) :=
+    (precomposeContinuous_preservesUpperBoundedLub (hC := hB) p.emb) hu hz
+  have hImageEq :
+      ∀ h : (Exponential.chpo A A).Obj,
+        image (postcomposeContinuous (K := A) p.proj) G h ↔
+          image
+            (fun f : (Exponential.chpo B B).Obj =>
+              (postcomposeContinuous (K := A) p.proj).toFun
+                ((precomposeContinuous (M := B) p.emb).toFun f))
+            F h := by
+    intro h
+    constructor
+    · intro hh
+      rcases hh with ⟨g, hg, rfl⟩
+      rcases hg with ⟨f, hf, rfl⟩
+      exact ⟨f, hf, rfl⟩
+    · intro hh
+      rcases hh with ⟨f, hf, rfl⟩
+      exact ⟨(precomposeContinuous (M := B) p.emb).toFun f, ⟨f, hf, rfl⟩, rfl⟩
+  exact (isLeastUpperBound_congr
+    (Exponential.chpo A A).toHomotopyPartialOrder
+    hImageEq).mp <|
+      (postcomposeContinuous_preservesUpperBoundedLub
+        (hB := hB) (g := p.proj) hproj) hUpperG hLubG
+
+private theorem fMinus_preservesUpperBoundedLub :
+    ∀ n : Nat, PreservesUpperBoundedLub (fMinus n)
+  | 0 => by
+      simpa [fMinus, pair, initialPair, f0Minus] using
+        (evalContinuous_preservesUpperBoundedLub
+          (hL := stage_boundedComplete 0) bottom0)
+  | n + 1 => by
+      simpa [fMinus, pair, K] using
+        (mapMinus_preservesUpperBoundedLub
+          (hB := stage_boundedComplete (n + 1))
+          (p := pair n)
+          (fMinus_preservesUpperBoundedLub n))
+
+/-- The inverse limit `K∞` is bounded complete: any upper-bounded family of
+threads admits a least upper bound obtained coordinatewise from the finite
+stages. -/
+theorem kInfinity_boundedComplete : BoundedComplete KInfinityCHPO := by
+  intro X hUpper
+  rcases hUpper with ⟨u, hu⟩
+  let zVal : ∀ n : Nat, (K n).Obj := fun n =>
+    Classical.choose
+      (stage_boundedComplete n (Projective.coordPred (S := system) X n) ⟨projectToLevel n u, by
+        intro a ha
+        rcases ha with ⟨x, hx, rfl⟩
+        exact (Projective.rel_iff.mp (hu hx)) n⟩)
+  let coordUpper : ∀ n : Nat,
+      ∃ w : (K n).Obj, (K n).IsUpperBound (Projective.coordPred (S := system) X n) w :=
+    fun n => ⟨projectToLevel n u, by
+      intro a ha
+      rcases ha with ⟨x, hx, rfl⟩
+      exact (Projective.rel_iff.mp (hu hx)) n⟩
+  let coordLub :
+      ∀ n : Nat,
+        (K n).IsLeastUpperBound
+          (Projective.coordPred (S := system) X n)
+          (Classical.choose (stage_boundedComplete n (Projective.coordPred (S := system) X n) (coordUpper n))) :=
+    fun n => Classical.choose_spec
+      (stage_boundedComplete n (Projective.coordPred (S := system) X n) (coordUpper n))
+  let z : KInfinityCHPO.Obj := {
+    val := zVal
+    toPrev := by
+      intro n
+      let Yn : (K n).Obj → Prop := Projective.coordPred (S := system) X n
+      let Yn1 : (K (n + 1)).Obj → Prop := Projective.coordPred (S := system) X (n + 1)
+      have hImageLub :
+          (K n).IsLeastUpperBound
+            (image (fMinus n) Yn1)
+            ((fMinus n).toFun (zVal (n + 1))) := by
+        have hPres : PreservesUpperBoundedLub (fMinus n) :=
+          fMinus_preservesUpperBoundedLub n
+        exact hPres
+          (X := Yn1)
+          (u := projectToLevel (n + 1) u)
+          (z := zVal (n + 1))
+          (by
+            intro a ha
+            rcases ha with ⟨x, hx, rfl⟩
+            exact (Projective.rel_iff.mp (hu hx)) (n + 1))
+          (coordLub (n + 1))
+      have hCoordLub :
+          (K n).IsLeastUpperBound
+            Yn
+            ((fMinus n).toFun (zVal (n + 1))) := by
+        constructor
+        · intro a ha
+          rcases ha with ⟨x, hx, rfl⟩
+          exact (K n).rel_trans
+            (x.fromPrev n)
+            (hImageLub.1 ⟨x.val (n + 1), ⟨x, hx, rfl⟩, rfl⟩)
+        · intro w hw
+          refine hImageLub.2 ?_
+          intro a ha
+          rcases ha with ⟨b, hb, rfl⟩
+          rcases hb with ⟨x, hx, rfl⟩
+          exact (K n).rel_trans (x.toPrev n) (hw ⟨x, hx, rfl⟩)
+      exact (equivalent_of_isLeastUpperBound
+        (K n).toHomotopyPartialOrder
+        hCoordLub
+        (coordLub n)).1
+    fromPrev := by
+      intro n
+      let Yn : (K n).Obj → Prop := Projective.coordPred (S := system) X n
+      let Yn1 : (K (n + 1)).Obj → Prop := Projective.coordPred (S := system) X (n + 1)
+      have hImageLub :
+          (K n).IsLeastUpperBound
+            (image (fMinus n) Yn1)
+            ((fMinus n).toFun (zVal (n + 1))) := by
+        have hPres : PreservesUpperBoundedLub (fMinus n) :=
+          fMinus_preservesUpperBoundedLub n
+        exact hPres
+          (X := Yn1)
+          (u := projectToLevel (n + 1) u)
+          (z := zVal (n + 1))
+          (by
+            intro a ha
+            rcases ha with ⟨x, hx, rfl⟩
+            exact (Projective.rel_iff.mp (hu hx)) (n + 1))
+          (coordLub (n + 1))
+      have hCoordLub :
+          (K n).IsLeastUpperBound
+            Yn
+            ((fMinus n).toFun (zVal (n + 1))) := by
+        constructor
+        · intro a ha
+          rcases ha with ⟨x, hx, rfl⟩
+          exact (K n).rel_trans
+            (x.fromPrev n)
+            (hImageLub.1 ⟨x.val (n + 1), ⟨x, hx, rfl⟩, rfl⟩)
+        · intro w hw
+          refine hImageLub.2 ?_
+          intro a ha
+          rcases ha with ⟨b, hb, rfl⟩
+          rcases hb with ⟨x, hx, rfl⟩
+          exact (K n).rel_trans (x.toPrev n) (hw ⟨x, hx, rfl⟩)
+      exact (equivalent_of_isLeastUpperBound
+        (K n).toHomotopyPartialOrder
+        hCoordLub
+        (coordLub n)).2
+  }
+  refine ⟨z, ?_⟩
+  constructor
+  · intro x hx
+    exact Projective.rel_mk (S := system) (fun n =>
+      (coordLub n).1 ⟨x, hx, rfl⟩)
+  · intro w hw
+    exact Projective.rel_mk (S := system) (fun n =>
+      (coordLub n).2 (by
+        intro a ha
+        rcases ha with ⟨x, hx, rfl⟩
+        exact (Projective.rel_iff.mp (hw hx)) n))
+
+/-- Proposition 4.1 is now fully packaged at the inverse-limit level: `K∞`
+itself is a Homotopy Scott Domain. -/
+noncomputable def kInfinityScottDomain : HomotopyScottDomain where
+  carrier := KInfinityCHPO
+  algebraic := kInfinity_algebraic
+  boundedComplete := kInfinity_boundedComplete
 
 /-- Chosen-data packaging of the repository's current Proposition 4.2 interface:
 uniform finite-stage approximants, their directedness, and the resulting least
@@ -1691,6 +3096,12 @@ structure Proposition42Witness where
   exactStage :
     ∀ n : Nat, ∀ x : KInfinityCHPO.Obj,
       projectToLevel n (approximation n x) = projectToLevel n x
+  exactStageLe :
+    ∀ {m n : Nat}, m ≤ n → ∀ x : KInfinityCHPO.Obj,
+      projectToLevel m (approximation n x) = projectToLevel m x
+  stableStage :
+    ∀ {m n : Nat}, m ≤ n → ∀ x : KInfinityCHPO.Obj,
+      approximation m (approximation n x) = approximation m x
   belowTarget :
     ∀ n : Nat, ∀ x : KInfinityCHPO.Obj,
       KInfinityCHPO.Rel (approximation n x) x
@@ -1721,6 +3132,12 @@ structure Proposition42Witness where
 noncomputable def proposition_4_2_shadow : Proposition42Witness where
   approximation := proposition_4_2_stageApproximation
   exactStage := proposition_4_2_stageApproximation_exact
+  exactStageLe := by
+    intro m n hmn x
+    exact proposition_4_2_stageApproximation_exact_le hmn x
+  stableStage := by
+    intro m n hmn x
+    exact proposition_4_2_stageApproximation_stable hmn x
   belowTarget := proposition_4_2_stageApproximation_below
   monotoneStage := by
     intro n m h x
@@ -1729,13 +3146,14 @@ noncomputable def proposition_4_2_shadow : Proposition42Witness where
   isLub := proposition_4_2_stageApproximation_isLub
   chosenSupEquiv := proposition_4_2_stageApproximation_sup_equiv
 
-/-- Proposition 4.1 in the repository's current chosen-data style: bounded
-completeness of each stage, continuity of the coordinate projections, the
-compact level-zero approximation, and the full directed finite-stage
-approximation family for every point of `K∞`. -/
+/-- Proposition 4.1 in the repository's chosen-data style: stagewise Scott
+domain data, inverse-limit approximants, and the final algebraic and
+bounded-complete witnesses showing that `K∞` itself is a Homotopy Scott
+Domain. -/
 noncomputable def proposition_4_1 : Proposition41Witness where
   stageBoundedComplete := stage_boundedComplete
   coordinateProjection := projectContinuous
+  finiteStageEmbedding := embedFiniteStageContinuous
   baseApproximation := proposition_4_2_approximation
   baseApproximation_finite := by
     intro x
@@ -1743,9 +3161,31 @@ noncomputable def proposition_4_1 : Proposition41Witness where
   baseApproximation_compact := proposition_4_1_baseApprox_compact
   baseApproximation_below := proposition_4_1_baseApprox_below
   baseApproximation_exact0 := proposition_4_2
+  baseApproximation_isLub := proposition_4_1_baseApproximation_isLub
   stageZeroAlgebraic := stage_algebraic_zero
+  stageOneAlgebraic := stage_algebraic_one
+  stageTwoAlgebraic := stage_algebraic_two
+  allFiniteStagesAlgebraic := stage_algebraic
+  kInfinityAlgebraic := kInfinity_algebraic
+  kInfinityBoundedComplete := kInfinity_boundedComplete
+  baseChainCompact := baseUp_compact
+  successorStageStepCompact := by
+    intro n a b ha hb
+    exact stage_stepFunction_compact n ha hb
   finiteStageApproximation := proposition_4_2_stageApproximation
   finiteStageApproximation_exact := proposition_4_2_stageApproximation_exact
+  finiteStageApproximation_exact_le := by
+    intro m n hmn x
+    exact proposition_4_2_stageApproximation_exact_le hmn x
+  finiteStageApproximation_stable := by
+    intro m n hmn x
+    exact proposition_4_2_stageApproximation_stable hmn x
+  finiteStageCompactBelow_lift := proposition_4_1_stageCompactBelow_lift
+  finiteStageApproximation_compact_of_stageCompact :=
+    proposition_4_2_stageApproximation_compact_of_stageCompact
+  finiteStageApproximation_isLub_of_stageAlgebraic := by
+    intro n hAlg x
+    simpa using proposition_4_1_stageApproximation_isLub_of_stageAlgebraic n hAlg x
   finiteStageApproximation_below := proposition_4_2_stageApproximation_below
   finiteStageApproximation_mono := by
     intro n m h x
@@ -2061,29 +3501,6 @@ noncomputable def hInfinityContinuous :
     projectToLevel (n + 1) (hInfinity g) =
       (restrictEndomapToStageContinuous (genericStageEmbedding n)).toFun g :=
   rfl
-
-/-- Every finite stage `Kₙ` is antisymmetric in the induced h.p.o. relation. -/
-theorem stage_antisymmetric :
-    ∀ n : Nat, ∀ {x y : (K n).Obj}, (K n).Rel x y → (K n).Rel y x → x = y
-  | 0, none, none, _, _ => rfl
-  | 0, none, some y, _, hyx => by
-      have : False := by
-        simpa [K, NPlus, Flat.hpo_rel_iff] using hyx
-      cases this
-  | 0, some x, none, hxy, _ => by
-      have : False := by
-        simpa [K, NPlus, Flat.hpo_rel_iff] using hxy
-      cases this
-  | 0, some x, some y, hxy, _ => by
-      have hEq : x = y := by
-        simpa [K, NPlus, Flat.hpo_rel_iff, Flat.rel] using hxy
-      exact congrArg some hEq
-  | n + 1, x, y, hxy, hyx => by
-      apply ContinuousMap.ext
-      intro z
-      exact stage_antisymmetric n
-        ((Exponential.rel_iff.mp hxy) z)
-        ((Exponential.rel_iff.mp hyx) z)
 
 private theorem project_embedFiniteStage_prev
     (n : Nat) (x : (K (n + 1)).Obj) :
@@ -2997,5 +4414,139 @@ theorem example_4_2_no_path5
     KInfinityPath5 ω ξ → False := by
   intro μ
   exact example_4_2_no_path4 ω
+
+/-- The base object at the source boundary of a packed cell in the recursively
+completed `K∞` tower. -/
+def kInfinityTowerSourceObj :
+    {n : Nat} → kInfinityTower.Cell n → KInfinityCHPO.Obj
+  | 0, x => x.down
+  | _ + 1, x => kInfinityTowerSourceObj (kInfinityTower.source x)
+
+/-- The base object at the target boundary of a packed cell in the recursively
+completed `K∞` tower. -/
+def kInfinityTowerTargetObj :
+    {n : Nat} → kInfinityTower.Cell n → KInfinityCHPO.Obj
+  | 0, x => x.down
+  | _ + 1, x => kInfinityTowerTargetObj (kInfinityTower.target x)
+
+private theorem example_4_2_no_tower_cell5
+    {x : kInfinityTower.Cell 5}
+    (hs : kInfinityTowerSourceObj x = interp1Beta)
+    (ht : kInfinityTowerTargetObj x = interp1Eta) :
+    False := by
+  rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
+  cases M with
+  | up M =>
+      cases N with
+      | up N =>
+          simp [kInfinityTowerSourceObj, kInfinityTowerTargetObj] at hs ht
+          cases hs
+          cases ht
+          exact example_4_2_no_path5 μ.down
+
+/-- In the recursively completed all-dimensional `K∞` tower, no cell of
+dimension `≥ 5` can have the chosen β-side point as its 0-source and the chosen
+η-side point as its 0-target. Above dimension `5`, every higher cell is an
+iterated identity between lower cells, so the explicit 5-cell separation forces
+all higher boundary instances to be empty as well. -/
+theorem example_4_2_no_recursive_higher_cell
+    {n : Nat} {x : kInfinityTower.Cell (n + 5)}
+    (hs : kInfinityTowerSourceObj x = interp1Beta)
+    (ht : kInfinityTowerTargetObj x = interp1Eta) :
+    False := by
+  induction n with
+  | zero =>
+      simpa using example_4_2_no_tower_cell5 hs ht
+  | succ n ih =>
+      rcases x with ⟨x, y, hxy⟩
+      have hs' : kInfinityTowerSourceObj x = interp1Beta := by
+        simpa [kInfinityTowerSourceObj] using hs
+      have ht' : kInfinityTowerTargetObj x = interp1Eta := by
+        have hxy' : x = y := hxy.down
+        calc
+          kInfinityTowerTargetObj x = kInfinityTowerTargetObj y := by
+            exact congrArg kInfinityTowerTargetObj hxy'
+          _ = interp1Eta := by
+            simpa [kInfinityTowerTargetObj] using ht
+      exact ih hs' ht'
+
+/-- Equivalently, the recursively completed all-dimensional `K∞` tower has no
+packed higher cell of dimension `≥ 5` whose 0-source/0-target boundary is the
+chosen β/η pair from Example 4.2. -/
+theorem example_4_2_no_recursive_higher_cell_nonempty (n : Nat) :
+    ¬ Nonempty
+      {x : kInfinityTower.Cell (n + 5) //
+        kInfinityTowerSourceObj x = interp1Beta ∧
+          kInfinityTowerTargetObj x = interp1Eta} := by
+  intro h
+  rcases h with ⟨⟨x, hs, ht⟩⟩
+  exact example_4_2_no_recursive_higher_cell hs ht
+
+/-- Chosen-data packaging of the repository's current paper-facing closure
+around Proposition 4.4 and Example 4.2. It combines the concrete non-trivial
+homotopy λ-model witness with the distinguished β/η points and the entire
+currently formalized separation suite between them. -/
+structure Proposition44Example42Witness where
+  model : NonTrivialHomotopyLambdaModel
+  etaPoint : KInfinityCHPO.Obj
+  betaPoint : KInfinityCHPO.Obj
+  etaPoint_level0 : projectToLevel 0 etaPoint = some s1Left
+  betaPoint_level0 : projectToLevel 0 betaPoint = some s1Right
+  distinct : betaPoint ≠ etaPoint
+  noPath : ¬ Nonempty (KInfinityPath betaPoint etaPoint)
+  noPath2 :
+    ∀ {p q : KInfinityPath betaPoint etaPoint},
+      ¬ Nonempty (KInfinityPath2 p q)
+  noPath3 :
+    ∀ {p q : KInfinityPath betaPoint etaPoint}
+      {α β : KInfinityPath2 p q},
+      ¬ Nonempty (KInfinityPath3 α β)
+  noPath4 :
+    ∀ {p q : KInfinityPath betaPoint etaPoint}
+      {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β},
+      ¬ Nonempty (KInfinityPath4 η θ)
+  noPath5 :
+    ∀ {p q : KInfinityPath betaPoint etaPoint}
+      {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β}
+      {ω ξ : KInfinityPath4 η θ},
+      ¬ Nonempty (KInfinityPath5 ω ξ)
+  noRecursiveHigherCell :
+    ∀ n : Nat,
+      ¬ Nonempty
+        {x : kInfinityTower.Cell (n + 5) //
+          kInfinityTowerSourceObj x = betaPoint ∧
+            kInfinityTowerTargetObj x = etaPoint}
+
+/-- Proposition 4.4 together with the full currently formalized Example 4.2
+separation suite. This is the repository's strongest honest Section 4 package:
+the concrete `K∞` model is fully reflexive and non-trivial, and the chosen β/η
+pair is separated through the explicit 1/2/3/4/5-cell hierarchy and the
+recursively completed all-dimensional tower. -/
+noncomputable def proposition_4_4_example_4_2 :
+    Proposition44Example42Witness where
+  model := proposition_4_4_model
+  etaPoint := interp1Eta
+  betaPoint := interp1Beta
+  etaPoint_level0 := interp1Eta_level0
+  betaPoint_level0 := interp1Beta_level0
+  distinct := example_4_2
+  noPath := example_4_2_not_connected
+  noPath2 := by
+    intro p q h
+    rcases h with ⟨α⟩
+    exact example_4_2_no_path2 α
+  noPath3 := by
+    intro p q α β h
+    rcases h with ⟨η⟩
+    exact example_4_2_no_path3 η
+  noPath4 := by
+    intro p q α β η θ h
+    rcases h with ⟨ω⟩
+    exact example_4_2_no_path4 ω
+  noPath5 := by
+    intro p q α β η θ ω ξ h
+    rcases h with ⟨μ⟩
+    exact example_4_2_no_path5 μ
+  noRecursiveHigherCell := example_4_2_no_recursive_higher_cell_nonempty
 
 end HigherLambdaModel.KInfinity

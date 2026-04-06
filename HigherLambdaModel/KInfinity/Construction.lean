@@ -73,6 +73,26 @@ abbrev ProjectionPair.minus
     ContinuousMap B A :=
   p.proj
 
+/-- Compact elements are preserved by the embedding part of a chosen Section 4
+projection pair. -/
+theorem ProjectionPair.emb_compact
+    {A : CompleteHomotopyPartialOrder}
+    {B : CompleteHomotopyPartialOrder}
+    (p : ProjectionPair A B)
+    {x : A.Obj}
+    (hx : IsCompact A x) :
+    IsCompact B (p.emb.toFun x) := by
+  have hret :
+      ∀ y : A.Obj,
+        A.Rel (p.proj.toFun (p.emb.toFun y)) y ∧
+          A.Rel y (p.proj.toFun (p.emb.toFun y)) := by
+    intro y
+    have hEq : p.proj.toFun (p.emb.toFun y) = y := by
+      simpa [ContinuousMap.comp] using congrArg (fun g => g.toFun y) p.retract
+    rw [hEq]
+    exact ⟨A.rel_refl y, A.rel_refl y⟩
+  simpa using compact_of_retraction p.emb p.proj hret p.section_le hx
+
 /-! ## Definition 4.6: the initial pair `(f₀⁺, f₀⁻)` -/
 
 /-- Definition 4.6(a): `f₀⁺(x)` is the constant map with value `x`. This
@@ -252,6 +272,13 @@ theorem fPlus_fMinus_le (n : Nat) (x : (K (n + 1)).Obj) :
     (K (n + 1)).Rel (fPlus n (fMinus n x)) x :=
   (pair n).section_le x
 
+/-- Compactness is preserved by the recursive h-embeddings `fₙ⁺`. -/
+theorem fPlus_compact
+    (n : Nat) {x : (K n).Obj}
+    (hx : IsCompact (K n) x) :
+    IsCompact (K (n + 1)) (fPlus n x) :=
+  (pair n).emb_compact hx
+
 @[simp] theorem fPlus_strict (n : Nat) :
     fPlus n ((K n).bottom) = (K (n + 1)).bottom :=
   (pair n).emb_strict
@@ -391,6 +418,18 @@ theorem projectUp_monotone
   | k + 1 => by
       rw [projectUp_succ, projectUp_succ]
       exact (fPlus (n + k)).monotone' (projectUp_monotone n hxy k)
+
+/-- Repeated upward transport along the chosen h-embeddings preserves
+compactness. -/
+theorem projectUp_compact
+    (n : Nat) {x : (K n).Obj}
+    (hx : IsCompact (K n) x) :
+    ∀ k : Nat, IsCompact (K (n + k)) (projectUp n x k)
+  | 0 => by
+      simpa using hx
+  | k + 1 => by
+      rw [projectUp_succ]
+      exact fPlus_compact (n + k) (projectUp_compact n hx k)
 
 /-- Repeated application of the h-embeddings packaged as a continuous map. -/
 noncomputable def projectUpContinuous

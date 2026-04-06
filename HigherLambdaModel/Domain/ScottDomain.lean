@@ -115,6 +115,141 @@ theorem compactBelow_mono {K : CompleteHomotopyPartialOrder} {x y : K.Obj}
 theorem bottom_compactBelow (K : CompleteHomotopyPartialOrder) (x : K.Obj) :
     compactBelow K x K.bottom := ⟨bottom_isCompact K, K.bottom_le x⟩
 
+/-- The empty predicate has bottom as least upper bound. -/
+theorem empty_isLeastUpperBound
+    (K : CompleteHomotopyPartialOrder) :
+    K.IsLeastUpperBound (fun _ : K.Obj => False) K.bottom := by
+  constructor
+  · intro x hx
+    exact False.elim hx
+  · intro w _hw
+    exact K.bottom_le w
+
+private def pairPred {K : CompleteHomotopyPartialOrder} (x y : K.Obj) : K.Obj → Prop :=
+  fun z => z = x ∨ z = y
+
+/-! ## Compactness Closure Lemmas -/
+
+/-- A least upper bound of two compact elements is compact. This is the binary
+finite-supremum closure step needed before finite-step bases can be assembled
+from compact step functions. -/
+theorem compact_of_pair_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    {x y z : K.Obj}
+    (hx : IsCompact K x)
+    (hy : IsCompact K y)
+    (hz : K.IsLeastUpperBound (pairPred x y) z) :
+    IsCompact K z := by
+  intro X hX hzSup
+  have hxSup : K.Rel x (K.sup X hX) := by
+    exact K.rel_trans (hz.1 (Or.inl rfl)) hzSup
+  have hySup : K.Rel y (K.sup X hX) := by
+    exact K.rel_trans (hz.1 (Or.inr rfl)) hzSup
+  rcases hx X hX hxSup with ⟨x₀, hx₀, hxx₀⟩
+  rcases hy X hX hySup with ⟨y₀, hy₀, hyy₀⟩
+  rcases hX.2 (x := x₀) (y := y₀) hx₀ hy₀ with ⟨w, hw, hx₀w, hy₀w⟩
+  refine ⟨w, hw, hz.2 ?_⟩
+  intro u hu
+  rcases hu with rfl | rfl
+  · exact K.rel_trans hxx₀ hx₀w
+  · exact K.rel_trans hyy₀ hy₀w
+
+/-- In a bounded-complete c.h.p.o., any two compact elements admit a chosen
+compact binary least upper bound whenever they admit a common upper bound. -/
+theorem exists_pair_compact_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    (hK : BoundedComplete K)
+    {x y : K.Obj}
+    (hx : IsCompact K x)
+    (hy : IsCompact K y)
+    (hUpper : ∃ w : K.Obj, K.IsUpperBound (pairPred x y) w) :
+    ∃ z : K.Obj, K.IsLeastUpperBound (pairPred x y) z ∧ IsCompact K z := by
+  rcases hK (pairPred x y) hUpper with ⟨z, hz⟩
+  exact ⟨z, hz, compact_of_pair_isLeastUpperBound hx hy hz⟩
+
+/-- In a bounded-complete c.h.p.o., every finite upper-bounded family of compact
+elements admits a chosen compact least upper bound. This is the finite closure
+property needed to move from single compact step functions toward finite-step
+bases. -/
+theorem exists_list_compact_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    (hK : BoundedComplete K) :
+    ∀ xs : List K.Obj,
+      (∀ x : K.Obj, x ∈ xs → IsCompact K x) →
+      (∃ w : K.Obj, K.IsUpperBound (fun y => y ∈ xs) w) →
+      ∃ z : K.Obj, K.IsLeastUpperBound (fun y => y ∈ xs) z ∧ IsCompact K z
+  | [], _hcompact, _hUpper =>
+      ⟨K.bottom,
+        by
+          constructor
+          · intro y hy
+            cases hy
+          · intro w _hw
+            exact K.bottom_le w,
+        bottom_isCompact K⟩
+  | x :: xs, hcompact, hUpper => by
+      have hx : IsCompact K x := hcompact x (by simp)
+      have hcompactTail : ∀ y : K.Obj, y ∈ xs → IsCompact K y := by
+        intro y hy
+        exact hcompact y (by simp [hy])
+      have hUpperTail : ∃ w : K.Obj, K.IsUpperBound (fun y => y ∈ xs) w := by
+        rcases hUpper with ⟨w, hw⟩
+        exact ⟨w, fun y hy => hw (by simp [hy])⟩
+      rcases exists_list_compact_isLeastUpperBound hK xs hcompactTail hUpperTail with
+        ⟨z, hz, hzCompact⟩
+      have hUpperPair : ∃ w : K.Obj, K.IsUpperBound (pairPred x z) w := by
+        rcases hUpper with ⟨w, hw⟩
+        refine ⟨w, ?_⟩
+        intro y hy
+        rcases hy with rfl | rfl
+        · exact hw (by simp)
+        · exact hz.2 (by
+            intro t ht
+            exact hw (by simp [ht]))
+      rcases exists_pair_compact_isLeastUpperBound hK hx hzCompact hUpperPair with
+        ⟨u, hu, huCompact⟩
+      refine ⟨u, ?_, huCompact⟩
+      constructor
+      · intro y hy
+        have hy' : y = x ∨ y ∈ xs := by
+          simpa using hy
+        rcases hy' with rfl | hy
+        · exact hu.1 (Or.inl rfl)
+        · exact K.rel_trans (hz.1 hy) (hu.1 (Or.inr rfl))
+      · intro w hw
+        have hzw : K.Rel z w := hz.2 (by
+          intro y hy
+          exact hw (by simp [hy]))
+        exact hu.2 (by
+          intro y hy
+          rcases hy with rfl | rfl
+          · exact hw (by simp)
+          · exact hzw)
+
+/-- In a bounded-complete c.h.p.o., every finite family of compact-below
+approximants of `x` admits a chosen compact-below least upper bound. This is
+the finite assembly step needed to turn compact pointwise data into finite
+approximants that still remain below the target element. -/
+theorem exists_list_compactBelow_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    (hK : BoundedComplete K)
+    {x : K.Obj}
+    (xs : List K.Obj)
+    (hcompactBelow : ∀ y : K.Obj, y ∈ xs → compactBelow K x y) :
+    ∃ z : K.Obj, compactBelow K x z ∧ K.IsLeastUpperBound (fun y => y ∈ xs) z := by
+  have hcompact : ∀ y : K.Obj, y ∈ xs → IsCompact K y := by
+    intro y hy
+    exact (hcompactBelow y hy).1
+  have hUpper : ∃ w : K.Obj, K.IsUpperBound (fun y => y ∈ xs) w := by
+    refine ⟨x, ?_⟩
+    intro y hy
+    exact (hcompactBelow y hy).2
+  rcases exists_list_compact_isLeastUpperBound hK xs hcompact hUpper with
+    ⟨z, hz, hzCompact⟩
+  refine ⟨z, ⟨hzCompact, hz.2 ?_⟩, hz⟩
+  intro y hy
+  exact (hcompactBelow y hy).2
+
 /-! ## Helper Lemmas -/
 
 /-- Directedness is invariant under pointwise equivalent predicates. -/
@@ -785,6 +920,129 @@ theorem boundedComplete_exponential
   intro F hUpper
   rcases hUpper with ⟨u, hu⟩
   exact ⟨boundedSupMap hL F u hu, boundedSupMap_spec hL F u hu⟩
+
+/-- A chosen compact step-function datum below a target continuous map. The
+source threshold is compact, and the target value is compact-below the actual
+value of the target map at that source point. -/
+structure StepApproxDatum
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (f : ContinuousMap K L) where
+  source : K.Obj
+  sourceCompact : IsCompact K source
+  target : L.Obj
+  targetCompactBelow : compactBelow L (f.toFun source) target
+
+namespace StepApproxDatum
+
+/-- The step function carried by a compact step-approximation datum. -/
+noncomputable def toMap
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    {f : ContinuousMap K L}
+    (d : StepApproxDatum f) :
+    ContinuousMap K L :=
+  stepFunction d.source d.sourceCompact d.target
+
+/-- Every chosen step-approximation datum yields a compact-below approximant of
+the target map in the exponential c.h.p.o. -/
+theorem toMap_compactBelow
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    {f : ContinuousMap K L}
+    (d : StepApproxDatum f) :
+    compactBelow (Exponential.chpo K L) f d.toMap := by
+  refine ⟨stepFunction_compact d.source d.sourceCompact d.target d.targetCompactBelow.1, ?_⟩
+  exact stepFunction_below d.source d.sourceCompact d.target f d.targetCompactBelow.2
+
+end StepApproxDatum
+
+/-- A finite family of compact step-approximation data below a continuous map
+admits a chosen compact-below least upper bound in the exponential c.h.p.o. -/
+theorem exists_listStepApproxDatum_compactBelow_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (f : ContinuousMap K L)
+    (steps : List (StepApproxDatum f)) :
+    ∃ h : ContinuousMap K L,
+      compactBelow (Exponential.chpo K L) f h ∧
+      (Exponential.chpo K L).IsLeastUpperBound
+        (fun g => g ∈ steps.map StepApproxDatum.toMap) h := by
+  let maps := steps.map StepApproxDatum.toMap
+  have hcompactBelow :
+      ∀ g : ContinuousMap K L, g ∈ maps → compactBelow (Exponential.chpo K L) f g := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨d, hd, rfl⟩
+    exact d.toMap_compactBelow
+  simpa [maps] using
+    (exists_list_compactBelow_isLeastUpperBound
+      (K := Exponential.chpo K L)
+      (hK := boundedComplete_exponential hL)
+      (x := f)
+      maps
+      hcompactBelow)
+
+/-- A chosen finite-step approximant assembled from a finite family of compact
+step-approximation data below a target map. -/
+noncomputable def assembleStepApproximants
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (f : ContinuousMap K L)
+    (steps : List (StepApproxDatum f)) :
+    ContinuousMap K L :=
+  Classical.choose (exists_listStepApproxDatum_compactBelow_isLeastUpperBound hL f steps)
+
+/-- The chosen finite-step approximant remains compact-below the target map. -/
+theorem assembleStepApproximants_compactBelow
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (f : ContinuousMap K L)
+    (steps : List (StepApproxDatum f)) :
+    compactBelow (Exponential.chpo K L) f (assembleStepApproximants hL f steps) :=
+  (Classical.choose_spec (exists_listStepApproxDatum_compactBelow_isLeastUpperBound hL f steps)).1
+
+/-- The chosen finite-step approximant is the least upper bound of the finite
+step maps from which it is assembled. -/
+theorem assembleStepApproximants_isLeastUpperBound
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (f : ContinuousMap K L)
+    (steps : List (StepApproxDatum f)) :
+    (Exponential.chpo K L).IsLeastUpperBound
+      (fun g => g ∈ steps.map StepApproxDatum.toMap)
+      (assembleStepApproximants hL f steps) :=
+  (Classical.choose_spec (exists_listStepApproxDatum_compactBelow_isLeastUpperBound hL f steps)).2
+
+/-- Enlarging the finite family of step data can only enlarge the chosen
+assembled finite-step approximant. -/
+theorem assembleStepApproximants_mono
+    {K : CompleteHomotopyPartialOrder}
+    {L : CompleteHomotopyPartialOrder}
+    (hL : BoundedComplete L)
+    (f : ContinuousMap K L)
+    {steps₁ steps₂ : List (StepApproxDatum f)}
+    (hsubset : ∀ d : StepApproxDatum f, d ∈ steps₁ → d ∈ steps₂) :
+    (Exponential.chpo K L).Rel
+      (assembleStepApproximants hL f steps₁)
+      (assembleStepApproximants hL f steps₂) := by
+  have hUpper₂ :
+      (Exponential.chpo K L).IsUpperBound
+        (fun g => g ∈ steps₂.map StepApproxDatum.toMap)
+        (assembleStepApproximants hL f steps₂) :=
+    (assembleStepApproximants_isLeastUpperBound hL f steps₂).1
+  have hUpper₁ :
+      (Exponential.chpo K L).IsUpperBound
+        (fun g => g ∈ steps₁.map StepApproxDatum.toMap)
+        (assembleStepApproximants hL f steps₂) := by
+    intro g hg
+    rcases List.mem_map.mp hg with ⟨d, hd, rfl⟩
+    exact hUpper₂ (by
+      exact List.mem_map.mpr ⟨d, hsubset d hd, rfl⟩)
+  exact (assembleStepApproximants_isLeastUpperBound hL f steps₁).2 hUpper₁
 
 /-! ## A Chosen Finite-Step Basis Interface -/
 

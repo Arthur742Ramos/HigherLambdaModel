@@ -513,6 +513,35 @@ noncomputable def Homotopy2_interchange_subset_HoTFT3
           (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
   ExtensionalKan.homotopy2_interchange_in_HoTFT3 α β
 
+/-- HoTFT wrapper for the alternative interchange witness on interpreted
+explicit 2-cells. -/
+noncomputable def Homotopy2_interchange'_subset_HoTFT3
+    {L M N : Term} {p p' : ReductionSeq L M} {q q' : ReductionSeq M N}
+    (α : Homotopy2 p p') (β : Homotopy2 q q') :
+    HoTFT3
+      (HoTFT2.hcomp (ExtensionalKan.homotopy2_in_HoTFT2 α)
+        (ExtensionalKan.homotopy2_in_HoTFT2 β))
+      (HoTFT2.trans
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+          (ExtensionalKan.homotopy2_in_HoTFT2 β))
+        (HoTFT2.whiskerRight (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 q'))) :=
+  ExtensionalKan.homotopy2_interchange'_in_HoTFT3 α β
+
+/-- HoTFT wrapper for the triangle coherence witness on interpreted explicit
+paths. -/
+noncomputable def ReductionSeq_triangle_subset_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (q : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.trans
+        (ExtensionalKan.reductionSeq_associator_in_HoTFT2 p (ReductionSeq.refl M) q)
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+          (ExtensionalKan.reductionSeq_leftUnitor_in_HoTFT2 q)))
+      (HoTFT2.whiskerRight
+        (ExtensionalKan.reductionSeq_rightUnitor_in_HoTFT2 p)
+        (ExtensionalKan.reductionSeq_in_HoTFT1 q)) :=
+  ExtensionalKan.reductionSeq_triangle_in_HoTFT3 p q
+
 /-- The interpreted structural associator carries a boundary-aware HoTFT
 tetrahedron witness. -/
 noncomputable def ReductionSeq_associator_subset_HoTFTTetrahedron
@@ -585,6 +614,96 @@ noncomputable def Homotopy2_whiskerLeft_subset_HoTFTTetrahedron
       (HoTFT1.compTriangle (ExtensionalKan.reductionSeq_in_HoTFT1 r)
         (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
   ExtensionalKan.homotopy2_whiskerLeft_in_HoTFTTetrahedron r α
+
+/-- Left whiskering commutes with vertical composition on interpreted explicit
+HoTFT 2-cells. -/
+noncomputable def Homotopy2_whiskerLeftTrans_subset_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M)
+    {p q s : ReductionSeq M N} (α : Homotopy2 p q) (β : Homotopy2 q s) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (HoTFT2.trans (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.homotopy2_in_HoTFT2 β)))
+      (HoTFT2.trans
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.homotopy2_in_HoTFT2 α))
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
+  ExtensionalKan.homotopy2_whiskerLeftTrans_in_HoTFT3 r α β
+
+/-- Left whiskering commutes with symmetry on interpreted explicit HoTFT
+2-cells. -/
+noncomputable def Homotopy2_whiskerLeftSymm_subset_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M)
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α)))
+      (HoTFT2.symm
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.homotopy2_in_HoTFT2 α))) :=
+  ExtensionalKan.homotopy2_whiskerLeftSymm_in_HoTFT3 r α
+
+/-- The inverse direction of left-whisker symmetry on interpreted explicit
+HoTFT 2-cells. -/
+noncomputable def Homotopy2_invWhiskerLeft_subset_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M)
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.symm
+        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+          (ExtensionalKan.homotopy2_in_HoTFT2 α)))
+      (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α))) :=
+  ExtensionalKan.homotopy2_invWhiskerLeft_in_HoTFT3 r α
+
+/-- Right whiskering commutes with vertical composition on interpreted explicit
+HoTFT 2-cells. -/
+noncomputable def Homotopy2_whiskerRightTrans_subset_HoTFT3
+    {L M N : Term} {p q s : ReductionSeq L M}
+    (α : Homotopy2 p q) (β : Homotopy2 q s) (r : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerRight
+        (HoTFT2.trans
+          (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.homotopy2_in_HoTFT2 β))
+        (ExtensionalKan.reductionSeq_in_HoTFT1 r))
+      (HoTFT2.trans
+        (HoTFT2.whiskerRight
+          (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 r))
+        (HoTFT2.whiskerRight
+          (ExtensionalKan.homotopy2_in_HoTFT2 β)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 r))) :=
+  ExtensionalKan.homotopy2_whiskerRightTrans_in_HoTFT3 α β r
+
+/-- Right whiskering commutes with symmetry on interpreted explicit HoTFT
+2-cells. -/
+noncomputable def Homotopy2_whiskerRightSymm_subset_HoTFT3
+    {L M N : Term} {p q : ReductionSeq L M} (α : Homotopy2 p q)
+    (s : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.whiskerRight
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α))
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s))
+      (HoTFT2.symm
+        (HoTFT2.whiskerRight (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s))) :=
+  ExtensionalKan.homotopy2_whiskerRightSymm_in_HoTFT3 α s
+
+/-- The inverse direction of right-whisker symmetry on interpreted explicit
+HoTFT 2-cells. -/
+noncomputable def Homotopy2_invWhiskerRight_subset_HoTFT3
+    {L M N : Term} {p q : ReductionSeq L M} (α : Homotopy2 p q)
+    (s : ReductionSeq M N) :
+    HoTFT3
+      (HoTFT2.symm
+        (HoTFT2.whiskerRight (ExtensionalKan.homotopy2_in_HoTFT2 α)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 s)))
+      (HoTFT2.whiskerRight
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α))
+        (ExtensionalKan.reductionSeq_in_HoTFT1 s)) :=
+  ExtensionalKan.homotopy2_invWhiskerRight_in_HoTFT3 α s
 
 /-- The source-side boundary-aware tetrahedron for the `whiskerLeftRefl`
 constructor. -/

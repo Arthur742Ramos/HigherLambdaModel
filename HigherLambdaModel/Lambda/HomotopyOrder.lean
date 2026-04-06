@@ -94,6 +94,35 @@ def Directed (K : HomotopyPartialOrder) (X : K.Obj → Prop) : Prop :=
     ∀ {x y : K.Obj}, X x → X y →
       ∃ z, X z ∧ Rel K x z ∧ Rel K y z
 
+/-- Any finite list of elements of a directed predicate admits a common upper
+bound that still lies in the predicate. -/
+theorem directed_exists_upperBound_list
+    (K : HomotopyPartialOrder)
+    {X : K.Obj → Prop}
+    (hX : Directed K X) :
+    ∀ xs : List K.Obj,
+      (∀ x, x ∈ xs → X x) →
+      ∃ z, X z ∧ ∀ x, x ∈ xs → Rel K x z
+  | [], _ => by
+      rcases hX.1 with ⟨z, hz⟩
+      exact ⟨z, hz, by intro x hx; cases hx⟩
+  | x :: xs, hxs => by
+      have hx : X x := hxs x (by simp)
+      rcases directed_exists_upperBound_list K hX xs
+          (by
+            intro y hy
+            exact hxs y (by simp [hy])) with
+        ⟨z, hz, hupper⟩
+      rcases hX.2 hx hz with ⟨w, hw, hxw, hzw⟩
+      refine ⟨w, hw, ?_⟩
+      intro y hy
+      simp at hy
+      cases hy with
+      | inl hyEq =>
+          simpa [hyEq] using hxw
+      | inr hyTail =>
+          exact K.rel_trans (hupper y hyTail) hzw
+
 /-- An upper bound of a predicate with respect to the induced h.p.o. relation. -/
 def IsUpperBound (K : HomotopyPartialOrder) (X : K.Obj → Prop) (z : K.Obj) : Prop :=
   ∀ ⦃x : K.Obj⦄, X x → Rel K x z

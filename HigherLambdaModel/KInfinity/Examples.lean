@@ -221,4 +221,15 @@ theorem beta_eta_points_no_5cell_in_KInfinity
   rcases h with ⟨μ⟩
   exact example_4_2_no_path5 μ
 
+/-- The stronger all-dimensional version of Example 4.2 for the recursively
+completed `K∞` tower: from dimension `5` onward, there is no packed higher cell
+whose 0-source/0-target boundary is the chosen β/η pair. -/
+theorem beta_eta_points_no_recursive_higher_cell_in_KInfinity
+    (n : Nat) :
+    ¬ Nonempty
+      {x : kInfinityTower.Cell (n + 5) //
+        kInfinityTowerSourceObj x = interp1Beta ∧
+          kInfinityTowerTargetObj x = interp1Eta} :=
+  example_4_2_no_recursive_higher_cell_nonempty n
+
 end HigherLambdaModel.KInfinity

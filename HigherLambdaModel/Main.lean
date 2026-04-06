@@ -47,7 +47,7 @@ This file summarizes the main results from our formalization of
 - Main Theorem: TH_λ= ⊆ HoTFT
 - Explicit `Homotopy2` cells now interpret directly into semantic `HoTFT2` cells carried by the structural HoTFT 1-cells of their boundaries
 - Reflexive, equality-generated, symmetric, vertically composable, and interchange 3-cells over those semantic `HoTFT2` boundaries now land in an actual simplicial `HoTFT3` layer
-- A supported explicit syntactic 3-cell fragment `StructuralHomotopy3`, now closed under symmetry and vertical composition, maps directly into that `HoTFT3` layer
+- A supported explicit syntactic 3-cell fragment `StructuralHomotopy3`, now closed under symmetry, vertical composition, reflexive left/right whiskering, left-whiskering transitivity, left-whiskering symmetry, and interchange, maps directly into that `HoTFT3` layer
 - Reflexive 4-cells over the current interpreted 3-cell fragment now land in an actual simplicial `HoTFT4` layer
 
 ## Key Results
@@ -89,7 +89,9 @@ Let's verify that the identity combinator behaves as expected. -/
 
 -- I = λx.x reduces any term M to itself
 example (M : Term) : Term.app Term.I M →*βη M :=
-  BetaEtaClosure.single (BetaEtaStep.beta (BetaStep.beta (Term.var 0) M))
+  HigherLambdaModel.Lambda.BetaEtaClosure.single
+    (HigherLambdaModel.Lambda.BetaEtaStep.beta
+      (HigherLambdaModel.Lambda.BetaStep.beta (Term.var 0) M))
 
 /-! ## The Paper's Main Insight
 
