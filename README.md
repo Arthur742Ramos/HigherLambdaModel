@@ -194,13 +194,22 @@ The remaining paper-level gaps are now:
   `KanComplex`, the remaining pentagon frontier is the smaller local front-face
   axiom `pentagonInnerRightFrontReflPath3`, while the new strict
   filler-uniqueness layer (`StrictKanComplex`, `StrictExtensionalKanComplex`,
-  `Theory3.strictPentagon`) now discharges that pentagon axiom-free. The
-  recursive associator bookkeeping is now packaged on both the semantic and
+  `Theory3.strictWhiskerLeftWhiskerRight`, `Theory3.strictPentagon`) now
+  discharges both the WLWR front-loop obstruction and the pentagon axiom-free;
+  the explicit-path strict wrappers
+  `homotopy2_strictWhiskerLeftWhiskerRight_in_Theory3` and
+  `reductionSeq_strictPentagon_in_Theory3` expose those proofs without forcing
+  a return to the raw semantic level. The recursive associator bookkeeping is
+  now packaged on both the semantic and
   HoTFT sides by `reductionSeq_comp_associator_in_Theory3_of_heads` and
-  `reductionSeq_comp_associator_in_HoTFT3_of_heads`, so the live `Homotopy3`
+  `reductionSeq_comp_associator_in_HoTFT3_of_heads`. In strict models, the
+  local forward and inverse step-head bridges are now also proven directly via
+  `reductionSeq_comp_associator_stepHead_strict_in_Theory3`,
+  `reductionSeq_comp_associator_stepInvHead_strict_in_Theory3`, and the
+  resulting recursive strict theorem
+  `reductionSeq_comp_associator_strict_in_Theory3`. So the live `Homotopy3`
   gap is now the unsupported coherence fragment outside `StructuralHomotopy3`,
-  concretely the forward and inverse associator step-head normalizations and,
-  from there, the final direct endpoint-language bridge from full primitive
+  concretely the final direct endpoint-language bridge from full primitive
   syntax back to the structural `HoTFT3` interface),
 - and a stronger all-dimensional constructive omega-groupoid story beyond the
   current explicit 5-cell core plus recursive identity tower.
