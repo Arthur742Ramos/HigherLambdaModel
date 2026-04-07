@@ -5963,6 +5963,52 @@ private def KanComplex.whiskerLeftWhiskerRightMidRightPath3OfFrontPath3
       (K.whiskerLeftWhiskerRightMidRightCandidateTetrahedron α η δ)
       (K.triangleComparisonTetrahedron M.toTriangle W.toTriangle)
 
+/-- A contraction of the direct WLWR front loop reconstructs the exact boundary
+tetrahedron `Ω` needed by the older normalized right-half reduction. -/
+private def KanComplex.whiskerLeftWhiskerRightBoundaryTetrahedronFromFrontPath3
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (frontContract :
+      K.Path3
+        (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+        (K.reflPath2 (K.reflPath d))) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath d)).toTriangle
+      (K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle := by
+  let M := K.whiskerLeftWhiskerRightMidPath2 α η δ
+  let W := K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ
+  let hRight := K.whiskerLeftWhiskerRightMidRightPath3OfFrontPath3 α η δ frontContract
+  exact K.tetrahedronReplaceFace1 hRight
+    (K.triangleComparisonTetrahedron M.toTriangle W.toTriangle)
+
+/-- The weaker front contraction to `symm (refl (refl d))` already suffices to
+recover the WLWR boundary tetrahedron, via the standard bridge from
+`symm (refl)` back to `refl`. -/
+private def KanComplex.whiskerLeftWhiskerRightBoundaryTetrahedronFromSymmFrontPath3
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (frontContract :
+      K.Path3
+        (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+        (K.symmPath2 (K.reflPath2 (K.reflPath d)))) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath d)).toTriangle
+      (K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle := by
+  have frontToRefl :
+      K.Path3
+        (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+        (K.reflPath2 (K.reflPath d)) :=
+    K.transPath3 frontContract
+      ((K.symmReflPath2BridgeTetrahedron (K.reflPath d)).toPath3)
+  exact K.whiskerLeftWhiskerRightBoundaryTetrahedronFromFrontPath3 α η δ
+    frontToRefl
+
 /-- Once the reduced triangle comparison for right whiskering a left whisker is
 identified, the full associator/interchange comparison follows by re-extending
 along the left associator at `(α, β, δ)`. -/
