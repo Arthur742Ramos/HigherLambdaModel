@@ -134,6 +134,30 @@ def NTerm1.toReductionSeq : NTerm1 M N → ReductionSeq M N
   | .seq t₁ t₂ => ReductionSeq.concat t₁.toReductionSeq t₂.toReductionSeq
   | .refl => ReductionSeq.refl _
 
+/-- Promote a proof-relevant single βη-step witness to the repository's
+ordinary 1-term layer. -/
+def NTerm1.ofStepWitness (w : BetaEtaStepWitness M N) : NTerm1 M N :=
+  .redex w.toBetaEtaStep
+
+/-- Proof-relevant 1-terms, obtained by replacing the proposition-valued redex
+constructor in `NTerm1` with the new proof-relevant one-step witness layer. -/
+inductive NTerm1Witness : Term → Term → Type where
+  | redex : BetaEtaStepWitness M N → NTerm1Witness M N
+  | seq : NTerm1Witness M P → NTerm1Witness P N → NTerm1Witness M N
+  | refl : NTerm1Witness M M
+
+/-- Forget a proof-relevant 1-term back to the ordinary `NTerm1` language. -/
+def NTerm1Witness.toNTerm1 : NTerm1Witness M N → NTerm1 M N
+  | .redex s => .redex s.toBetaEtaStep
+  | .seq t₁ t₂ => .seq t₁.toNTerm1 t₂.toNTerm1
+  | .refl => .refl
+
+/-- Convert a proof-relevant 1-term directly to an explicit reduction sequence. -/
+def NTerm1Witness.toReductionSeq : NTerm1Witness M N → ReductionSeq M N
+  | .redex s => ReductionSeq.single s.toBetaEtaStep
+  | .seq t₁ t₂ => ReductionSeq.concat t₁.toReductionSeq t₂.toReductionSeq
+  | .refl => ReductionSeq.refl _
+
 /-- An n-term is an explicit computational witness for an n-conversion.
 
     For n = 0: Just a λ-term
@@ -317,6 +341,25 @@ noncomputable def nterm1_indexed_in_HoTFT1 {M N : Term} (t : NTerm1 M N) :
     HoTFT1 M N :=
   fun K => nterm1_indexed_in_Theory1 K t
 
+/-- Structural proof-relevant interpretation of an indexed proof-relevant 1-term
+in a fixed extensional Kan complex. -/
+noncomputable def nterm1Witness_indexed_in_Theory1 (K : ExtensionalKanComplex) :
+    {M N : Term} → NTerm1Witness M N → Theory1 K M N
+  | _, _, .redex s =>
+      ExtensionalKan.betaEtaStep_in_Theory1 K _ _ s.toBetaEtaStep
+  | _, _, .seq t₁ t₂ =>
+      Theory1.comp K
+        (nterm1Witness_indexed_in_Theory1 K t₁)
+        (nterm1Witness_indexed_in_Theory1 K t₂)
+  | M, _, .refl =>
+      fun ρ => K.reflPath (interpret K.toReflexiveKanComplex ρ M)
+
+/-- Structural proof-relevant interpretation of an indexed proof-relevant 1-term
+in HoTFT. -/
+noncomputable def nterm1Witness_indexed_in_HoTFT1 {M N : Term}
+    (t : NTerm1Witness M N) : HoTFT1 M N :=
+  fun K => nterm1Witness_indexed_in_Theory1 K t
+
 /-- Structural proof-relevant interpretation of a packaged 1-term in a fixed
 extensional Kan complex. -/
 noncomputable def nterm1_in_Theory1 (K : ExtensionalKanComplex) (t : NTerm 1) :
@@ -377,6 +420,14 @@ noncomputable def eta1Term_in_HoTFT1
 /-- Soundness for the indexed NTerm1 type -/
 theorem nterm1_indexed_sound (K : ExtensionalKanComplex) {M N : Term} (t : NTerm1 M N)
     (ρ : Valuation K.toReflexiveKanComplex) :
+    interpret K.toReflexiveKanComplex ρ M =
+    interpret K.toReflexiveKanComplex ρ N :=
+  ExtensionalKan.reductionSeq_sound K t.toReductionSeq ρ
+
+/-- Two terms related by a proof-relevant indexed 1-term still have equal
+interpretations. -/
+theorem nterm1Witness_indexed_sound (K : ExtensionalKanComplex) {M N : Term}
+    (t : NTerm1Witness M N) (ρ : Valuation K.toReflexiveKanComplex) :
     interpret K.toReflexiveKanComplex ρ M =
     interpret K.toReflexiveKanComplex ρ N :=
   ExtensionalKan.reductionSeq_sound K t.toReductionSeq ρ
@@ -627,9 +678,39 @@ noncomputable def Homotopy2_whiskerLeftTrans_subset_HoTFT3
       (HoTFT2.trans
         (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
           (ExtensionalKan.homotopy2_in_HoTFT2 α))
-        (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
-          (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
+      (HoTFT2.whiskerLeft (ExtensionalKan.reductionSeq_in_HoTFT1 r)
+        (ExtensionalKan.homotopy2_in_HoTFT2 β))) :=
   ExtensionalKan.homotopy2_whiskerLeftTrans_in_HoTFT3 r α β
+
+/-- Left whiskering along a composite explicit path agrees with iterated left
+whiskering plus the associator comparison on interpreted explicit HoTFT
+2-cells. -/
+noncomputable def Homotopy2_whiskerLeftComp_subset_HoTFT3
+    {L M N P : Term} (p : ReductionSeq L M) (q : ReductionSeq M N)
+    {r s : ReductionSeq N P} (α : Homotopy2 r s) :
+    HoTFT3
+      (HoTFT2.whiskerLeft
+        (HoTFT1.comp
+          (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 q))
+        (ExtensionalKan.homotopy2_in_HoTFT2 α))
+      (HoTFT2.trans
+        (HoTFT2.associator
+          (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+          (ExtensionalKan.reductionSeq_in_HoTFT1 r))
+        (HoTFT2.trans
+          (HoTFT2.whiskerLeft
+            (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+            (HoTFT2.whiskerLeft
+              (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+              (ExtensionalKan.homotopy2_in_HoTFT2 α)))
+          (HoTFT2.symm
+            (HoTFT2.associator
+              (ExtensionalKan.reductionSeq_in_HoTFT1 p)
+              (ExtensionalKan.reductionSeq_in_HoTFT1 q)
+              (ExtensionalKan.reductionSeq_in_HoTFT1 s))))) :=
+  ExtensionalKan.homotopy2_whiskerLeftComp_in_HoTFT3 p q α
 
 /-- Left whiskering commutes with symmetry on interpreted explicit HoTFT
 2-cells. -/
@@ -704,6 +785,28 @@ noncomputable def Homotopy2_invWhiskerRight_subset_HoTFT3
         (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α))
         (ExtensionalKan.reductionSeq_in_HoTFT1 s)) :=
   ExtensionalKan.homotopy2_invWhiskerRight_in_HoTFT3 α s
+
+/-- Right composition with an interpreted explicit HoTFT 2-cell followed by its
+inverse yields the reflexive source 2-cell. -/
+noncomputable def Homotopy2_transRightCancel_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.trans
+        (ExtensionalKan.homotopy2_in_HoTFT2 α)
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α)))
+      (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 p)) :=
+  HoTFT3.transRightCancel (ExtensionalKan.homotopy2_in_HoTFT2 α)
+
+/-- Left composition with the inverse of an interpreted explicit HoTFT 2-cell
+normalizes to the reflexive target 2-cell. -/
+noncomputable def Homotopy2_transLeftCancel_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.symm (ExtensionalKan.homotopy2_in_HoTFT2 α))
+        (ExtensionalKan.homotopy2_in_HoTFT2 α))
+      (HoTFT2.refl (ExtensionalKan.reductionSeq_in_HoTFT1 q)) :=
+  HoTFT3.transLeftCancel (ExtensionalKan.homotopy2_in_HoTFT2 α)
 
 /-- The source-side boundary-aware tetrahedron for the `whiskerLeftRefl`
 constructor. -/

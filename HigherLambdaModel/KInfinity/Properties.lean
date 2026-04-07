@@ -4598,15 +4598,20 @@ theorem example_4_2_no_path5
 completed `K∞` tower. -/
 def kInfinityTowerSourceObj :
     {n : Nat} → kInfinityTower.Cell n → KInfinityCHPO.Obj
-  | 0, x => x.down
-  | _ + 1, x => kInfinityTowerSourceObj (kInfinityTower.source x)
+  | _, x => (HigherLambdaModel.Lambda.Coherence.towerSource0 kInfinityTower x).down
 
 /-- The base object at the target boundary of a packed cell in the recursively
 completed `K∞` tower. -/
 def kInfinityTowerTargetObj :
     {n : Nat} → kInfinityTower.Cell n → KInfinityCHPO.Obj
-  | 0, x => x.down
-  | _ + 1, x => kInfinityTowerTargetObj (kInfinityTower.target x)
+  | _, x => (HigherLambdaModel.Lambda.Coherence.towerTarget0 kInfinityTower x).down
+
+private theorem kInfinityTower_level5_source_eq_target
+    (x : kInfinityTower.Cell 5) :
+    HigherLambdaModel.Lambda.Coherence.towerSource0 kInfinityTower x =
+      HigherLambdaModel.Lambda.Coherence.towerTarget0 kInfinityTower x := by
+  rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
+  exact congrArg ULift.up p.down.down
 
 /-- Every packed cell in the recursively completed `K∞` tower of dimension `≥ 5`
 already has equal 0-source and 0-target, because above dimension `5` the tower
@@ -4614,17 +4619,11 @@ is built by iterated identities. -/
 theorem kInfinityTower_source_eq_target
     {n : Nat} (x : kInfinityTower.Cell (n + 5)) :
     kInfinityTowerSourceObj x = kInfinityTowerTargetObj x := by
-  induction n with
-  | zero =>
-      rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
-      exact p.down.down
-  | succ n ih =>
-      rcases x with ⟨x, y, hxy⟩
-      change kInfinityTowerSourceObj x = kInfinityTowerTargetObj y
-      have hxy' : x = y := hxy.down
-      calc
-        kInfinityTowerSourceObj x = kInfinityTowerTargetObj x := ih x
-        _ = kInfinityTowerTargetObj y := congrArg kInfinityTowerTargetObj hxy'
+  have h0 :=
+    HigherLambdaModel.Lambda.Coherence.recursiveIdentityTower_source0_eq_target0_of_level5
+      (T := KInfinityReflexiveTower)
+      kInfinityTower_level5_source_eq_target x
+  exact congrArg ULift.down h0
 
 /-- In the recursively completed all-dimensional `K∞` tower, no cell of
 dimension `≥ 5` can have the chosen β-side point as its 0-source and the chosen
@@ -4636,12 +4635,34 @@ theorem example_4_2_no_recursive_higher_cell
     (hs : kInfinityTowerSourceObj x = interp1Beta)
     (ht : kInfinityTowerTargetObj x = interp1Eta) :
     False := by
-  have hEq : interp1Beta = interp1Eta := by
-    calc
-      interp1Beta = kInfinityTowerSourceObj x := hs.symm
-      _ = kInfinityTowerTargetObj x := kInfinityTower_source_eq_target x
-      _ = interp1Eta := ht
-  exact example_4_2 hEq
+  have hs' :
+      HigherLambdaModel.Lambda.Coherence.towerSource0 kInfinityTower x =
+        ULift.up interp1Beta := by
+    cases hsrc : HigherLambdaModel.Lambda.Coherence.towerSource0 kInfinityTower x with
+    | up s =>
+        have hs0 := hs
+        simp [kInfinityTowerSourceObj, hsrc] at hs0
+        cases hs0
+        rfl
+  have ht' :
+      HigherLambdaModel.Lambda.Coherence.towerTarget0 kInfinityTower x =
+        ULift.up interp1Eta := by
+    cases htgt : HigherLambdaModel.Lambda.Coherence.towerTarget0 kInfinityTower x with
+    | up t =>
+        have ht0 := ht
+        simp [kInfinityTowerTargetObj, htgt] at ht0
+        cases ht0
+        rfl
+  have hne' : ULift.up interp1Beta ≠ ULift.up interp1Eta := by
+    intro hEq
+    exact example_4_2 (congrArg ULift.down hEq)
+  exact
+    HigherLambdaModel.Lambda.Coherence.recursiveIdentityTower_no_cell_of_ne_of_level5
+      (T := KInfinityReflexiveTower)
+      kInfinityTower_level5_source_eq_target
+      hs'
+      ht'
+      hne'
 
 /-- Equivalently, the recursively completed all-dimensional `K∞` tower has no
 packed higher cell of dimension `≥ 5` whose 0-source/0-target boundary is the

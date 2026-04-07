@@ -395,6 +395,83 @@ def recursiveIdentityTower
   globular_src := recursiveIdentityGlobularSrc T
   globular_tgt := recursiveIdentityGlobularTgt T
 
+/-- The iterated 0-source of a packed cell in an arbitrary globular tower. -/
+def towerSource0 (G : HigherLambdaModel.Simplicial.GlobularTower) :
+    {n : Nat} → G.Cell n → G.Cell 0
+  | 0, x => x
+  | _ + 1, x => towerSource0 G (G.source x)
+
+/-- The iterated 0-target of a packed cell in an arbitrary globular tower. -/
+def towerTarget0 (G : HigherLambdaModel.Simplicial.GlobularTower) :
+    {n : Nat} → G.Cell n → G.Cell 0
+  | 0, x => x
+  | _ + 1, x => towerTarget0 G (G.target x)
+
+/-- If the explicit 5-cells of a reflexive tower already have equal 0-source and
+0-target, then the same holds for every higher packed cell in its recursive
+identity completion. -/
+theorem recursiveIdentityTower_source0_eq_target0_of_level5
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    {n : Nat} (x : (recursiveIdentityTower T).Cell (n + 5)) :
+    towerSource0 (recursiveIdentityTower T) x =
+      towerTarget0 (recursiveIdentityTower T) x := by
+  induction n with
+  | zero =>
+      exact h5 x
+  | succ n ih =>
+      rcases x with ⟨x, y, hxy⟩
+      change towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) y
+      have hxy' : x = y := hxy.down
+      calc
+        towerSource0 (recursiveIdentityTower T) x =
+            towerTarget0 (recursiveIdentityTower T) x := ih x
+        _ = towerTarget0 (recursiveIdentityTower T) y :=
+          congrArg (towerTarget0 (recursiveIdentityTower T)) hxy'
+
+/-- If the explicit 5-cells already collapse 0-source and 0-target, then no
+packed cell in the recursive identity completion can realize distinct
+0-boundaries above dimension `5`. -/
+theorem recursiveIdentityTower_no_cell_of_ne_of_level5
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    {n : Nat} {x : (recursiveIdentityTower T).Cell (n + 5)}
+    {a b : (recursiveIdentityTower T).Cell 0}
+    (hs : towerSource0 (recursiveIdentityTower T) x = a)
+    (ht : towerTarget0 (recursiveIdentityTower T) x = b)
+    (hne : a ≠ b) :
+    False := by
+  apply hne
+  calc
+    a = towerSource0 (recursiveIdentityTower T) x := hs.symm
+    _ = towerTarget0 (recursiveIdentityTower T) x :=
+      recursiveIdentityTower_source0_eq_target0_of_level5
+        (T := T) h5 x
+    _ = b := ht
+
+/-- The same boundary-collapse hypothesis rules out nonempty families of packed
+higher cells with distinct chosen 0-boundaries above dimension `5`. -/
+theorem recursiveIdentityTower_no_cell_nonempty_of_ne_of_level5
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    (n : Nat) (a b : (recursiveIdentityTower T).Cell 0)
+    (hne : a ≠ b) :
+    ¬ Nonempty
+      {x : (recursiveIdentityTower T).Cell (n + 5) //
+        towerSource0 (recursiveIdentityTower T) x = a ∧
+          towerTarget0 (recursiveIdentityTower T) x = b} := by
+  intro h
+  rcases h with ⟨⟨x, hs, ht⟩⟩
+  exact recursiveIdentityTower_no_cell_of_ne_of_level5
+    (T := T) h5 hs ht hne
+
 /-- The all-dimensional globular tower induced by an omega-groupoid by first
 forgetting to its reflexive 5-cell core and then completing recursively by
 identity types above dimension `5`. -/

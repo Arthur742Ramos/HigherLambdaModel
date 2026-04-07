@@ -80,6 +80,15 @@ structure KanComplex extends SimplicialSet where
       {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
       face n i (fill Λ) = Λ.facet i hmi
 
+/-- A strict Kan complex is a Kan complex whose chosen horn fillers are unique:
+any simplex with the prescribed non-missing faces is equal to the chosen filler. -/
+structure StrictKanComplex extends KanComplex where
+  fill_unique : ∀ {n missing : Nat} (Λ : Horn toSimplicialSet n missing)
+      (σ : Simplex (n + 1)),
+      (∀ {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
+          face n i σ = Λ.facet i hmi) →
+      σ = fill Λ
+
 /-- A path from `a` to `b` is a 1-simplex with the prescribed endpoints. We
 use the standard simplicial convention that `d₁` is the source and `d₀` the
 target. -/
@@ -467,6 +476,13 @@ def KanComplex.sourceDegenerateTriangle (K : KanComplex) {a b : K.Obj}
               simpa using (K.face_degen_gt 0 p.simplex (i := 2) (j := 0) (by omega) (by omega))
       _ = K.degen 0 0 a := by rw [p.source]
       _ = (K.reflPath a).simplex := rfl
+
+private theorem KanComplex.sourceDegenerateTriangle_refl_eq
+    (K : KanComplex) (b : K.Obj) :
+    K.sourceDegenerateTriangle (K.reflPath b) =
+      (K.reflPath2 (K.reflPath b)).toTriangle := by
+  simp [KanComplex.sourceDegenerateTriangle, KanComplex.Path2.toTriangle,
+    KanComplex.reflPath2, K.reflPath2_reflPath_simplex b]
 
 private def KanComplex.invHorn (K : KanComplex) {a b : K.Obj}
     (p : K.PathSpace a b) :
@@ -1356,6 +1372,20 @@ def KanComplex.tetrahedronComparisonTetrahedron (K : KanComplex) {a b c : K.Obj}
                   (i := 1) (j := 3) (by omega) (by omega))
        _ = K.face 2 1 κ.simplex := by rw [h4]
        _ = δ.simplex := κ.face1
+
+/-- For any triangle `τ : Triangle p m q` the self-comparison 2-cell
+`trianglePath2 τ τ` is homotopic to the reflexive 2-cell `reflPath2 m` on the
+middle edge.  The proof uses `tetrahedronPath3` on `triangleComparisonTetrahedron τ τ`
+(which supplies `trianglePath2 τ τ` as face 1) and `reflTriangleTetrahedron τ`
+(which supplies `reflPath2 m` as face 1); both share face 0 = `reflPath2 q` and
+faces 2 = 3 = `τ`. -/
+def KanComplex.triangleSelfReflPath3 (K : KanComplex) {a b c : K.Obj}
+    {p : K.PathSpace a b} {m : K.PathSpace a c} {q : K.PathSpace b c}
+    (τ : K.Triangle p m q) :
+    K.Path3 (K.trianglePath2 τ τ) (K.reflPath2 m) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron τ τ)
+    (K.reflTriangleTetrahedron τ)
 
 /-- A semantic 3-cell between the last faces of two tetrahedra with identical
 front and middle faces induces a semantic 3-cell between their second outer
@@ -2452,6 +2482,25 @@ def KanComplex.rightUnitorTetrahedron (K : KanComplex) {a b : K.Obj}
       (K.fill_spec Λ (i := 2) (by omega) (by omega))
   · simpa [KanComplex.rightUnitorSimplex, KanComplex.rightUnitorHorn, Λ] using
       (K.fill_spec Λ (i := 3) (by omega) (by omega))
+
+/-- On a reflexive 1-cell, the left and right unitors are connected by the
+common tetrahedral boundary once the source-degenerate face is identified with
+the reflexive triangle. -/
+private def KanComplex.reflUnitorsPath3 (K : KanComplex) (b : K.Obj) :
+    K.Path3
+      (K.leftUnitorPath2 (K.reflPath b))
+      (K.rightUnitorPath2 (K.reflPath b)) := by
+  let ωR :
+      K.Tetrahedron
+        (K.reflPath2 (K.reflPath b)).toTriangle
+        (K.rightUnitorPath2 (K.reflPath b)).toTriangle
+        (K.sourceDegenerateTriangle (K.reflPath b))
+        (K.compTriangle (K.reflPath b) (K.reflPath b)) := by
+    simpa [K.sourceDegenerateTriangle_refl_eq b] using
+      (K.rightUnitorTetrahedron (K.reflPath b))
+  exact K.tetrahedronPath3
+    (K.leftUnitorTetrahedron (K.reflPath b))
+    ωR
 
 /-- Degenerating the chosen composition triangle along its middle face gives an
 explicit tetrahedron whose outer boundary is the source-degenerate triangle,
@@ -3668,6 +3717,216 @@ def KanComplex.trianglePath3 (K : KanComplex) {a b c : K.Obj}
     (K.transFillerTetrahedron α β)
     (K.trianglePath3Tetrahedron p q)
 
+/-- Front bridge for the right-unitor-on-composites coherence: keep the
+right unitor visible on both front faces while normalizing the remaining outer
+faces to the degenerate ones expected by a `trans` filler. -/
+private def KanComplex.rightUnitorFrontBridgeTetrahedron (K : KanComplex)
+    {b c : K.Obj} (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath c)).toTriangle
+      (K.rightUnitorPath2 q).toTriangle
+      (K.rightUnitorPath2 q).toTriangle
+      (K.reflPath2 (K.compPath q (K.reflPath c))).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.path2DegenerateTetrahedron (K.rightUnitorPath2 q))
+    (K.path2DegenerateTetrahedron (K.rightUnitorPath2 q))
+    (K.reflTriangleTetrahedron
+      (K.sourceDegenerateTriangle (K.compPath q (K.reflPath c))))
+
+/-- Boundary-aware tetrahedron packaging the left-hand route for the coherence
+`assoc ; (p ◁ ρ_q) ~ ρ_(p·q)`. -/
+private def KanComplex.rightUnitorLeftBoundaryTetrahedron (K : KanComplex)
+    {a b c : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.rightUnitorPath2 q).toTriangle
+      (K.transPath2
+        (K.associatorPath2 p q (K.reflPath c))
+        (K.whiskerLeftPath2 p (K.rightUnitorPath2 q))).toTriangle
+      (K.compTriangle p q)
+      (K.assocTriangle p q (K.reflPath c)) := by
+  let σ := K.rightUnitorFrontBridgeTetrahedron q
+  let ω := K.transFillerTetrahedron
+    (K.associatorPath2 p q (K.reflPath c))
+    (K.whiskerLeftPath2 p (K.rightUnitorPath2 q))
+  let κ := K.whiskerLeftTetrahedron p (K.rightUnitorPath2 q)
+  let θ := K.associatorTetrahedron p q (K.reflPath c)
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then σ.simplex
+        else if h1 : i = 1 then ω.simplex
+        else if h2 : i = 2 then κ.simplex
+        else θ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω.face0.trans σ.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using κ.face0.trans σ.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using θ.face0.trans σ.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using κ.face1.trans ω.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using θ.face1.trans ω.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using θ.face2.trans κ.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = σ.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 σ.simplex := by rw [h0]
+      _ = (K.rightUnitorPath2 q).toTriangle.simplex := σ.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω.simplex := by rw [h1]
+      _ = (K.transPath2
+            (K.associatorPath2 p q (K.reflPath c))
+            (K.whiskerLeftPath2 p (K.rightUnitorPath2 q))).toTriangle.simplex := ω.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h2]
+      _ = (K.compTriangle p q).simplex := κ.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = θ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 θ.simplex := by rw [h4]
+      _ = (K.assocTriangle p q (K.reflPath c)).simplex := θ.face3
+
+/-- Boundary-aware tetrahedron whose middle face is the normalized
+right-unitor-on-composites route. -/
+private def KanComplex.rightUnitorBoundaryTetrahedron (K : KanComplex)
+    {a b c : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.rightUnitorPath2 q).toTriangle
+      (K.rightUnitorPath2 (K.compPath p q)).toTriangle
+      (K.compTriangle p q)
+      (K.assocTriangle p q (K.reflPath c)) := by
+  let ε := K.rightUnitorTetrahedron q
+  let ω₁ := K.rightUnitorTetrahedron (K.compPath p q)
+  let ω₂ := K.reflTriangleTetrahedron (K.compTriangle p q)
+  let κ := K.assocTriangleFillerTetrahedron p q (K.reflPath c)
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = (K.rightUnitorPath2 q).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h1]
+      _ = (K.rightUnitorPath2 (K.compPath p q)).toTriangle.simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h3]
+      _ = (K.compTriangle p q).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.assocTriangle p q (K.reflPath c)).simplex := κ.face2
+
+/-- Right unitor on a composite decomposes as associator followed by left
+whiskering of the right unitor. -/
+def KanComplex.rightUnitorCompPath3 (K : KanComplex) {a b c : K.Obj}
+    (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 p q (K.reflPath c))
+        (K.whiskerLeftPath2 p (K.rightUnitorPath2 q)))
+      (K.rightUnitorPath2 (K.compPath p q)) :=
+  K.tetrahedronPath3
+    (K.rightUnitorLeftBoundaryTetrahedron p q)
+    (K.rightUnitorBoundaryTetrahedron p q)
+
 /-- The reflexive 2-cell on `p` is connected to its chosen symmetry by a
 normalized tetrahedron. -/
 private def KanComplex.symmReflPath2BridgeTetrahedron (K : KanComplex)
@@ -4095,6 +4354,1044 @@ private def KanComplex.trianglePath2SymmPath3 (K : KanComplex)
       (K.trianglePath2SymmAuxTetrahedron τ₁ τ₂)
       (K.triangleComparisonTetrahedron τ₂ τ₁))
 
+/-- Comparing a semantic 2-cell against the reflexive triangle on its source
+path recovers the chosen symmetry of that 2-cell. -/
+private def KanComplex.trianglePath2ToReflPath3 (K : KanComplex)
+    {a b : K.Obj} {p q : K.PathSpace a b} (α : K.Path2 p q) :
+    K.Path3
+      (K.trianglePath2 α.toTriangle (K.reflPath2 p).toTriangle)
+      (K.symmPath2 α) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron α.toTriangle (K.reflPath2 p).toTriangle)
+    (K.symmTetrahedron α)
+
+/-- Comparing the reflexive triangle on the source path against a semantic
+2-cell recovers that 2-cell itself. -/
+private def KanComplex.trianglePath2FromReflPath3 (K : KanComplex)
+    {a b : K.Obj} {p q : K.PathSpace a b} (α : K.Path2 p q) :
+    K.Path3
+      (K.trianglePath2 (K.reflPath2 p).toTriangle α.toTriangle)
+      α :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron (K.reflPath2 p).toTriangle α.toTriangle)
+    ((K.reflPath3 α).toTetrahedron)
+
+/-- Comparing `α.toTriangle` against the triangle of its composite with `β`
+recovers the right factor `β`. -/
+private def KanComplex.trianglePath2ToTransPath3 (K : KanComplex)
+    {a b : K.Obj} {p q r : K.PathSpace a b}
+    (α : K.Path2 p q) (β : K.Path2 q r) :
+    K.Path3
+      (K.trianglePath2 α.toTriangle (K.transPath2 α β).toTriangle)
+      β :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron α.toTriangle (K.transPath2 α β).toTriangle)
+    (K.transFillerTetrahedron α β)
+
+/-- Re-extending the comparison between `α.toTriangle` and a target triangle back
+along `α` recovers that target 2-cell. -/
+private def KanComplex.transFromTriangleComparisonPath3 (K : KanComplex)
+    {a b : K.Obj} {p q r : K.PathSpace a b}
+    (α : K.Path2 p q) (β : K.Path2 p r) :
+    K.Path3
+      (K.transPath2 α (K.trianglePath2 α.toTriangle β.toTriangle))
+      β :=
+  K.tetrahedronFace2Path3
+    (K.reflPath3 α)
+    (K.transFillerTetrahedron α (K.trianglePath2 α.toTriangle β.toTriangle))
+    (K.triangleComparisonTetrahedron α.toTriangle β.toTriangle)
+
+/-- Degenerating a triangle along its first face keeps both front faces equal to the
+original triangle, while turning the two outer faces into source-degenerate
+triangles on its middle and source edges. -/
+private def KanComplex.triangleFirstFaceDegenerateTetrahedron (K : KanComplex)
+    {a b c : K.Obj} {u : K.PathSpace a b} {m : K.PathSpace a c}
+    {v : K.PathSpace b c} (τ : K.Triangle u m v) :
+    K.Tetrahedron τ τ (K.sourceDegenerateTriangle m) (K.sourceDegenerateTriangle u) := by
+  refine
+    { simplex := K.degen 2 0 τ.simplex
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using (K.face_degen_eq 1 τ.simplex (i := 0) (by omega))
+  · simpa using (K.face_degen_succ 1 τ.simplex (i := 0) (by omega))
+  · calc
+      K.face 2 2 (K.degen 2 0 τ.simplex)
+          = K.degen 1 0 (K.face 1 1 τ.simplex) := by
+              simpa using
+                (K.face_degen_gt 1 τ.simplex (i := 2) (j := 0) (by omega) (by omega))
+      _ = K.degen 1 0 m.simplex := by rw [τ.face1]
+      _ = (K.sourceDegenerateTriangle m).simplex := rfl
+  · calc
+      K.face 2 3 (K.degen 2 0 τ.simplex)
+          = K.degen 1 0 (K.face 1 2 τ.simplex) := by
+              simpa using
+                (K.face_degen_gt 1 τ.simplex (i := 3) (j := 0) (by omega) (by omega))
+      _ = K.degen 1 0 u.simplex := by rw [τ.face2]
+      _ = (K.sourceDegenerateTriangle u).simplex := rfl
+
+/-- Boundary replacement turning the left unitor into its chosen symmetry while
+keeping the remaining triangle faces normalized. -/
+private def KanComplex.leftUnitorSymmComparisonTetrahedron (K : KanComplex)
+    {a b : K.Obj} (p : K.PathSpace a b) :
+    K.Tetrahedron
+      (K.reflPath2 p).toTriangle
+      (K.symmPath2 (K.leftUnitorPath2 p)).toTriangle
+      (K.compTriangle (K.reflPath a) p)
+      (K.sourceDegenerateTriangle p) := by
+  let Κ :
+      K.Path3
+        (K.trianglePath2
+          (K.sourceDegenerateTriangle p)
+          (K.compTriangle (K.reflPath a) p))
+        (K.symmPath2 (K.leftUnitorPath2 p)) := by
+    simpa [KanComplex.leftUnitorPath2, KanComplex.leftUnitorSimplex,
+      KanComplex.leftUnitorHorn] using
+      (K.trianglePath2SymmPath3
+        (K.compTriangle (K.reflPath a) p)
+        (K.sourceDegenerateTriangle p))
+  exact K.tetrahedronReplaceFace1 Κ
+    (K.triangleComparisonTetrahedron
+      (K.sourceDegenerateTriangle p)
+      (K.compTriangle (K.reflPath a) p))
+
+/-- Triangle-level right boundary for the left-unitor-on-composites coherence. -/
+private def KanComplex.leftUnitorCompTriangleBoundaryTetrahedron (K : KanComplex)
+    {a b c : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.whiskerRightTriangle (K.reflPath2 p) q)
+      (K.whiskerRightTriangle (K.leftUnitorPath2 p) q)
+      (K.assocTriangle (K.reflPath a) p q)
+      (K.sourceDegenerateTriangle p) := by
+  let ε := K.whiskerRightReflAuxTetrahedron p q
+  let ω₁ := K.whiskerRightTriangleFillerTetrahedron (K.leftUnitorPath2 p) q
+  let ω₂ := K.assocTriangleFillerTetrahedron (K.reflPath a) p q
+  let κ := K.leftUnitorSymmComparisonTetrahedron p
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ε.simplex := by rw [h0]
+      _ = (K.whiskerRightTriangle (K.reflPath2 p) q).simplex := ε.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ = (K.whiskerRightTriangle (K.leftUnitorPath2 p) q).simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.assocTriangle (K.reflPath a) p q).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.sourceDegenerateTriangle p).simplex := κ.face3
+
+/-- Boundary-aware tetrahedron whose middle face is the normalized right-whiskered
+left-unitor route. -/
+private def KanComplex.leftUnitorCompBoundaryTetrahedron (K : KanComplex)
+    {a b c : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath p q)).toTriangle
+      (K.whiskerRightPath2 (K.leftUnitorPath2 p) q).toTriangle
+      (K.sourceDegenerateTriangle (K.compPath p q))
+      (K.assocTriangle (K.reflPath a) p q) := by
+  let ε := K.whiskerRightReflBoundaryTetrahedron p q
+  let ω₁ := K.whiskerRightTetrahedron (K.leftUnitorPath2 p) q
+  let ω₂ := K.triangleFirstFaceDegenerateTetrahedron (K.compTriangle p q)
+  let κ := K.leftUnitorCompTriangleBoundaryTetrahedron p q
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.compPath p q)).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h1]
+      _ = (K.whiskerRightPath2 (K.leftUnitorPath2 p) q).toTriangle.simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h3]
+      _ = (K.sourceDegenerateTriangle (K.compPath p q)).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.assocTriangle (K.reflPath a) p q).simplex := κ.face2
+
+/-- Boundary-aware tetrahedron exposing the left-unitor-on-composites coherence in
+the normalized `trans`-filler form. -/
+private def KanComplex.leftUnitorCompPath3Tetrahedron (K : KanComplex)
+    {a b c : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath c)).toTriangle
+      (K.leftUnitorPath2 (K.compPath p q)).toTriangle
+      (K.whiskerRightPath2 (K.leftUnitorPath2 p) q).toTriangle
+      (K.associatorPath2 (K.reflPath a) p q).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.leftUnitorCompBoundaryTetrahedron p q)
+    (K.leftUnitorTetrahedron (K.compPath p q))
+    (K.associatorTetrahedron (K.reflPath a) p q)
+
+/-- Left unitor on a composite decomposes as associator followed by right
+whiskering of the left unitor. -/
+def KanComplex.leftUnitorCompPath3 (K : KanComplex) {a b c : K.Obj}
+    (p : K.PathSpace a b) (q : K.PathSpace b c) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.reflPath a) p q)
+        (K.leftUnitorPath2 (K.compPath p q)))
+      (K.whiskerRightPath2 (K.leftUnitorPath2 p) q) := by
+  let α := K.associatorPath2 (K.reflPath a) p q
+  exact K.tetrahedronFace2Path3
+    (K.reflPath3 α)
+    (K.transFillerTetrahedron α (K.leftUnitorPath2 (K.compPath p q)))
+    (K.leftUnitorCompPath3Tetrahedron p q)
+/-- Left inverse law for semantic 2-cells, derived by reducing the
+self-comparison `trianglePath2 α.toTriangle α.toTriangle` along the source-side
+reflexive triangle. -/
+def KanComplex.transLeftCancelPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (α : K.Path2 p q) :
+    K.Path3 (K.transPath2 (K.symmPath2 α) α) (K.reflPath2 q) := by
+  let compare :=
+    K.transPath3
+      (K.transCongrLeftPath3
+        (K.trianglePath2ToReflPath3 α)
+        (K.trianglePath2 (K.reflPath2 p).toTriangle α.toTriangle))
+      (K.transCongrRightPath3
+        (K.symmPath2 α)
+        (K.trianglePath2FromReflPath3 α))
+  let contract :=
+    K.transPath3
+      (K.symmPath3
+        (K.trianglePath2TransPath3
+          α.toTriangle
+          (K.reflPath2 p).toTriangle
+          α.toTriangle))
+      (K.trianglePath2ReflPath3 α.toTriangle)
+  exact K.transPath3 (K.symmPath3 compare) contract
+
+/-- Vertical composition of semantic 2-cells is associative up to a semantic
+3-cell. -/
+private def KanComplex.transAssocPath3 (K : KanComplex) {a b : K.Obj}
+    {p q r s : K.PathSpace a b}
+    (α : K.Path2 p q) (β : K.Path2 q r) (γ : K.Path2 r s) :
+    K.Path3
+      (K.transPath2 (K.transPath2 α β) γ)
+      (K.transPath2 α (K.transPath2 β γ)) := by
+  let δ :
+      K.Path2 q s :=
+    K.trianglePath2
+      α.toTriangle
+      (K.transPath2 (K.transPath2 α β) γ).toTriangle
+  let contract :
+      K.Path3 δ (K.transPath2 β γ) :=
+    K.transPath3
+      (K.trianglePath2TransPath3
+        α.toTriangle
+        (K.transPath2 α β).toTriangle
+        (K.transPath2 (K.transPath2 α β) γ).toTriangle)
+      (K.transPath3
+        (K.transCongrLeftPath3
+          (K.trianglePath2ToTransPath3 α β)
+          (K.trianglePath2
+            (K.transPath2 α β).toTriangle
+            (K.transPath2 (K.transPath2 α β) γ).toTriangle))
+        (K.transCongrRightPath3
+          β
+          (K.trianglePath2ToTransPath3
+            (K.transPath2 α β)
+            γ)))
+  exact K.transPath3
+    (K.symmPath3
+      (K.transFromTriangleComparisonPath3
+        α
+        (K.transPath2 (K.transPath2 α β) γ)))
+    (K.transCongrRightPath3 α contract)
+
+/-- Once the triangle comparison between whiskering by `refl` and the left
+unitor is identified with the route `leftUnitor q ; symm η`, the full
+left-unitor naturality follows by associativity and left cancellation. -/
+private def KanComplex.leftUnitorNaturalityPath3FromTriangleComparison
+    (K : KanComplex) {a b : K.Obj} {p q : K.PathSpace a b}
+    (η : K.Path2 p q)
+    (hTriangle :
+      K.Path3
+        (K.trianglePath2
+          (K.whiskerLeftPath2 (K.reflPath a) η).toTriangle
+          (K.leftUnitorPath2 p).toTriangle)
+        (K.transPath2 (K.leftUnitorPath2 q) (K.symmPath2 η))) :
+    K.Path3
+      (K.transPath2
+        (K.whiskerLeftPath2 (K.reflPath a) η)
+        (K.leftUnitorPath2 q))
+      (K.transPath2 (K.leftUnitorPath2 p) η) := by
+  let α := K.whiskerLeftPath2 (K.reflPath a) η
+  let luP := K.leftUnitorPath2 p
+  let luQ := K.leftUnitorPath2 q
+  let hToLeftUnitor :
+      K.Path3
+        (K.transPath2 (K.transPath2 α luQ) (K.symmPath2 η))
+        luP := by
+    exact K.transPath3
+      (K.transAssocPath3 α luQ (K.symmPath2 η))
+      (K.transPath3
+        (K.symmPath3 (K.transCongrRightPath3 α hTriangle))
+        (K.transFromTriangleComparisonPath3 α luP))
+  let hComposed :
+      K.Path3
+        (K.transPath2
+          (K.transPath2 (K.transPath2 α luQ) (K.symmPath2 η))
+          η)
+        (K.transPath2 luP η) :=
+    K.transCongrLeftPath3 hToLeftUnitor η
+  let hNormalize :
+      K.Path3
+        (K.transPath2
+          (K.transPath2 (K.transPath2 α luQ) (K.symmPath2 η))
+          η)
+        (K.transPath2 α luQ) := by
+    exact K.transPath3
+      (K.transAssocPath3 (K.transPath2 α luQ) (K.symmPath2 η) η)
+      (K.transPath3
+         (K.transCongrRightPath3
+           (K.transPath2 α luQ)
+           (K.transLeftCancelPath3 η))
+         (K.transReflRightPath3 (K.transPath2 α luQ)))
+  exact K.transPath3 (K.symmPath3 hNormalize) hComposed
+
+/-- Front bridge for left-unitor naturality: keep `η` visible on both front
+faces while normalizing the remaining boundary to the degenerate source face on
+`p`. -/
+private def KanComplex.leftUnitorNaturalityFrontBridgeTetrahedron (K : KanComplex)
+    {a b : K.Obj} {p q : K.PathSpace a b} (η : K.Path2 p q) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      η.toTriangle
+      η.toTriangle
+      (K.reflPath2 p).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.path2DegenerateTetrahedron η)
+    (K.path2DegenerateTetrahedron η)
+    (K.reflTriangleTetrahedron (K.sourceDegenerateTriangle p))
+
+/-- Boundary-aware tetrahedron packaging the right-hand route in left-unitor
+naturality: first apply `leftUnitor p`, then `η`. -/
+private def KanComplex.leftUnitorNaturalityRightBoundaryTetrahedron
+    (K : KanComplex) {a b : K.Obj} {p q : K.PathSpace a b} (η : K.Path2 p q) :
+    K.Tetrahedron
+      η.toTriangle
+      (K.transPath2 (K.leftUnitorPath2 p) η).toTriangle
+      (K.sourceDegenerateTriangle q)
+      (K.compTriangle (K.reflPath a) p) := by
+  let σ := K.leftUnitorNaturalityFrontBridgeTetrahedron η
+  let ω := K.transFillerTetrahedron (K.leftUnitorPath2 p) η
+  let κ := K.path2DegenerateTetrahedron η
+  let θ := K.leftUnitorTetrahedron p
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then σ.simplex
+        else if h1 : i = 1 then ω.simplex
+        else if h2 : i = 2 then κ.simplex
+        else θ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω.face0.trans σ.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using κ.face0.trans σ.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using θ.face0.trans σ.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using κ.face1.trans ω.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using θ.face1.trans ω.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using θ.face2.trans κ.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = σ.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 σ.simplex := by rw [h0]
+      _ = η.toTriangle.simplex := σ.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω.simplex := by rw [h1]
+      _ = (K.transPath2 (K.leftUnitorPath2 p) η).toTriangle.simplex := ω.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h2]
+      _ = (K.sourceDegenerateTriangle q).simplex := κ.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = θ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 θ.simplex := by rw [h4]
+      _ = (K.compTriangle (K.reflPath a) p).simplex := θ.face3
+
+/-- Boundary-aware tetrahedron whose middle face is `leftUnitor q`, whose
+second outer face is the right-hand naturality route, and whose last face is
+whiskering `η` by `refl`. -/
+private def KanComplex.leftUnitorNaturalityPath3Tetrahedron (K : KanComplex)
+    {a b : K.Obj} {p q : K.PathSpace a b} (η : K.Path2 p q) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      (K.leftUnitorPath2 q).toTriangle
+      (K.transPath2 (K.leftUnitorPath2 p) η).toTriangle
+      (K.whiskerLeftPath2 (K.reflPath a) η).toTriangle := by
+  let ε := K.reflTriangleTetrahedron η.toTriangle
+  let ω₁ := K.leftUnitorTetrahedron q
+  let ω₂ := K.leftUnitorNaturalityRightBoundaryTetrahedron η
+  let κ := K.whiskerLeftTetrahedron (K.reflPath a) η
+  let Λ : Horn K.toSimplicialSet 3 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h2 : i = 2 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h02 | hrest
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face1.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h23 | hrest
+              · rcases h23 with ⟨rfl, rfl⟩
+                simpa using ω₂.face2.trans ω₁.face2.symm
+              · rcases hrest with h24 | h34
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.fill Λ))
+          = K.face 2 0 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.reflPath b)).simplex := ε.face0
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h2]
+      _ = (K.leftUnitorPath2 q).simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h3]
+      _ = (K.transPath2 (K.leftUnitorPath2 p) η).simplex := ω₂.face1
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 κ.simplex := by rw [h4]
+      _ = (K.whiskerLeftPath2 (K.reflPath a) η).simplex := κ.face1
+
+/-- Left unitor is natural with respect to semantic 2-cells. -/
+def KanComplex.leftUnitorNaturalityPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (η : K.Path2 p q) :
+    K.Path3
+      (K.transPath2
+        (K.whiskerLeftPath2 (K.reflPath a) η)
+        (K.leftUnitorPath2 q))
+      (K.transPath2 (K.leftUnitorPath2 p) η) := by
+  let α := K.whiskerLeftPath2 (K.reflPath a) η
+  exact K.tetrahedronFace2Path3
+    (K.reflPath3 α)
+    (K.transFillerTetrahedron α (K.leftUnitorPath2 q))
+    (K.leftUnitorNaturalityPath3Tetrahedron η)
+
+/-- The intermediate 2-cell appearing in the recursive associator step: it keeps
+the left-associated source edge `((α · β) · γ)` fixed, replaces the right edge by
+`refl`, and lands at the rebracketed composite `α · (β · δ)`. -/
+private def KanComplex.associatorStepMidPath2 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Path2
+      (K.compPath (K.compPath α β) γ)
+      (K.compPath α (K.compPath β δ)) := by
+  let Λ : Horn K.toSimplicialSet 2 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then (K.whiskerLeftPath2 β η).simplex
+        else if h2 : i = 2 then (K.compTriangle α (K.compPath β δ)).simplex
+        else (K.assocTriangle α β γ).simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+          omega
+        rcases hij_cases with h02 | h03 | h23
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using (K.compTriangle α (K.compPath β δ)).face0.trans
+            (K.whiskerLeftPath2 β η).face1.symm
+        · rcases h03 with ⟨rfl, rfl⟩
+          simpa using (K.assocTriangle α β γ).face0.trans
+            (K.whiskerLeftPath2 β η).face2.symm
+        · rcases h23 with ⟨rfl, rfl⟩
+          simpa using (K.assocTriangle α β γ).face2.trans
+            (K.compTriangle α (K.compPath β δ)).face2.symm }
+  refine
+    { simplex := K.face 2 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h0 : K.face 2 0 (K.fill Λ) = (K.whiskerLeftPath2 β η).simplex := by
+      simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 1 (K.fill Λ))
+          = K.face 1 0 (K.face 2 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 (K.whiskerLeftPath2 β η).simplex := by rw [h0]
+      _ = (K.reflPath d).simplex := (K.whiskerLeftPath2 β η).face0
+  · have h2 : K.face 2 2 (K.fill Λ) = (K.compTriangle α (K.compPath β δ)).simplex := by
+      simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.compTriangle α (K.compPath β δ)).simplex := by rw [h2]
+      _ = (K.compPath α (K.compPath β δ)).simplex := (K.compTriangle α (K.compPath β δ)).face1
+  · have h3 : K.face 2 3 (K.fill Λ) = (K.assocTriangle α β γ).simplex := by
+      simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 1 1 (K.assocTriangle α β γ).simplex := by rw [h3]
+      _ = (K.compPath (K.compPath α β) γ).simplex := (K.assocTriangle α β γ).face1
+
+/-- The raw tetrahedron filled to define `associatorStepMidTriangle`. -/
+private def KanComplex.associatorStepMidFillerTetrahedron (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Tetrahedron
+      (K.whiskerLeftPath2 β η).toTriangle
+      (K.associatorStepMidPath2 α β η).toTriangle
+      (K.compTriangle α (K.compPath β δ))
+      (K.assocTriangle α β γ) := by
+  let Λ : Horn K.toSimplicialSet 2 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then (K.whiskerLeftPath2 β η).simplex
+        else if h2 : i = 2 then (K.compTriangle α (K.compPath β δ)).simplex
+        else (K.assocTriangle α β γ).simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+          omega
+        rcases hij_cases with h02 | h03 | h23
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using (K.compTriangle α (K.compPath β δ)).face0.trans
+            (K.whiskerLeftPath2 β η).face1.symm
+        · rcases h03 with ⟨rfl, rfl⟩
+          simpa using (K.assocTriangle α β γ).face0.trans
+            (K.whiskerLeftPath2 β η).face2.symm
+        · rcases h23 with ⟨rfl, rfl⟩
+          simpa using (K.assocTriangle α β γ).face2.trans
+            (K.compTriangle α (K.compPath β δ)).face2.symm }
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · change K.face 2 1 (K.fill Λ) = (K.associatorStepMidPath2 α β η).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
+/-- The triangle attached to `associatorStepMidPath2`. -/
+private abbrev KanComplex.associatorStepMidTriangle (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Triangle
+      (K.compPath (K.compPath α β) γ)
+      (K.compPath α (K.compPath β δ))
+      (K.reflPath d) :=
+  (K.associatorStepMidPath2 α β η).toTriangle
+
+/-- The comparison between the associator triangle and the recursive middle
+triangle is exactly left whiskering twice by `α` and `β`. -/
+private def KanComplex.associatorStepMidPath3 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorPath2 α β γ).toTriangle
+        (K.associatorStepMidTriangle α β η))
+      (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η)) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron
+      (K.associatorPath2 α β γ).toTriangle
+      (K.associatorStepMidPath2 α β η).toTriangle)
+    (K.tetrahedronComparisonTetrahedron
+      (K.associatorStepMidFillerTetrahedron α β η)
+      (K.whiskerLeftTetrahedron α (K.whiskerLeftPath2 β η))
+      (K.associatorTetrahedron α β γ))
+
+/-- If the midpoint filler is compared directly against a naturality tetrahedron
+whose middle face is `whiskerLeft (α·β) η ; associator α β δ`, then the
+remaining midpoint step is reduced to that single tetrahedral comparison. -/
+private def KanComplex.associatorStepMidPath3FromNaturalityTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (ωNat :
+      K.Tetrahedron
+        (K.whiskerLeftPath2 β η).toTriangle
+        (K.transPath2
+          (K.whiskerLeftPath2 (K.compPath α β) η)
+          (K.associatorPath2 α β δ)).toTriangle
+        (K.compTriangle α (K.compPath β δ))
+        (K.assocTriangle α β γ)) :
+    K.Path3
+      (K.associatorStepMidPath2 α β η)
+      (K.transPath2
+        (K.whiskerLeftPath2 (K.compPath α β) η)
+        (K.associatorPath2 α β δ)) :=
+  K.tetrahedronPath3
+    (K.associatorStepMidFillerTetrahedron α β η)
+    ωNat
+
+/-- Exact right-half comparison still needed for the recursive associator step.
+Passing it in explicitly isolates the remaining local obstruction. -/
+private def KanComplex.associatorStepMidRightPath3 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hRight :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.symmPath2 (K.associatorPath2 α β δ))) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorStepMidTriangle α β η)
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α β δ)) :=
+  hRight
+
+/-- Once the right-hand comparison from the recursive middle triangle to the
+chosen whiskered triangle is identified with the symmetric associator at `δ`,
+the full associator step follows by triangle-comparison transitivity. -/
+private def KanComplex.associatorStepPath3FromRightComparison (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hRight :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.symmPath2 (K.associatorPath2 α β δ))) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorPath2 α β γ).toTriangle
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+      (K.transPath2
+        (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+        (K.symmPath2 (K.associatorPath2 α β δ))) := by
+  exact K.transPath3
+    (K.trianglePath2TransPath3
+      (K.associatorPath2 α β γ).toTriangle
+      (K.associatorStepMidTriangle α β η)
+      (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+    (K.transPath3
+      (K.transCongrLeftPath3
+        (K.associatorStepMidPath3 α β η)
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle))
+      (K.transCongrRightPath3
+        (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+        hRight))
+
+/-- Boundary tetrahedron whose missing middle face is exactly the comparison
+between the recursive midpoint triangle and the pentagon whisker-front triangle. -/
+private def KanComplex.associatorStepMidPentagonBoundaryTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Tetrahedron
+      η.toTriangle
+      (K.associatorStepMidTriangle α β η)
+      (K.whiskerLeftCompTriangle α β δ)
+      (K.compTriangle (K.compPath α β) γ) := by
+  let ε := K.whiskerLeftTetrahedron β η
+  let ω₁ := K.associatorStepMidFillerTetrahedron α β η
+  let ω₂ := K.whiskerLeftCompTriangleFillerTetrahedron α β δ
+  let κ := K.assocTriangleFillerTetrahedron α β γ
+  let Λ : Horn K.toSimplicialSet 3 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h2 : i = 2 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h02 | hrest
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face1.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h23 | hrest
+              · rcases h23 with ⟨rfl, rfl⟩
+                simpa using ω₂.face2.trans ω₁.face2.symm
+              · rcases hrest with h24 | h34
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.fill Λ))
+          = K.face 2 0 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = η.toTriangle.simplex := ε.face0
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h2]
+      _ = (K.associatorStepMidTriangle α β η).simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h3]
+      _ = (K.whiskerLeftCompTriangle α β δ).simplex := ω₂.face1
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 κ.simplex := by rw [h4]
+      _ = (K.compTriangle (K.compPath α β) γ).simplex := κ.face1
+
+/-- Comparison tetrahedron whose middle face is the desired midpoint-to-pentagon
+front 3-cell. -/
+private def KanComplex.associatorStepMidToPentagonWhiskerFrontComparisonTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Tetrahedron
+      (K.reflPath2 δ).toTriangle
+      (K.trianglePath2
+        (K.associatorStepMidTriangle α β η)
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle).toTriangle
+      (K.compTriangle (K.compPath α β) δ)
+      (K.whiskerLeftCompTriangle α β δ) := by
+  let ε := K.reflTriangleTetrahedron η.toTriangle
+  let ω₁ := K.triangleComparisonTetrahedron
+    (K.associatorStepMidTriangle α β η)
+    (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle
+  let ω₂ := K.whiskerLeftTetrahedron (K.compPath α β) η
+  let κ := K.associatorStepMidPentagonBoundaryTetrahedron α β η
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = ((K.reflPath2 δ).toTriangle).simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h1]
+      _ = (K.trianglePath2
+            (K.associatorStepMidTriangle α β η)
+            (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle).toTriangle.simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h3]
+      _ = (K.compTriangle (K.compPath α β) δ).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.whiskerLeftCompTriangle α β δ).simplex := κ.face2
+
+/-- The missing right-half midpoint/front comparison is already the middle face
+of the boundary tetrahedron built from the recursive midpoint triangle and the
+direct whisker-front pentagon triangle. -/
+private def KanComplex.associatorStepMidToPentagonWhiskerFrontPath3
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorStepMidTriangle α β η)
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+      (K.pentagonWhiskerFrontPath2 α β δ) :=
+  K.tetrahedronPath3
+    (K.associatorStepMidToPentagonWhiskerFrontComparisonTetrahedron α β η)
+    (K.triangleComparisonTetrahedron
+      (K.whiskerLeftCompTriangle α β δ)
+      (K.compTriangle (K.compPath α β) δ))
+
 /-- The scratch pentagon front face `χ` is the symmetry of the ordinary
 associator `(q, r, s)` up to a semantic 3-cell. -/
 private def KanComplex.pentagonFrontSymmAssociatorPath3 (K : KanComplex)
@@ -4108,6 +5405,591 @@ private def KanComplex.pentagonFrontSymmAssociatorPath3 (K : KanComplex)
   K.trianglePath2SymmPath3
     (K.assocTriangle q r s)
     (K.compTriangle q (K.compPath r s))
+
+/-- It suffices to compare the recursive midpoint/front triangle comparison
+directly to the whiskered front pentagon face. The remaining route to the
+symmetric associator at `δ` is already available from the pentagon-front
+comparison and the front/symmetric-associator identification. -/
+private def KanComplex.associatorStepMidRightPath3FromPentagonWhiskerFront
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hMidFront :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.pentagonWhiskerFrontPath2 α β δ)) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorStepMidTriangle α β η)
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α β δ)) := by
+  exact K.transPath3
+    hMidFront
+    (K.transPath3
+      (K.pentagonWhiskerFrontComparisonPath3 α β δ)
+      (K.pentagonFrontSymmAssociatorPath3 α β δ))
+
+/-- A midpoint-to-front comparison already suffices to recover the full reduced
+associator-step comparison. -/
+private def KanComplex.associatorStepPath3FromPentagonWhiskerFront
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hMidFront :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.pentagonWhiskerFrontPath2 α β δ)) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorPath2 α β γ).toTriangle
+        (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+      (K.transPath2
+        (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+        (K.symmPath2 (K.associatorPath2 α β δ))) :=
+  K.associatorStepPath3FromRightComparison α β η <|
+    K.associatorStepMidRightPath3FromPentagonWhiskerFront α β η hMidFront
+
+/-- The older midpoint/right comparison can now be recovered directly from the
+concrete midpoint/front bridge, without introducing any separate naturality
+tetrahedron as primitive data. -/
+private def KanComplex.associatorStepMidPath3FromPentagonWhiskerFront
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hMidFront :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.pentagonWhiskerFrontPath2 α β δ)) :
+    K.Path3
+      (K.associatorStepMidPath2 α β η)
+      (K.transPath2
+        (K.whiskerLeftPath2 (K.compPath α β) η)
+        (K.associatorPath2 α β δ)) := by
+  let M := K.associatorStepMidPath2 α β η
+  let W := K.whiskerLeftPath2 (K.compPath α β) η
+  let A := K.associatorPath2 α β δ
+  let T := K.transPath2 W A
+  have hPent :
+      K.Path3
+        (K.pentagonWhiskerFrontPath2 α β δ)
+        (K.symmPath2 A) := by
+    exact K.transPath3
+      (K.pentagonWhiskerFrontComparisonPath3 α β δ)
+      (K.pentagonFrontSymmAssociatorPath3 α β δ)
+  have hLoop :
+      K.Path3
+        (K.trianglePath2 (K.associatorStepMidTriangle α β η) T.toTriangle)
+        (K.reflPath2 (K.compPath α (K.compPath β δ))) := by
+    exact K.transPath3
+      (K.trianglePath2TransPath3
+        (K.associatorStepMidTriangle α β η)
+        W.toTriangle
+        T.toTriangle)
+      (K.transPath3
+        (K.transPath3
+          (K.transCongrRightPath3
+            (K.trianglePath2
+              (K.associatorStepMidTriangle α β η)
+              W.toTriangle)
+            (K.trianglePath2ToTransPath3 W A))
+          (K.transCongrLeftPath3 hMidFront A))
+        (K.transPath3
+          (K.transCongrLeftPath3 hPent A)
+          (K.transLeftCancelPath3 A)))
+  exact K.symmPath3 <|
+    K.transPath3
+      (K.symmPath3 (K.transFromTriangleComparisonPath3 M T))
+      (K.transPath3
+        (K.transCongrRightPath3 M hLoop)
+        (K.transReflRightPath3 M))
+
+/-- The naturality-style tetrahedron is now a consequence of the concrete
+midpoint/front comparison, rather than an independent frontier object. -/
+private def KanComplex.associatorStepMidNaturalityTetrahedronFromPentagonWhiskerFront
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hMidFront :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorStepMidTriangle α β η)
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.pentagonWhiskerFrontPath2 α β δ)) :
+    K.Tetrahedron
+      (K.whiskerLeftPath2 β η).toTriangle
+      (K.transPath2
+        (K.whiskerLeftPath2 (K.compPath α β) η)
+        (K.associatorPath2 α β δ)).toTriangle
+      (K.compTriangle α (K.compPath β δ))
+      (K.assocTriangle α β γ) :=
+  K.tetrahedronReplaceFace1
+    (K.associatorStepMidPath3FromPentagonWhiskerFront α β η hMidFront)
+    (K.associatorStepMidFillerTetrahedron α β η)
+
+/-- Once the reduced triangle comparison for whiskering over a composite is
+identified, the full associator/whiskering comparison follows by re-extending
+along the left associator. -/
+private def KanComplex.whiskerLeftCompPath3FromTriangleComparison (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ)
+    (hTri :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorPath2 α β γ).toTriangle
+          (K.whiskerLeftPath2 (K.compPath α β) η).toTriangle)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+          (K.symmPath2 (K.associatorPath2 α β δ)))) :
+    K.Path3
+      (K.whiskerLeftPath2 (K.compPath α β) η)
+      (K.transPath2
+        (K.associatorPath2 α β γ)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+          (K.symmPath2 (K.associatorPath2 α β δ)))) := by
+  let Aγ := K.associatorPath2 α β γ
+  let W := K.whiskerLeftPath2 (K.compPath α β) η
+  exact K.transPath3
+    (K.symmPath3 (K.transFromTriangleComparisonPath3 Aγ W))
+    (K.transCongrRightPath3 Aγ hTri)
+
+/-- The composite-whiskering comparison follows by combining the constructive
+midpoint/front bridge with the generic re-extension from the reduced triangle
+comparison. -/
+private def KanComplex.whiskerLeftCompPath3 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b) (β : K.PathSpace b c)
+    {γ δ : K.PathSpace c d} (η : K.Path2 γ δ) :
+    K.Path3
+      (K.whiskerLeftPath2 (K.compPath α β) η)
+      (K.transPath2
+        (K.associatorPath2 α β γ)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerLeftPath2 β η))
+          (K.symmPath2 (K.associatorPath2 α β δ)))) :=
+  K.whiskerLeftCompPath3FromTriangleComparison α β η <|
+    K.associatorStepPath3FromPentagonWhiskerFront α β η <|
+      K.associatorStepMidToPentagonWhiskerFrontPath3 α β η
+
+/-- Midpoint horn for the source-side square comparing
+`(α ◁ η) ▷ δ` against `α ◁ (η ▷ δ)`. -/
+private def KanComplex.whiskerLeftWhiskerRightMidHorn (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    Horn K.toSimplicialSet 2 1 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then (K.whiskerRightPath2 η δ).simplex
+      else if h2 : i = 2 then (K.compTriangle α (K.compPath γ δ)).simplex
+      else (K.assocTriangle α β δ).simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h02 | h03 | h23
+      · rcases h02 with ⟨rfl, rfl⟩
+        simpa using (K.compTriangle α (K.compPath γ δ)).face0.trans
+          (K.whiskerRightPath2 η δ).face1.symm
+      · rcases h03 with ⟨rfl, rfl⟩
+        simpa using (K.assocTriangle α β δ).face0.trans
+          (K.whiskerRightPath2 η δ).face2.symm
+      · rcases h23 with ⟨rfl, rfl⟩
+        simpa using (K.assocTriangle α β δ).face2.trans
+          (K.compTriangle α (K.compPath γ δ)).face2.symm }
+
+/-- Midpoint 2-cell whose left comparison is already constructive; the remaining
+obstruction for `whiskerLeftWhiskerRight` is its right comparison against the
+right-whiskered route. -/
+private def KanComplex.whiskerLeftWhiskerRightMidPath2 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path2 (K.compPath (K.compPath α β) δ) (K.compPath α (K.compPath γ δ)) := by
+  let Λ := K.whiskerLeftWhiskerRightMidHorn α η δ
+  refine
+    { simplex := K.face 2 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h0 : K.face 2 0 (K.fill Λ) = (K.whiskerRightPath2 η δ).simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 1 (K.fill Λ))
+          = K.face 1 0 (K.face 2 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 (K.whiskerRightPath2 η δ).simplex := by rw [h0]
+      _ = (K.reflPath d).simplex := (K.whiskerRightPath2 η δ).face0
+  · have h2 : K.face 2 2 (K.fill Λ) = (K.compTriangle α (K.compPath γ δ)).simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.compTriangle α (K.compPath γ δ)).simplex := by rw [h2]
+      _ = (K.compPath α (K.compPath γ δ)).simplex := (K.compTriangle α (K.compPath γ δ)).face1
+  · have h3 : K.face 2 3 (K.fill Λ) = (K.assocTriangle α β δ).simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 1 1 (K.assocTriangle α β δ).simplex := by rw [h3]
+      _ = (K.compPath (K.compPath α β) δ).simplex := (K.assocTriangle α β δ).face1
+
+/-- The midpoint horn itself, packaged as a tetrahedron. -/
+private def KanComplex.whiskerLeftWhiskerRightMidFillerTetrahedron (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Tetrahedron
+      (K.whiskerRightPath2 η δ).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+      (K.compTriangle α (K.compPath γ δ))
+      (K.assocTriangle α β δ) := by
+  let Λ := K.whiskerLeftWhiskerRightMidHorn α η δ
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · change K.face 2 1 (K.fill Λ) = (K.whiskerLeftWhiskerRightMidPath2 α η δ).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
+/-- Boundary-aware tetrahedron encoding the already-proved left half of the source
+square for `whiskerLeftWhiskerRight`. -/
+private def KanComplex.whiskerLeftWhiskerRightMidLeftComparisonTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath d)).toTriangle
+      (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ)).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+      (K.associatorPath2 α β δ).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.whiskerLeftWhiskerRightMidFillerTetrahedron α η δ)
+    (K.whiskerLeftTetrahedron α (K.whiskerRightPath2 η δ))
+    (K.associatorTetrahedron α β δ)
+
+/-- The left half of the midpoint decomposition is constructive; only the right half
+remains open. -/
+private def KanComplex.whiskerLeftWhiskerRightMidLeftPath3 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorPath2 α β δ).toTriangle
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle)
+      (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ)) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron
+      (K.associatorPath2 α β δ).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle)
+    (K.whiskerLeftWhiskerRightMidLeftComparisonTetrahedron α η δ)
+
+/-- Once the midpoint/right comparison is identified, the reduced triangle
+comparison for `whiskerLeftWhiskerRight` follows by composing it with the
+constructive left half. -/
+private def KanComplex.whiskerLeftWhiskerRightTriangleComparisonFromMidpointRightComparison
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (hRight :
+      K.Path3
+        (K.trianglePath2
+          (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+          (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+        (K.symmPath2 (K.associatorPath2 α γ δ))) :
+    K.Path3
+      (K.trianglePath2
+        (K.associatorPath2 α β δ).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+      (K.transPath2
+        (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ))
+        (K.symmPath2 (K.associatorPath2 α γ δ))) := by
+  let Aβ := K.associatorPath2 α β δ
+  let M := K.whiskerLeftWhiskerRightMidPath2 α η δ
+  let W := K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ
+  let L := K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ)
+  exact K.transPath3
+    (K.trianglePath2TransPath3 Aβ.toTriangle M.toTriangle W.toTriangle)
+    (K.transPath3
+      (K.transCongrRightPath3
+        (K.trianglePath2 Aβ.toTriangle M.toTriangle)
+        hRight)
+      (K.transCongrLeftPath3
+        (K.whiskerLeftWhiskerRightMidLeftPath3 α η δ)
+        (K.symmPath2 (K.associatorPath2 α γ δ))))
+
+/-- A normalized comparison `M ; symm Aγ ~ W` already suffices to recover the
+right half of the midpoint decomposition. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightPath3FromNormalizedComparison
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (hNorm :
+      K.Path3
+        (K.transPath2
+          (K.whiskerLeftWhiskerRightMidPath2 α η δ)
+          (K.symmPath2 (K.associatorPath2 α γ δ)))
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ)) :
+    K.Path3
+      (K.trianglePath2
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α γ δ)) := by
+  let M := K.whiskerLeftWhiskerRightMidPath2 α η δ
+  let A := K.symmPath2 (K.associatorPath2 α γ δ)
+  let W := K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ
+  have hToTrans :
+      K.Path3
+        (K.transPath2 M (K.trianglePath2 M.toTriangle W.toTriangle))
+        (K.transPath2 M A) := by
+    exact K.transPath3
+      (K.transFromTriangleComparisonPath3 M W)
+      (K.symmPath3 hNorm)
+  have hPrep :
+      K.Path3
+        (K.transPath2 (K.symmPath2 M)
+          (K.transPath2 M (K.trianglePath2 M.toTriangle W.toTriangle)))
+        (K.transPath2 (K.symmPath2 M) (K.transPath2 M A)) := by
+    exact K.transCongrRightPath3 (K.symmPath2 M) hToTrans
+  have hLeftSimp :
+      K.Path3
+        (K.transPath2 (K.symmPath2 M)
+          (K.transPath2 M (K.trianglePath2 M.toTriangle W.toTriangle)))
+        (K.trianglePath2 M.toTriangle W.toTriangle) := by
+    exact K.transPath3
+      (K.symmPath3
+        (K.transAssocPath3
+          (K.symmPath2 M)
+          M
+          (K.trianglePath2 M.toTriangle W.toTriangle)))
+      (K.transPath3
+        (K.transCongrLeftPath3
+          (K.transLeftCancelPath3 M)
+          (K.trianglePath2 M.toTriangle W.toTriangle))
+        (K.transReflLeftPath3 (K.trianglePath2 M.toTriangle W.toTriangle)))
+  have hRightSimp :
+      K.Path3
+        (K.transPath2 (K.symmPath2 M) (K.transPath2 M A))
+        A := by
+    exact K.transPath3
+      (K.symmPath3 (K.transAssocPath3 (K.symmPath2 M) M A))
+      (K.transPath3
+        (K.transCongrLeftPath3 (K.transLeftCancelPath3 M) A)
+        (K.transReflLeftPath3 A))
+  exact K.transPath3
+    (K.symmPath3 hLeftSimp)
+    (K.transPath3 hPrep hRightSimp)
+
+/-- The remaining right half can be reduced further to a single boundary-aware
+tetrahedron in the normalized `trans`-filler form. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightPath3FromBoundaryTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (Ω :
+      K.Tetrahedron
+        (K.reflPath2 (K.reflPath d)).toTriangle
+        (K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle) :
+    K.Path3
+      (K.trianglePath2
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α γ δ)) := by
+  let M := K.whiskerLeftWhiskerRightMidPath2 α η δ
+  let A := K.symmPath2 (K.associatorPath2 α γ δ)
+  exact K.whiskerLeftWhiskerRightMidRightPath3FromNormalizedComparison α η δ <|
+    K.tetrahedronFace2Path3
+      (K.reflPath3 M)
+      (K.transFillerTetrahedron M A)
+      Ω
+
+/-- The direct Horn[2,0]-filler whose remaining faces are the target symmetry,
+the direct right whisker, and the midpoint route. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightHorn (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    Horn K.toSimplicialSet 2 0 :=
+  let A := (K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle
+  let W := (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle
+  let M := (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h1 : i = 1 then A.simplex
+      else if h2 : i = 2 then W.simplex
+      else M.simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h12 | h13 | h23
+      · rcases h12 with ⟨rfl, rfl⟩
+        simpa [A, W] using W.face1.trans A.face1.symm
+      · rcases h13 with ⟨rfl, rfl⟩
+        simpa [A, M] using M.face1.trans A.face2.symm
+      · rcases h23 with ⟨rfl, rfl⟩
+        simpa [W, M] using M.face2.trans W.face2.symm }
+
+/-- The raw 3-simplex filling the direct Horn[2,0] for the remaining right half
+of `whiskerLeftWhiskerRight`. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightSimplex (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Simplex 3 :=
+  K.fill (K.whiskerLeftWhiskerRightMidRightHorn α η δ)
+
+/-- The unresolved front loop on `reflPath d` extracted from the direct
+Horn[2,0]-filler for the remaining right half. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightFrontPath2 (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path2 (K.reflPath d) (K.reflPath d) := by
+  let Λ := K.whiskerLeftWhiskerRightMidRightHorn α η δ
+  refine
+    { simplex := K.face 2 0 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h1 :
+        K.face 2 1 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ) =
+          ((K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle).simplex := by
+      simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+        (K.fill_spec Λ (i := 1) (by omega) (by omega))
+    calc
+      K.face 1 0 (K.face 2 0 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ))
+          = K.face 1 0 (K.face 2 1 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)
+                  (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 ((K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle).simplex := by
+            rw [h1]
+      _ = (K.reflPath d).simplex := (K.symmPath2 (K.associatorPath2 α γ δ)).face0
+  · have h2 :
+        K.face 2 2 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ) =
+          ((K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle).simplex := by
+      simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+        (K.fill_spec Λ (i := 2) (by omega) (by omega))
+    calc
+      K.face 1 1 (K.face 2 0 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ))
+          = K.face 1 0 (K.face 2 2 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)
+                  (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 1 0
+            ((K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle).simplex := by
+              rw [h2]
+      _ = (K.reflPath d).simplex :=
+            (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).face0
+  · have h3 :
+        K.face 2 3 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ) =
+          (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle.simplex := by
+      simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+        (K.fill_spec Λ (i := 3) (by omega) (by omega))
+    calc
+      K.face 1 2 (K.face 2 0 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ))
+          = K.face 1 0 (K.face 2 3 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.whiskerLeftWhiskerRightMidRightSimplex α η δ)
+                  (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 1 0 (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle.simplex := by
+            rw [h3]
+      _ = (K.reflPath d).simplex :=
+            (K.whiskerLeftWhiskerRightMidPath2 α η δ).face0
+
+/-- The direct Horn[2,0]-filler already packages the three desired non-front
+faces for the right half of `whiskerLeftWhiskerRight`. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightCandidateTetrahedron
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Tetrahedron
+      (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ).toTriangle
+      (K.symmPath2 (K.associatorPath2 α γ δ)).toTriangle
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle
+      (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle := by
+  let Λ := K.whiskerLeftWhiskerRightMidRightHorn α η δ
+  refine
+    { simplex := K.whiskerLeftWhiskerRightMidRightSimplex α η δ
+      face0 := rfl
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+      (K.fill_spec Λ (i := 1) (by omega) (by omega))
+  · simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+      (K.fill_spec Λ (i := 2) (by omega) (by omega))
+  · simpa [KanComplex.whiskerLeftWhiskerRightMidRightSimplex, Λ] using
+      (K.fill_spec Λ (i := 3) (by omega) (by omega))
+
+/-- Contracting the direct front loop suffices to recover the reduced right-half
+comparison for `whiskerLeftWhiskerRight`. -/
+private def KanComplex.whiskerLeftWhiskerRightMidRightPath3OfFrontPath3
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (frontContract :
+      K.Path3
+        (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+        (K.reflPath2 (K.reflPath d))) :
+    K.Path3
+      (K.trianglePath2
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α γ δ)) := by
+  let A := K.symmPath2 (K.associatorPath2 α γ δ)
+  let W := K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ
+  let M := K.whiskerLeftWhiskerRightMidPath2 α η δ
+  exact K.symmPath3 <|
+    K.tetrahedronFrontPath3 frontContract
+      (K.whiskerLeftWhiskerRightMidRightCandidateTetrahedron α η δ)
+      (K.triangleComparisonTetrahedron M.toTriangle W.toTriangle)
+
+/-- Once the reduced triangle comparison for right whiskering a left whisker is
+identified, the full associator/interchange comparison follows by re-extending
+along the left associator at `(α, β, δ)`. -/
+private def KanComplex.whiskerLeftWhiskerRightPath3FromTriangleComparison
+    (K : KanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d)
+    (hTri :
+      K.Path3
+        (K.trianglePath2
+          (K.associatorPath2 α β δ).toTriangle
+          (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ))
+          (K.symmPath2 (K.associatorPath2 α γ δ)))) :
+    K.Path3
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ)
+      (K.transPath2
+        (K.associatorPath2 α β δ)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ))
+          (K.symmPath2 (K.associatorPath2 α γ δ)))) := by
+  let Aβ := K.associatorPath2 α β δ
+  let W := K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ
+  exact K.transPath3
+    (K.symmPath3 (K.transFromTriangleComparisonPath3 Aβ W))
+    (K.transCongrRightPath3 Aβ hTri)
 
 /-- First corrected pentagon step-1 tetrahedron: it uses the directly whiskered
 front route and the directly whiskered back route, postponing normalization to
@@ -5353,6 +7235,27 @@ structure ReflexiveKanComplex extends KanComplex where
 structure ExtensionalKanComplex extends ReflexiveKanComplex where
   epsilon : ∀ (x : toReflexiveKanComplex.Obj), x = G (F x)
 
+/-- A strict extensional Kan complex is an extensional Kan complex whose chosen
+horn fillers are unique. This is the semantic strengthening that makes the
+remaining pentagon coherence axiom-free. -/
+structure StrictExtensionalKanComplex extends ExtensionalKanComplex where
+  fill_unique : ∀ {n missing : Nat}
+      (Λ : Horn toReflexiveKanComplex.toKanComplex.toSimplicialSet n missing)
+      (σ : toReflexiveKanComplex.toKanComplex.Simplex (n + 1)),
+      (∀ {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
+        toReflexiveKanComplex.toKanComplex.face n i σ =
+          Λ.facet i hmi) →
+      σ = toReflexiveKanComplex.toKanComplex.fill Λ
+
+namespace StrictExtensionalKanComplex
+
+/-- Forget the λ-model structure and retain the underlying strict Kan complex. -/
+def toStrictKanComplex (K : StrictExtensionalKanComplex) : StrictKanComplex where
+  toKanComplex := K.toReflexiveKanComplex.toKanComplex
+  fill_unique := K.fill_unique
+
+end StrictExtensionalKanComplex
+
 /-! ## Application in Kan Complexes (Definition 2.8) -/
 
 def ReflexiveKanComplex.app (K : ReflexiveKanComplex) (a b : K.Obj) : K.Obj :=
@@ -5941,6 +7844,45 @@ noncomputable def Theory3.triangle (K : ExtensionalKanComplex) {L M N : Term}
       (Theory2.whiskerRight K (Theory2.rightUnitor K α) β) :=
   fun ρ => K.trianglePath3 (α ρ) (β ρ)
 
+/-- Right unitor on a semantic composite is coherently the associator followed
+by left whiskering of the right unitor. -/
+noncomputable def Theory3.rightUnitorComp (K : ExtensionalKanComplex)
+    {L M N : Term} (α : Theory1 K L M) (β : Theory1 K M N) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K α β (Theory1.refl K N))
+        (Theory2.whiskerLeft K α (Theory2.rightUnitor K β)))
+      (Theory2.rightUnitor K (Theory1.comp K α β)) :=
+  fun ρ => K.rightUnitorCompPath3 (α ρ) (β ρ)
+
+/-- Left unitor on a semantic composite is coherently the associator followed by
+right whiskering of the left unitor. -/
+noncomputable def Theory3.leftUnitorComp (K : ExtensionalKanComplex)
+    {L M N : Term} (α : Theory1 K L M) (β : Theory1 K M N) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.refl K L) α β)
+        (Theory2.leftUnitor K (Theory1.comp K α β)))
+      (Theory2.whiskerRight K (Theory2.leftUnitor K α) β) :=
+  fun ρ => K.leftUnitorCompPath3 (α ρ) (β ρ)
+
+/-- Left unitor is natural with respect to semantic 2-cells. -/
+noncomputable def Theory3.leftUnitorNaturality (K : ExtensionalKanComplex)
+    {L M : Term} {α β : Theory1 K L M} (η : Theory2 K α β) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.whiskerLeft K (Theory1.refl K L) η)
+        (Theory2.leftUnitor K β))
+      (Theory2.trans K (Theory2.leftUnitor K α) η) :=
+  fun ρ => K.leftUnitorNaturalityPath3 (η ρ)
+
+/-- Left and right unitors agree on reflexive semantic 1-cells. -/
+noncomputable def Theory3.reflUnitors (K : ExtensionalKanComplex) {M : Term} :
+    Theory3 K
+      (Theory2.leftUnitor K (Theory1.refl K M))
+      (Theory2.rightUnitor K (Theory1.refl K M)) :=
+  fun ρ => K.reflUnitorsPath3 (interpret K.toReflexiveKanComplex ρ M)
+
 /-- The modelwise tetrahedron whose middle face is the semantic associator
 2-cell. This is the boundary-aware 3-simplex behind `Theory2.associator`. -/
 noncomputable def Theory3.associatorTetrahedron
@@ -5982,6 +7924,44 @@ noncomputable def Theory3.whiskerLeftCongr
     (Theory3.whiskerLeftTetrahedron K α η)
     (Theory3.whiskerLeftTetrahedron K α θ)
 
+/-- Left whiskering preserves reflexive semantic 2-cells up to semantic
+3-cells. -/
+noncomputable def Theory3.whiskerLeftRefl
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) :
+    Theory3 K (Theory2.whiskerLeft K α (Theory2.refl K β))
+      (Theory2.refl K (Theory1.comp K α β)) :=
+  TheoryTetrahedron.path3 K
+    (Theory3.whiskerLeftTetrahedron K α (Theory2.refl K β))
+    (TheoryTriangle.reflTetrahedron K (Theory1.compTriangle K α β))
+
+/-- Left whiskering of an equality-generated semantic 2-cell agrees with the
+equality-generated 2-cell on the whiskered semantic 1-cells. -/
+noncomputable def Theory3.whiskerLeftOfEq
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) {β γ : Theory1 K M N} (h : β = γ) :
+    Theory3 K (Theory2.whiskerLeft K α (Theory2.ofEq K h))
+      (Theory2.ofEq K (congrArg (fun δ => Theory1.comp K α δ) h)) := by
+  cases h
+  exact Theory3.whiskerLeftRefl K α β
+
+/-- If a semantic 2-cell is already connected to an equality-generated target,
+left whiskering preserves that comparison and lands on the corresponding
+equality-generated whisker. This packages the bookkeeping step that closes many
+recursive coherence arguments after the geometric head normalization has been
+handled separately. -/
+noncomputable def Theory3.whiskerLeftCongrOfEq
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) {β γ : Theory1 K M N}
+    {η : Theory2 K β γ} (h : β = γ) :
+    Theory3 K η (Theory2.ofEq K h) →
+      Theory3 K (Theory2.whiskerLeft K α η)
+        (Theory2.ofEq K (congrArg (fun δ => Theory1.comp K α δ) h))
+  | Κ =>
+      Theory3.trans K
+        (Theory3.whiskerLeftCongr K α Κ)
+        (Theory3.whiskerLeftOfEq K α h)
+
 /-- Left whiskering commutes with vertical composition up to semantic 3-cells. -/
 noncomputable def Theory3.whiskerLeftTrans
     (K : ExtensionalKanComplex) {L M N : Term}
@@ -5993,6 +7973,96 @@ noncomputable def Theory3.whiskerLeftTrans
   fun ρ =>
     K.toReflexiveKanComplex.toKanComplex.whiskerLeftTransPath3
       (α ρ) (η ρ) (θ ρ)
+
+/-- If the reduced triangle comparison for whiskering over a composite is
+available pointwise, it lifts to the full semantic associator/whiskering
+comparison. -/
+noncomputable def Theory3.whiskerLeftComp
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) {γ δ : Theory1 K N P}
+    (η : Theory2 K γ δ) :
+    Theory3 K
+      (Theory2.whiskerLeft K (Theory1.comp K α β) η)
+      (Theory2.trans K
+        (Theory2.associator K α β γ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K α (Theory2.whiskerLeft K β η))
+          (Theory2.symm K (Theory2.associator K α β δ)))) :=
+  fun ρ =>
+    K.toReflexiveKanComplex.toKanComplex.whiskerLeftCompPath3
+      (α ρ) (β ρ) (η ρ)
+
+/-- If the reduced triangle comparison for whiskering over a composite is
+available pointwise, it lifts to the full semantic associator/whiskering
+comparison. -/
+noncomputable def Theory3.whiskerLeftCompFromTriangleComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) {γ δ : Theory1 K N P}
+    (η : Theory2 K γ δ)
+    (hTri :
+      Theory3 K
+        (fun ρ =>
+          K.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α ρ) (β ρ) (γ ρ)).toTriangle
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (K.toReflexiveKanComplex.toKanComplex.compPath (α ρ) (β ρ))
+              (η ρ)).toTriangle)
+        (fun ρ =>
+          K.toReflexiveKanComplex.toKanComplex.transPath2
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2 (α ρ)
+              (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (β ρ) (η ρ)))
+            (K.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α ρ) (β ρ) (δ ρ))))) :
+    Theory3 K
+      (Theory2.whiskerLeft K (Theory1.comp K α β) η)
+      (Theory2.trans K
+        (Theory2.associator K α β γ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K α (Theory2.whiskerLeft K β η))
+          (Theory2.symm K (Theory2.associator K α β δ)))) :=
+  fun ρ =>
+    K.toReflexiveKanComplex.toKanComplex.whiskerLeftCompPath3FromTriangleComparison
+      (α ρ) (β ρ) (η ρ) (hTri ρ)
+
+/-- If the reduced triangle comparison for right whiskering a left whisker is
+available pointwise, it lifts to the full semantic associator/interchange
+comparison. -/
+noncomputable def Theory3.whiskerLeftWhiskerRightFromTriangleComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) {β γ : Theory1 K M N}
+    (η : Theory2 K β γ) (δ : Theory1 K N P)
+    (hTri :
+      Theory3 K
+        (fun ρ =>
+          K.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α ρ) (β ρ) (δ ρ)).toTriangle
+            (K.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α ρ) (η ρ))
+              (δ ρ)).toTriangle)
+        (fun ρ =>
+          K.toReflexiveKanComplex.toKanComplex.transPath2
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (α ρ)
+              (K.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+                (η ρ) (δ ρ)))
+            (K.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α ρ) (γ ρ) (δ ρ))))) :
+    Theory3 K
+      (Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ)
+      (Theory2.trans K
+        (Theory2.associator K α β δ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K α (Theory2.whiskerRight K η δ))
+          (Theory2.symm K (Theory2.associator K α γ δ)))) :=
+  fun ρ =>
+    K.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightPath3FromTriangleComparison
+      (α ρ) (η ρ) (δ ρ) (hTri ρ)
 
 /-- Left whiskering commutes with symmetry up to semantic 3-cells. -/
 noncomputable def Theory3.whiskerLeftSymm
@@ -6045,6 +8115,25 @@ noncomputable def Theory3.invWhiskerRight
       (Theory2.symm K (Theory2.whiskerRight K η γ))
       (Theory2.whiskerRight K (Theory2.symm K η) γ) :=
   Theory3.symm K (Theory3.whiskerRightSymm K η γ)
+
+/-- Right whiskering preserves reflexive semantic 2-cells up to semantic
+3-cells. -/
+noncomputable def Theory3.whiskerRightRefl
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N) :
+    Theory3 K (Theory2.whiskerRight K (Theory2.refl K α) β)
+      (Theory2.refl K (Theory1.comp K α β)) :=
+  fun ρ => K.whiskerRightReflPath3 (α ρ) (β ρ)
+
+/-- Right whiskering of an equality-generated semantic 2-cell agrees with the
+equality-generated 2-cell on the whiskered semantic 1-cells. -/
+noncomputable def Theory3.whiskerRightOfEq
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {α β : Theory1 K L M} (h : α = β) (γ : Theory1 K M N) :
+    Theory3 K (Theory2.whiskerRight K (Theory2.ofEq K h) γ)
+      (Theory2.ofEq K (congrArg (fun δ => Theory1.comp K δ γ) h)) := by
+  cases h
+  exact Theory3.whiskerRightRefl K α γ
 
 /-- The modelwise tetrahedron whose middle face is right whiskering of a
 semantic 2-cell. -/
@@ -6141,6 +8230,37 @@ noncomputable def Theory3.transRightCancel (K : ExtensionalKanComplex) {M N : Te
     Theory3 K (Theory2.trans K η (Theory2.symm K η)) (Theory2.refl K α) :=
   fun ρ => K.transRightCancelPath3 (η ρ)
 
+/-- Left composition with the inverse of a 2-cell yields the reflexive target
+2-cell, up to a semantic 3-cell. -/
+noncomputable def Theory3.transLeftCancel (K : ExtensionalKanComplex) {M N : Term}
+    {α β : Theory1 K M N} (η : Theory2 K α β) :
+    Theory3 K (Theory2.trans K (Theory2.symm K η) η) (Theory2.refl K β) :=
+  fun ρ => K.transLeftCancelPath3 (η ρ)
+
+/-- Right whiskering preserves left cancellation of a semantic 2-cell. -/
+noncomputable def Theory3.whiskerRightLeftCancel
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {α β : Theory1 K L M} (η : Theory2 K α β) (γ : Theory1 K M N) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.whiskerRight K (Theory2.symm K η) γ)
+        (Theory2.whiskerRight K η γ))
+      (Theory2.refl K (Theory1.comp K β γ)) :=
+  Theory3.trans K
+    (Theory3.transCongrLeft K (Theory3.whiskerRightSymm K η γ)
+      (Theory2.whiskerRight K η γ))
+    (Theory3.transLeftCancel K (Theory2.whiskerRight K η γ))
+
+/-- Vertical composition of semantic 2-cells is associative up to semantic
+3-cells. -/
+noncomputable def Theory3.transAssoc (K : ExtensionalKanComplex) {M N : Term}
+    {α β γ δ : Theory1 K M N}
+    (η : Theory2 K α β) (θ : Theory2 K β γ) (ι : Theory2 K γ δ) :
+    Theory3 K
+      (Theory2.trans K (Theory2.trans K η θ) ι)
+      (Theory2.trans K η (Theory2.trans K θ ι)) :=
+  fun ρ => K.transAssocPath3 (η ρ) (θ ρ) (ι ρ)
+
 /-- The symmetry of a semantic vertical composite agrees with the composite of
 the symmetries of its factors in reverse order, up to a semantic 3-cell. -/
 noncomputable def Theory3.symmTrans (K : ExtensionalKanComplex) {M N : Term}
@@ -6148,6 +8268,83 @@ noncomputable def Theory3.symmTrans (K : ExtensionalKanComplex) {M N : Term}
     Theory3 K (Theory2.symm K (Theory2.trans K η θ))
       (Theory2.trans K (Theory2.symm K θ) (Theory2.symm K η)) :=
   fun ρ => K.symmTransPath3 (η ρ) (θ ρ)
+
+/-- Right-cancel a common semantic right factor from a semantic 3-cell between
+two composites. -/
+noncomputable def Theory3.transRightCancelCongr (K : ExtensionalKanComplex)
+    {M N : Term} {α β γ : Theory1 K M N}
+    {η₁ η₂ : Theory2 K α β} (θ : Theory2 K β γ) :
+    Theory3 K (Theory2.trans K η₁ θ) (Theory2.trans K η₂ θ) →
+      Theory3 K η₁ η₂
+  | Κ => by
+      exact Theory3.trans K
+        (Theory3.symm K (Theory3.transReflRight K η₁))
+        (Theory3.trans K
+          (Theory3.transCongrRight K η₁
+            (Theory3.symm K (Theory3.transRightCancel K θ)))
+          (Theory3.trans K
+            (Theory3.symm K (Theory3.transAssoc K η₁ θ (Theory2.symm K θ)))
+            (Theory3.trans K
+              (Theory3.transCongrLeft K Κ (Theory2.symm K θ))
+              (Theory3.trans K
+                (Theory3.transAssoc K η₂ θ (Theory2.symm K θ))
+                (Theory3.trans K
+                  (Theory3.transCongrRight K η₂ (Theory3.transRightCancel K θ))
+                  (Theory3.transReflRight K η₂))))))
+
+/-- Symmetry is congruent on semantic 3-cells. -/
+noncomputable def Theory3.symmCongr (K : ExtensionalKanComplex) {M N : Term}
+    {α β : Theory1 K M N} {η θ : Theory2 K α β} :
+    Theory3 K η θ → Theory3 K (Theory2.symm K η) (Theory2.symm K θ)
+  | Κ =>
+      Theory3.symm K <|
+        Theory3.transRightCancelCongr K η <|
+          Theory3.trans K
+            (Theory3.transCongrRight K (Theory2.symm K θ) Κ)
+            (Theory3.trans K
+              (Theory3.transLeftCancel K θ)
+              (Theory3.symm K (Theory3.transLeftCancel K η)))
+
+/-- Double symmetry on a semantic 2-cell contracts back to the original 2-cell
+up to a semantic 3-cell. -/
+noncomputable def Theory3.symmSymm (K : ExtensionalKanComplex) {M N : Term}
+    {α β : Theory1 K M N} (η : Theory2 K α β) :
+    Theory3 K (Theory2.symm K (Theory2.symm K η)) η := by
+  let ηss := Theory2.symm K (Theory2.symm K η)
+  have h_cancel :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K η) η)
+        (Theory2.trans K (Theory2.symm K η) ηss) := by
+    exact Theory3.trans K
+      (Theory3.transLeftCancel K η)
+      (Theory3.symm K (Theory3.transRightCancel K (Theory2.symm K η)))
+  have h_whisk :
+      Theory3 K
+        (Theory2.trans K η (Theory2.trans K (Theory2.symm K η) η))
+        (Theory2.trans K η (Theory2.trans K (Theory2.symm K η) ηss)) := by
+    exact Theory3.transCongrRight K η h_cancel
+  have h_assoc :
+      Theory3 K
+        (Theory2.trans K (Theory2.trans K η (Theory2.symm K η)) η)
+        (Theory2.trans K (Theory2.trans K η (Theory2.symm K η)) ηss) := by
+    exact Theory3.trans K
+      (Theory3.transAssoc K η (Theory2.symm K η) η)
+      (Theory3.trans K h_whisk
+        (Theory3.symm K (Theory3.transAssoc K η (Theory2.symm K η) ηss)))
+  have h_contract :
+      Theory3 K
+        (Theory2.trans K (Theory2.refl K α) η)
+        (Theory2.trans K (Theory2.refl K α) ηss) := by
+    exact Theory3.trans K
+      (Theory3.symm K
+        (Theory3.transCongrLeft K (Theory3.transRightCancel K η) η))
+      (Theory3.trans K h_assoc
+        (Theory3.transCongrLeft K (Theory3.transRightCancel K η) ηss))
+  exact Theory3.trans K
+    (Theory3.symm K (Theory3.transReflLeft K ηss))
+    (Theory3.trans K
+      (Theory3.symm K h_contract)
+      (Theory3.transReflLeft K η))
 
 /-- A proof-relevant semantic 4-conversion between parallel semantic
 3-conversions in a fixed extensional Kan complex, represented by actual
@@ -6827,6 +9024,43 @@ noncomputable def HoTFT3.triangle {L M N : Term}
       (HoTFT2.whiskerRight (HoTFT2.rightUnitor α) β) :=
   fun K => Theory3.triangle K (α K) (β K)
 
+/-- HoTFT counterpart of `Theory3.rightUnitorComp`. -/
+noncomputable def HoTFT3.rightUnitorComp {L M N : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.associator α β (HoTFT1.refl N))
+        (HoTFT2.whiskerLeft α (HoTFT2.rightUnitor β)))
+      (HoTFT2.rightUnitor (HoTFT1.comp α β)) :=
+  fun K => Theory3.rightUnitorComp K (α K) (β K)
+
+/-- HoTFT counterpart of `Theory3.leftUnitorComp`. -/
+noncomputable def HoTFT3.leftUnitorComp {L M N : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.associator (HoTFT1.refl L) α β)
+        (HoTFT2.leftUnitor (HoTFT1.comp α β)))
+      (HoTFT2.whiskerRight (HoTFT2.leftUnitor α) β) :=
+  fun K => Theory3.leftUnitorComp K (α K) (β K)
+
+/-- HoTFT counterpart of `Theory3.leftUnitorNaturality`. -/
+noncomputable def HoTFT3.leftUnitorNaturality {L M : Term}
+    {α β : HoTFT1 L M} (η : HoTFT2 α β) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.whiskerLeft (HoTFT1.refl L) η)
+        (HoTFT2.leftUnitor β))
+      (HoTFT2.trans (HoTFT2.leftUnitor α) η) :=
+  fun K => Theory3.leftUnitorNaturality K (η K)
+
+/-- HoTFT counterpart of `Theory3.reflUnitors`. -/
+noncomputable def HoTFT3.reflUnitors {M : Term} :
+    HoTFT3
+      (HoTFT2.leftUnitor (HoTFT1.refl M))
+      (HoTFT2.rightUnitor (HoTFT1.refl M)) :=
+  fun K => Theory3.reflUnitors K (M := M)
+
 /-- The boundary-aware tetrahedron whose middle face is left whiskering at the
 HoTFT semantic layer. -/
 noncomputable def HoTFT3.whiskerLeftTetrahedron {L M N : Term}
@@ -6840,6 +9074,33 @@ noncomputable def HoTFT3.whiskerLeftCongr {L M N : Term}
     HoTFT3 (HoTFT2.whiskerLeft α η) (HoTFT2.whiskerLeft α θ) :=
   fun K => Theory3.whiskerLeftCongr K (α K) (Κ K)
 
+/-- Left whiskering preserves reflexive HoTFT 2-cells up to proof-relevant
+HoTFT 3-cells. -/
+noncomputable def HoTFT3.whiskerLeftRefl {L M N : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) :
+    HoTFT3 (HoTFT2.whiskerLeft α (HoTFT2.refl β))
+      (HoTFT2.refl (HoTFT1.comp α β)) :=
+  fun K => Theory3.whiskerLeftRefl K (α K) (β K)
+
+/-- Left whiskering of an equality-generated HoTFT 2-cell agrees with the
+equality-generated whisker on HoTFT 1-cells. -/
+noncomputable def HoTFT3.whiskerLeftOfEq {L M N : Term}
+    (α : HoTFT1 L M) {β γ : HoTFT1 M N} (h : β = γ) :
+    HoTFT3 (HoTFT2.whiskerLeft α (HoTFT2.ofEq h))
+      (HoTFT2.ofEq (congrArg (fun δ => HoTFT1.comp α δ) h)) :=
+  by
+    cases h
+    simpa using HoTFT3.whiskerLeftRefl α β
+
+/-- HoTFT counterpart of `Theory3.whiskerLeftCongrOfEq`. -/
+noncomputable def HoTFT3.whiskerLeftCongrOfEq {L M N : Term}
+    (α : HoTFT1 L M) {β γ : HoTFT1 M N}
+    {η : HoTFT2 β γ} (h : β = γ) :
+    HoTFT3 η (HoTFT2.ofEq h) →
+      HoTFT3 (HoTFT2.whiskerLeft α η)
+        (HoTFT2.ofEq (congrArg (fun δ => HoTFT1.comp α δ) h))
+  | Κ => HoTFT3.trans (HoTFT3.whiskerLeftCongr α Κ) (HoTFT3.whiskerLeftOfEq α h)
+
 /-- Left whiskering commutes with vertical composition up to proof-relevant HoTFT
 3-cells. -/
 noncomputable def HoTFT3.whiskerLeftTrans {L M N : Term}
@@ -6849,6 +9110,88 @@ noncomputable def HoTFT3.whiskerLeftTrans {L M N : Term}
       (HoTFT2.whiskerLeft α (HoTFT2.trans η θ))
       (HoTFT2.trans (HoTFT2.whiskerLeft α η) (HoTFT2.whiskerLeft α θ)) :=
   fun K => Theory3.whiskerLeftTrans K (α K) (η K) (θ K)
+
+/-- HoTFT counterpart of `Theory3.whiskerLeftCompFromTriangleComparison`. -/
+noncomputable def HoTFT3.whiskerLeftComp
+    {L M N P : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) {γ δ : HoTFT1 N P}
+    (η : HoTFT2 γ δ) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (HoTFT1.comp α β) η)
+      (HoTFT2.trans
+        (HoTFT2.associator α β γ)
+        (HoTFT2.trans
+          (HoTFT2.whiskerLeft α (HoTFT2.whiskerLeft β η))
+          (HoTFT2.symm (HoTFT2.associator α β δ)))) :=
+  fun K => Theory3.whiskerLeftComp K (α K) (β K) (η K)
+
+/-- HoTFT counterpart of `Theory3.whiskerLeftCompFromTriangleComparison`. -/
+noncomputable def HoTFT3.whiskerLeftCompFromTriangleComparison
+    {L M N P : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) {γ δ : HoTFT1 N P}
+    (η : HoTFT2 γ δ)
+    (hTri :
+      HoTFT3
+        (fun K ρ =>
+          K.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α K ρ) (β K ρ) (γ K ρ)).toTriangle
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (K.toReflexiveKanComplex.toKanComplex.compPath
+                (α K ρ) (β K ρ))
+              (η K ρ)).toTriangle)
+        (fun K ρ =>
+          K.toReflexiveKanComplex.toKanComplex.transPath2
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (α K ρ)
+              (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (β K ρ) (η K ρ)))
+            (K.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α K ρ) (β K ρ) (δ K ρ))))) :
+    HoTFT3
+      (HoTFT2.whiskerLeft (HoTFT1.comp α β) η)
+      (HoTFT2.trans
+        (HoTFT2.associator α β γ)
+        (HoTFT2.trans
+          (HoTFT2.whiskerLeft α (HoTFT2.whiskerLeft β η))
+          (HoTFT2.symm (HoTFT2.associator α β δ)))) :=
+  fun K => Theory3.whiskerLeftCompFromTriangleComparison K
+    (α K) (β K) (η K) (hTri K)
+
+/-- HoTFT counterpart of `Theory3.whiskerLeftWhiskerRightFromTriangleComparison`. -/
+noncomputable def HoTFT3.whiskerLeftWhiskerRightFromTriangleComparison
+    {L M N P : Term}
+    (α : HoTFT1 L M) {β γ : HoTFT1 M N}
+    (η : HoTFT2 β γ) (δ : HoTFT1 N P)
+    (hTri :
+      HoTFT3
+        (fun K ρ =>
+          K.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α K ρ) (β K ρ) (δ K ρ)).toTriangle
+            (K.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α K ρ) (η K ρ))
+              (δ K ρ)).toTriangle)
+        (fun K ρ =>
+          K.toReflexiveKanComplex.toKanComplex.transPath2
+            (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (α K ρ)
+              (K.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+                (η K ρ) (δ K ρ)))
+            (K.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α K ρ) (γ K ρ) (δ K ρ))))) :
+    HoTFT3
+      (HoTFT2.whiskerRight (HoTFT2.whiskerLeft α η) δ)
+      (HoTFT2.trans
+        (HoTFT2.associator α β δ)
+        (HoTFT2.trans
+          (HoTFT2.whiskerLeft α (HoTFT2.whiskerRight η δ))
+          (HoTFT2.symm (HoTFT2.associator α γ δ)))) :=
+  fun K => Theory3.whiskerLeftWhiskerRightFromTriangleComparison K
+    (α K) (η K) (δ K) (hTri K)
 
 /-- Left whiskering commutes with symmetry up to proof-relevant HoTFT
 3-cells. -/
@@ -6899,6 +9242,22 @@ noncomputable def HoTFT3.invWhiskerRight {L M N : Term}
       (HoTFT2.symm (HoTFT2.whiskerRight η γ))
       (HoTFT2.whiskerRight (HoTFT2.symm η) γ) :=
   HoTFT3.symm (HoTFT3.whiskerRightSymm η γ)
+
+/-- Right whiskering preserves reflexive HoTFT 2-cells up to HoTFT 3-cells. -/
+noncomputable def HoTFT3.whiskerRightRefl {L M N : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N) :
+    HoTFT3 (HoTFT2.whiskerRight (HoTFT2.refl α) β)
+      (HoTFT2.refl (HoTFT1.comp α β)) :=
+  fun K => Theory3.whiskerRightRefl K (α K) (β K)
+
+/-- Right whiskering of an equality-generated HoTFT 2-cell agrees with the
+equality-generated whiskered HoTFT 2-cell. -/
+noncomputable def HoTFT3.whiskerRightOfEq {L M N : Term}
+    {α β : HoTFT1 L M} (h : α = β) (γ : HoTFT1 M N) :
+    HoTFT3 (HoTFT2.whiskerRight (HoTFT2.ofEq h) γ)
+      (HoTFT2.ofEq (congrArg (fun δ => HoTFT1.comp δ γ) h)) := by
+  cases h
+  exact HoTFT3.whiskerRightRefl α γ
 
 /-- The boundary-aware tetrahedron whose middle face is right whiskering at the
 HoTFT semantic layer. -/
@@ -6962,6 +9321,32 @@ noncomputable def HoTFT3.transRightCancel {M N : Term}
     HoTFT3 (HoTFT2.trans η (HoTFT2.symm η)) (HoTFT2.refl α) :=
   fun K => Theory3.transRightCancel K (η K)
 
+/-- Left composition with the inverse of a 2-cell yields the reflexive target
+2-cell at the HoTFT semantic layer. -/
+noncomputable def HoTFT3.transLeftCancel {M N : Term}
+    {α β : HoTFT1 M N} (η : HoTFT2 α β) :
+    HoTFT3 (HoTFT2.trans (HoTFT2.symm η) η) (HoTFT2.refl β) :=
+  fun K => Theory3.transLeftCancel K (η K)
+
+/-- HoTFT counterpart of `Theory3.whiskerRightLeftCancel`. -/
+noncomputable def HoTFT3.whiskerRightLeftCancel {L M N : Term}
+    {α β : HoTFT1 L M} (η : HoTFT2 α β) (γ : HoTFT1 M N) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.whiskerRight (HoTFT2.symm η) γ)
+        (HoTFT2.whiskerRight η γ))
+      (HoTFT2.refl (HoTFT1.comp β γ)) :=
+  fun K => Theory3.whiskerRightLeftCancel K (η K) (γ K)
+
+/-- Vertical composition of HoTFT 2-cells is associative up to a HoTFT 3-cell. -/
+noncomputable def HoTFT3.transAssoc {M N : Term}
+    {α β γ δ : HoTFT1 M N}
+    (η : HoTFT2 α β) (θ : HoTFT2 β γ) (ι : HoTFT2 γ δ) :
+    HoTFT3
+      (HoTFT2.trans (HoTFT2.trans η θ) ι)
+      (HoTFT2.trans η (HoTFT2.trans θ ι)) :=
+  fun K => Theory3.transAssoc K (η K) (θ K) (ι K)
+
 /-- The symmetry of a HoTFT vertical composite agrees with the composite of the
 symmetries of its factors in reverse order, up to a HoTFT 3-cell. -/
 noncomputable def HoTFT3.symmTrans {M N : Term}
@@ -6969,6 +9354,26 @@ noncomputable def HoTFT3.symmTrans {M N : Term}
     HoTFT3 (HoTFT2.symm (HoTFT2.trans η θ))
       (HoTFT2.trans (HoTFT2.symm θ) (HoTFT2.symm η)) :=
   fun K => Theory3.symmTrans K (η K) (θ K)
+
+/-- Right-cancel a common HoTFT right factor from a HoTFT 3-cell between two
+composites. -/
+noncomputable def HoTFT3.transRightCancelCongr {M N : Term}
+    {α β γ : HoTFT1 M N} {η₁ η₂ : HoTFT2 α β} (θ : HoTFT2 β γ) :
+    HoTFT3 (HoTFT2.trans η₁ θ) (HoTFT2.trans η₂ θ) → HoTFT3 η₁ η₂
+  | Κ => fun K => Theory3.transRightCancelCongr K (θ K) (Κ K)
+
+/-- Symmetry is congruent on HoTFT 3-cells. -/
+noncomputable def HoTFT3.symmCongr {M N : Term}
+    {α β : HoTFT1 M N} {η θ : HoTFT2 α β} :
+    HoTFT3 η θ → HoTFT3 (HoTFT2.symm η) (HoTFT2.symm θ)
+  | Κ => fun K => Theory3.symmCongr K (Κ K)
+
+/-- Double symmetry on a HoTFT 2-cell contracts back to the original 2-cell up
+to a HoTFT 3-cell. -/
+noncomputable def HoTFT3.symmSymm {M N : Term}
+    {α β : HoTFT1 M N} (η : HoTFT2 α β) :
+    HoTFT3 (HoTFT2.symm (HoTFT2.symm η)) η :=
+  fun K => Theory3.symmSymm K (η K)
 
 /-- Proof-relevant HoTFT 4-conversions between parallel proof-relevant HoTFT
 3-conversions. -/
@@ -7182,6 +9587,16 @@ noncomputable def homotopy2_in_Theory2
     Theory2 K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q) :=
   homotopy2Deriv_in_Theory2 K α.deriv
 
+/-- Interpreting an equality-generated syntactic 2-cell is exactly the
+corresponding equality-generated semantic 2-cell. -/
+theorem homotopy2_in_Theory2_ofEq
+    (K : ExtensionalKanComplex) {M N : Term} {p q : ReductionSeq M N}
+    (h : p = q) :
+    homotopy2_in_Theory2 K (HigherTerms.Homotopy2.ofEq h) =
+      Theory2.ofEq K (congrArg (fun r => reductionSeq_in_Theory1 K r) h) := by
+  cases h
+  rfl
+
 /-- Interpreting a syntactic reflexive 2-cell in a fixed model is
 definitionally the reflexive semantic 2-cell on the interpreted path. -/
 theorem homotopy2_in_Theory2_refl
@@ -7331,6 +9746,62 @@ noncomputable def reductionSeq_leftUnitor_in_Theory2
       (reductionSeq_in_Theory1 K p) :=
   Theory2.leftUnitor K (reductionSeq_in_Theory1 K p)
 
+/-- Composing the structural semantic comparison for `refl M · p` with the
+endpoint equality of `concat_refl_left` yields the normalized semantic left
+unitor, up to a semantic 3-cell.
+
+This is the left-handed analogue of `reductionSeq_comp_rightUnitor_in_Theory3`
+and is the exact normalization step needed in the `p = refl` base case of the
+associator endpoint bridge. -/
+noncomputable def reductionSeq_comp_leftUnitor_in_Theory3
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    Theory3 K
+      (Theory2.trans K
+        (reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) p)
+        (Theory2.ofEq K
+          (congrArg (fun r => reductionSeq_in_Theory1 K r)
+            (ReductionSeq.concat_refl_left p))))
+      (reductionSeq_leftUnitor_in_Theory2 K p) :=
+  Theory3.transReflRight K (reductionSeq_leftUnitor_in_Theory2 K p)
+
+/-- Left unitor on a structural semantic composite is coherently the associator
+followed by right whiskering of the left unitor. This is the normalized
+left-handed counterpart of `reductionSeq_comp_rightUnitor_in_Theory3`. -/
+noncomputable def reductionSeq_leftUnitorComp_in_Theory3
+    (K : ExtensionalKanComplex) {M N P : Term}
+    (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K
+          (Theory1.refl K M)
+          (reductionSeq_in_Theory1 K q)
+          (reductionSeq_in_Theory1 K r))
+        (Theory2.leftUnitor K
+          (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))))
+      (Theory2.whiskerRight K
+        (Theory2.leftUnitor K (reductionSeq_in_Theory1 K q))
+        (reductionSeq_in_Theory1 K r)) :=
+  Theory3.leftUnitorComp K
+    (reductionSeq_in_Theory1 K q)
+    (reductionSeq_in_Theory1 K r)
+
+/-- Left unitor naturality specialized to the structural semantic comparison
+between an explicit composite and the interpretation of the concatenated path. -/
+noncomputable def reductionSeq_leftUnitorNaturality_in_Theory3
+    (K : ExtensionalKanComplex) {M N P : Term}
+    (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.whiskerLeft K (Theory1.refl K M)
+          (reductionSeq_comp_in_Theory2 K q r))
+        (Theory2.leftUnitor K
+          (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))
+      (Theory2.trans K
+        (Theory2.leftUnitor K
+          (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)))
+        (reductionSeq_comp_in_Theory2 K q r)) :=
+  Theory3.leftUnitorNaturality K (reductionSeq_comp_in_Theory2 K q r)
+
 /-- Right unitor for the structural semantic 1-cell associated to an explicit βη
 path in a fixed model. -/
 noncomputable def reductionSeq_rightUnitor_in_Theory2
@@ -7339,6 +9810,526 @@ noncomputable def reductionSeq_rightUnitor_in_Theory2
       (Theory1.comp K (reductionSeq_in_Theory1 K p) (Theory1.refl K N))
       (reductionSeq_in_Theory1 K p) :=
   Theory2.rightUnitor K (reductionSeq_in_Theory1 K p)
+
+/-- Structural-endpoint shell for the normalized semantic right unitor. This is
+the comparison shape needed to relate the interpreted syntactic right unitor to
+the normalized semantic right-unitor witness while staying on
+`reductionSeq_in_Theory1` endpoints. -/
+noncomputable def reductionSeq_rightUnitor_shell_in_Theory2
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    Theory2 K
+      (reductionSeq_in_Theory1 K (ReductionSeq.concat p (ReductionSeq.refl N)))
+      (reductionSeq_in_Theory1 K p) :=
+  Theory2.trans K
+    (Theory2.symm K (reductionSeq_comp_in_Theory2 K p (ReductionSeq.refl N)))
+    (reductionSeq_rightUnitor_in_Theory2 K p)
+
+/-- Composing the structural semantic comparison for `p · refl` with the
+endpoint equality of `concat_refl_right` yields the normalized semantic right
+unitor, up to a semantic 3-cell. -/
+noncomputable def reductionSeq_comp_rightUnitor_in_Theory3
+    (K : ExtensionalKanComplex) :
+    {M N : Term} → (p : ReductionSeq M N) →
+      Theory3 K
+        (Theory2.trans K
+          (reductionSeq_comp_in_Theory2 K p (ReductionSeq.refl N))
+          (Theory2.ofEq K
+            (congrArg (fun r => reductionSeq_in_Theory1 K r)
+              (ReductionSeq.concat_refl_right p))))
+        (reductionSeq_rightUnitor_in_Theory2 K p)
+  | _, _, .refl M =>
+      Theory3.trans K
+        (Theory3.transReflRight K
+          (reductionSeq_leftUnitor_in_Theory2 K (ReductionSeq.refl M)))
+        (Theory3.reflUnitors K (M := M))
+  | _, _, .step s rest => by
+      let α := betaEtaStep_in_Theory1 K _ _ s
+      let hRest := congrArg (fun r => reductionSeq_in_Theory1 K r)
+        (ReductionSeq.concat_refl_right rest)
+      let eRest : Theory2 K
+          (reductionSeq_in_Theory1 K (ReductionSeq.concat rest (ReductionSeq.refl _)))
+          (reductionSeq_in_Theory1 K rest) :=
+        Theory2.ofEq K hRest
+      let eStep : Theory2 K
+          (reductionSeq_in_Theory1 K
+              (ReductionSeq.concat (ReductionSeq.step s rest) (ReductionSeq.refl _)))
+          (reductionSeq_in_Theory1 K (ReductionSeq.step s rest)) :=
+        Theory2.ofEq K (congrArg (fun δ => Theory1.comp K α δ) hRest)
+      have hWhiskEq :
+          Theory3 K (Theory2.whiskerLeft K α eRest) eStep :=
+        Theory3.whiskerLeftOfEq K α hRest
+      have hInner :
+          Theory3 K
+            (Theory2.trans K
+              (Theory2.whiskerLeft K α
+                (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+              eStep)
+            (Theory2.whiskerLeft K α
+              (reductionSeq_rightUnitor_in_Theory2 K rest)) := by
+        exact Theory3.trans K
+          (Theory3.transCongrRight K
+            (Theory2.whiskerLeft K α
+              (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+            (Theory3.symm K hWhiskEq))
+          (Theory3.trans K
+            (Theory3.symm K (Theory3.whiskerLeftTrans K α
+              (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)) eRest))
+            (Theory3.whiskerLeftCongr K α
+              (reductionSeq_comp_rightUnitor_in_Theory3 K rest)))
+      exact Theory3.trans K
+        (Theory3.transAssoc K
+          (Theory2.associator K α (reductionSeq_in_Theory1 K rest) (Theory1.refl K _))
+          (Theory2.whiskerLeft K α
+            (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+          eStep)
+        (Theory3.trans K
+          (Theory3.transCongrRight K
+            (Theory2.associator K α (reductionSeq_in_Theory1 K rest) (Theory1.refl K _))
+            hInner)
+          (Theory3.rightUnitorComp K α (reductionSeq_in_Theory1 K rest)))
+  | _, _, .stepInv s rest => by
+      let α := betaEtaStepInv_in_Theory1 K _ _ s
+      let hRest := congrArg (fun r => reductionSeq_in_Theory1 K r)
+        (ReductionSeq.concat_refl_right rest)
+      let eRest : Theory2 K
+          (reductionSeq_in_Theory1 K (ReductionSeq.concat rest (ReductionSeq.refl _)))
+          (reductionSeq_in_Theory1 K rest) :=
+        Theory2.ofEq K hRest
+      let eStep : Theory2 K
+          (reductionSeq_in_Theory1 K
+              (ReductionSeq.concat (ReductionSeq.stepInv s rest) (ReductionSeq.refl _)))
+          (reductionSeq_in_Theory1 K (ReductionSeq.stepInv s rest)) :=
+        Theory2.ofEq K (congrArg (fun δ => Theory1.comp K α δ) hRest)
+      have hWhiskEq :
+          Theory3 K (Theory2.whiskerLeft K α eRest) eStep :=
+        Theory3.whiskerLeftOfEq K α hRest
+      have hInner :
+          Theory3 K
+            (Theory2.trans K
+              (Theory2.whiskerLeft K α
+                (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+              eStep)
+            (Theory2.whiskerLeft K α
+              (reductionSeq_rightUnitor_in_Theory2 K rest)) := by
+        exact Theory3.trans K
+          (Theory3.transCongrRight K
+            (Theory2.whiskerLeft K α
+              (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+            (Theory3.symm K hWhiskEq))
+          (Theory3.trans K
+            (Theory3.symm K (Theory3.whiskerLeftTrans K α
+              (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)) eRest))
+            (Theory3.whiskerLeftCongr K α
+              (reductionSeq_comp_rightUnitor_in_Theory3 K rest)))
+      exact Theory3.trans K
+        (Theory3.transAssoc K
+          (Theory2.associator K α (reductionSeq_in_Theory1 K rest) (Theory1.refl K _))
+          (Theory2.whiskerLeft K α
+            (reductionSeq_comp_in_Theory2 K rest (ReductionSeq.refl _)))
+          eStep)
+        (Theory3.trans K
+          (Theory3.transCongrRight K
+            (Theory2.associator K α (reductionSeq_in_Theory1 K rest) (Theory1.refl K _))
+            hInner)
+          (Theory3.rightUnitorComp K α (reductionSeq_in_Theory1 K rest)))
+
+/-- The interpreted syntactic right unitor agrees with the structural-endpoint
+right-unitor shell built from the normalized semantic right unitor. -/
+noncomputable def homotopy2_rightUnitor_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (HigherTerms.rightUnitor p))
+      (reductionSeq_rightUnitor_shell_in_Theory2 K p) := by
+  let e : Theory2 K
+      (reductionSeq_in_Theory1 K (ReductionSeq.concat p (ReductionSeq.refl N)))
+      (reductionSeq_in_Theory1 K p) :=
+    Theory2.ofEq K
+      (congrArg (fun r => reductionSeq_in_Theory1 K r)
+        (ReductionSeq.concat_refl_right p))
+  have hShell : Theory3 K (reductionSeq_rightUnitor_shell_in_Theory2 K p) e := by
+    let c := reductionSeq_comp_in_Theory2 K p (ReductionSeq.refl N)
+    exact Theory3.trans K
+      (Theory3.transCongrRight K (Theory2.symm K c)
+        (Theory3.symm K (reductionSeq_comp_rightUnitor_in_Theory3 K p)))
+      (Theory3.trans K
+        (Theory3.symm K (Theory3.transAssoc K (Theory2.symm K c) c e))
+        (Theory3.trans K
+          (Theory3.transCongrLeft K (Theory3.transLeftCancel K c) e)
+          (Theory3.transReflLeft K e)))
+  have hInterp :
+      homotopy2_in_Theory2 K (HigherTerms.rightUnitor p) = e :=
+    homotopy2_in_Theory2_ofEq K (ReductionSeq.concat_refl_right p)
+  exact hInterp ▸ Theory3.symm K hShell
+
+/-- Structural-endpoint shell for the normalized semantic left unitor. This is
+the comparison shape needed to relate the interpreted syntactic left unitor to
+the normalized semantic left-unitor witness while staying on
+`reductionSeq_in_Theory1` endpoints. -/
+noncomputable def reductionSeq_leftUnitor_shell_in_Theory2
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    Theory2 K
+      (reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) p))
+      (reductionSeq_in_Theory1 K p) :=
+  Theory2.trans K
+    (Theory2.symm K (reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) p))
+    (reductionSeq_leftUnitor_in_Theory2 K p)
+
+/-- Structural-endpoint shell for the normalized semantic associator. The outer
+endpoints stay on `reductionSeq_in_Theory1`, while the middle of the shell
+passes through the semantic right-whiskered comparison, the semantic
+associator, and the semantic left whisker of the target-side composition
+comparison. -/
+noncomputable def reductionSeq_associator_source_in_Theory2
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory2 K
+      (reductionSeq_in_Theory1 K
+        (ReductionSeq.concat (ReductionSeq.concat p q) r))
+      (Theory1.comp K
+        (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+        (reductionSeq_in_Theory1 K r)) :=
+  Theory2.trans K
+    (Theory2.symm K (reductionSeq_comp_in_Theory2 K (ReductionSeq.concat p q) r))
+    (Theory2.whiskerRight K
+      (Theory2.symm K (reductionSeq_comp_in_Theory2 K p q))
+      (reductionSeq_in_Theory1 K r))
+
+/-- Target-side normalization leg for the structural associator shell. -/
+noncomputable def reductionSeq_associator_target_in_Theory2
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory2 K
+      (Theory1.comp K
+        (reductionSeq_in_Theory1 K p)
+        (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)))
+      (reductionSeq_in_Theory1 K
+        (ReductionSeq.concat p (ReductionSeq.concat q r))) :=
+  Theory2.trans K
+    (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K p)
+      (reductionSeq_comp_in_Theory2 K q r))
+    (reductionSeq_comp_in_Theory2 K p (ReductionSeq.concat q r))
+
+/-- Structural-endpoint shell for the normalized semantic associator. The outer
+endpoints stay on `reductionSeq_in_Theory1`, while the middle of the shell
+passes through the semantic right-whiskered comparison, the semantic
+associator, and the semantic left whisker of the target-side composition
+comparison. -/
+noncomputable def reductionSeq_associator_shell_in_Theory2
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory2 K
+      (reductionSeq_in_Theory1 K
+        (ReductionSeq.concat (ReductionSeq.concat p q) r))
+      (reductionSeq_in_Theory1 K
+        (ReductionSeq.concat p (ReductionSeq.concat q r))) :=
+  Theory2.trans K
+    (reductionSeq_associator_source_in_Theory2 K p q r)
+    (Theory2.trans K
+      (reductionSeq_associator_in_Theory2 K p q r)
+      (reductionSeq_associator_target_in_Theory2 K p q r))
+
+/-- Base case of the associator comparison: when the left explicit path is
+reflexive, the structural associator shell collapses to the equality-generated
+semantic associator via left-unitor naturality and left-unitor-on-composites. -/
+noncomputable def reductionSeq_comp_associator_refl_in_Theory3
+    (K : ExtensionalKanComplex) {M N P : Term}
+    (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory3 K
+      (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.refl M) q r)
+      (Theory2.ofEq K
+        (congrArg (fun t => reductionSeq_in_Theory1 K t)
+          (ReductionSeq.concat_assoc (ReductionSeq.refl M) q r))) := by
+  change Theory3 K
+    (Theory2.trans K
+      (Theory2.trans K
+        (Theory2.symm K
+          (reductionSeq_comp_in_Theory2 K ((ReductionSeq.refl M).concat q) r))
+        (Theory2.whiskerRight K
+          (Theory2.symm K
+            (Theory2.leftUnitor K (reductionSeq_in_Theory1 K q)))
+          (reductionSeq_in_Theory1 K r)))
+      (Theory2.trans K
+        (Theory2.associator K (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+          (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+        (Theory2.trans K
+          (Theory2.whiskerLeft K
+            (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+            (reductionSeq_comp_in_Theory2 K q r))
+          (Theory2.leftUnitor K
+            (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))))
+    (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat q r)))
+  let c := reductionSeq_comp_in_Theory2 K q r
+  let lu := Theory2.leftUnitor K (reductionSeq_in_Theory1 K q)
+  have hNat :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.whiskerLeft K (Theory1.refl K M) c)
+          (Theory2.leftUnitor K (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))
+        (Theory2.trans K
+          (Theory2.leftUnitor K
+            (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r)))
+          c) :=
+    reductionSeq_leftUnitorNaturality_in_Theory3 K q r
+  have hComp :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K (Theory1.refl K M)
+            (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+          (Theory2.leftUnitor K
+            (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))))
+        (Theory2.whiskerRight K
+          (Theory2.leftUnitor K (reductionSeq_in_Theory1 K q))
+          (reductionSeq_in_Theory1 K r)) :=
+    reductionSeq_leftUnitorComp_in_Theory3 K q r
+  have hInnerCore :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K (Theory1.refl K M)
+            (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+          (Theory2.trans K
+            (Theory2.whiskerLeft K (Theory1.refl K M) c)
+            (Theory2.leftUnitor K
+              (reductionSeq_in_Theory1 K (ReductionSeq.concat q r)))))
+        (Theory2.trans K
+          (Theory2.whiskerRight K lu (reductionSeq_in_Theory1 K r))
+          c) := by
+    exact Theory3.trans K
+      (Theory3.transCongrRight K
+        (Theory2.associator K (Theory1.refl K M)
+          (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+        hNat)
+      (Theory3.trans K
+        (Theory3.symm K
+          (Theory3.transAssoc K
+            (Theory2.associator K (Theory1.refl K M)
+              (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+            (Theory2.leftUnitor K
+              (Theory1.comp K (reductionSeq_in_Theory1 K q)
+                (reductionSeq_in_Theory1 K r)))
+            c))
+        (Theory3.transCongrLeft K hComp c))
+  have hCancelLu :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+          (Theory2.trans K
+            (Theory2.whiskerRight K lu (reductionSeq_in_Theory1 K r))
+            c))
+        c := by
+    exact Theory3.trans K
+      (Theory3.symm K
+        (Theory3.transAssoc K
+          (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+          (Theory2.whiskerRight K lu (reductionSeq_in_Theory1 K r))
+          c))
+      (Theory3.trans K
+        (Theory3.transCongrLeft K
+          (Theory3.whiskerRightLeftCancel K lu (reductionSeq_in_Theory1 K r))
+          c)
+        (Theory3.transReflLeft K c))
+  have hInner :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+          (Theory2.trans K
+            (Theory2.associator K (Theory1.refl K M)
+              (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+            (Theory2.trans K
+              (Theory2.whiskerLeft K (Theory1.refl K M) c)
+              (Theory2.leftUnitor K
+                (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))))
+        c := by
+    exact Theory3.trans K
+      (Theory3.transCongrRight K
+        (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+        hInnerCore)
+      hCancelLu
+  let c0 := reductionSeq_comp_in_Theory2 K ((ReductionSeq.refl M).concat q) r
+  have hCancel :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K c0) c)
+        (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))) := by
+    simpa [ReductionSeq.concat, c0, c] using
+      (Theory3.transLeftCancel K c)
+  have hOuterAssoc :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c0)
+            (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r)))
+          (Theory2.trans K
+            (Theory2.associator K (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+              (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+            (Theory2.trans K
+              (Theory2.whiskerLeft K
+                (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+                c)
+              (Theory2.leftUnitor K
+                (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))))
+        (Theory2.trans K (Theory2.symm K c0)
+          (Theory2.trans K
+            (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+            (Theory2.trans K
+              (Theory2.associator K (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+                (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+              (Theory2.trans K
+                (Theory2.whiskerLeft K
+                  (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+                  c)
+                (Theory2.leftUnitor K
+                  (reductionSeq_in_Theory1 K (ReductionSeq.concat q r))))))) :=
+    Theory3.transAssoc K
+      (Theory2.symm K c0)
+      (Theory2.whiskerRight K (Theory2.symm K lu) (reductionSeq_in_Theory1 K r))
+      (Theory2.trans K
+        (Theory2.associator K (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+          (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+        (Theory2.trans K
+          (Theory2.whiskerLeft K
+            (reductionSeq_in_Theory1 K (ReductionSeq.refl M))
+            c)
+          (Theory2.leftUnitor K
+            (reductionSeq_in_Theory1 K (ReductionSeq.concat q r)))))
+  exact Theory3.trans K
+    hOuterAssoc
+    (Theory3.trans K
+      (Theory3.transCongrRight K (Theory2.symm K c0) hInner)
+      hCancel)
+
+/-- Final bookkeeping step for the recursive associator comparison when the
+left explicit path begins with a forward βη step.
+
+The only remaining input is a `head` bridge that contracts the full structural
+associator shell for `step s rest` to the left whisker of the tail shell. Once
+that geometric normalization is available, the inductive hypothesis closes the
+step by `Theory3.whiskerLeftCongrOfEq`. -/
+noncomputable def reductionSeq_comp_associator_step_finish_in_Theory3
+    (K : ExtensionalKanComplex) {L M N P Q : Term}
+    (s : BetaEtaStep L M) (rest : ReductionSeq M N)
+    (q : ReductionSeq N P) (r : ReductionSeq P Q)
+    (ih :
+      Theory3 K
+        (reductionSeq_associator_shell_in_Theory2 K rest q r)
+        (Theory2.ofEq K
+          (congrArg (fun u => reductionSeq_in_Theory1 K u)
+            (ReductionSeq.concat_assoc rest q r))))
+    (head :
+      Theory3 K
+        (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.step s rest) q r)
+        (Theory2.whiskerLeft K (betaEtaStep_in_Theory1 K L M s)
+          (reductionSeq_associator_shell_in_Theory2 K rest q r))) :
+    Theory3 K
+      (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.step s rest) q r)
+      (Theory2.ofEq K
+        (congrArg (fun u => reductionSeq_in_Theory1 K u)
+          (ReductionSeq.concat_assoc (ReductionSeq.step s rest) q r))) := by
+  let hRest :=
+    congrArg (fun u => reductionSeq_in_Theory1 K u)
+      (ReductionSeq.concat_assoc rest q r)
+  exact Theory3.trans K head
+    (Theory3.whiskerLeftCongrOfEq K (betaEtaStep_in_Theory1 K L M s) hRest ih)
+
+/-- Final bookkeeping step for the recursive associator comparison when the
+left explicit path begins with an inverse βη step. This is the inverse-step
+analogue of `reductionSeq_comp_associator_step_finish_in_Theory3`. -/
+noncomputable def reductionSeq_comp_associator_stepInv_finish_in_Theory3
+    (K : ExtensionalKanComplex) {L M N P Q : Term}
+    (s : BetaEtaStep M L) (rest : ReductionSeq M N)
+    (q : ReductionSeq N P) (r : ReductionSeq P Q)
+    (ih :
+      Theory3 K
+        (reductionSeq_associator_shell_in_Theory2 K rest q r)
+        (Theory2.ofEq K
+          (congrArg (fun u => reductionSeq_in_Theory1 K u)
+            (ReductionSeq.concat_assoc rest q r))))
+    (head :
+      Theory3 K
+        (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.stepInv s rest) q r)
+        (Theory2.whiskerLeft K (betaEtaStepInv_in_Theory1 K L M s)
+          (reductionSeq_associator_shell_in_Theory2 K rest q r))) :
+    Theory3 K
+      (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.stepInv s rest) q r)
+      (Theory2.ofEq K
+        (congrArg (fun u => reductionSeq_in_Theory1 K u)
+          (ReductionSeq.concat_assoc (ReductionSeq.stepInv s rest) q r))) := by
+  let hRest :=
+    congrArg (fun u => reductionSeq_in_Theory1 K u)
+      (ReductionSeq.concat_assoc rest q r)
+  exact Theory3.trans K head
+    (Theory3.whiskerLeftCongrOfEq K (betaEtaStepInv_in_Theory1 K L M s) hRest ih)
+
+/-- Recursive associator comparison, parameterized by the still-missing head
+bridges for forward and inverse leading βη steps.
+
+This packages the entire recursion and bookkeeping layer now, so the remaining
+geometric frontier is exactly the local step-head normalization. -/
+noncomputable def reductionSeq_comp_associator_in_Theory3_of_heads
+    (K : ExtensionalKanComplex)
+    (stepHead :
+      ∀ {L M N P Q : Term} (s : BetaEtaStep L M) (rest : ReductionSeq M N)
+          (q : ReductionSeq N P) (r : ReductionSeq P Q),
+        Theory3 K
+          (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.step s rest) q r)
+          (Theory2.whiskerLeft K (betaEtaStep_in_Theory1 K L M s)
+            (reductionSeq_associator_shell_in_Theory2 K rest q r)))
+    (stepInvHead :
+      ∀ {L M N P Q : Term} (s : BetaEtaStep M L) (rest : ReductionSeq M N)
+          (q : ReductionSeq N P) (r : ReductionSeq P Q),
+        Theory3 K
+          (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.stepInv s rest) q r)
+          (Theory2.whiskerLeft K (betaEtaStepInv_in_Theory1 K L M s)
+            (reductionSeq_associator_shell_in_Theory2 K rest q r))) :
+    {L M N P : Term} → (p : ReductionSeq L M) → (q : ReductionSeq M N) →
+      (r : ReductionSeq N P) →
+      Theory3 K
+        (reductionSeq_associator_shell_in_Theory2 K p q r)
+        (Theory2.ofEq K
+          (congrArg (fun u => reductionSeq_in_Theory1 K u)
+            (ReductionSeq.concat_assoc p q r)))
+  | _, _, _, _, .refl M, q, r =>
+      reductionSeq_comp_associator_refl_in_Theory3 K q r
+  | _, _, _, _, .step s rest, q, r =>
+      reductionSeq_comp_associator_step_finish_in_Theory3 K s rest q r
+        (reductionSeq_comp_associator_in_Theory3_of_heads K stepHead stepInvHead rest q r)
+        (stepHead s rest q r)
+  | _, _, _, _, .stepInv s rest, q, r =>
+      reductionSeq_comp_associator_stepInv_finish_in_Theory3 K s rest q r
+        (reductionSeq_comp_associator_in_Theory3_of_heads K stepHead stepInvHead rest q r)
+        (stepInvHead s rest q r)
+
+/-- The interpreted syntactic left unitor agrees with the structural-endpoint
+left-unitor shell built from the normalized semantic left unitor. -/
+noncomputable def homotopy2_leftUnitor_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {M N : Term} (p : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (HigherTerms.leftUnitor p))
+      (reductionSeq_leftUnitor_shell_in_Theory2 K p) :=
+  Theory3.symm K <| by
+    change Theory3 K
+      (reductionSeq_leftUnitor_shell_in_Theory2 K p)
+      (Theory2.ofEq K
+        (congrArg (fun r => reductionSeq_in_Theory1 K r)
+          (ReductionSeq.concat_refl_left p)))
+    simpa [reductionSeq_leftUnitor_shell_in_Theory2, reductionSeq_leftUnitor_in_Theory2,
+      reductionSeq_comp_in_Theory2, Theory2.ofEq] using
+      (Theory3.transLeftCancel K (reductionSeq_leftUnitor_in_Theory2 K p))
+
+/-- Left whiskering preserves the left-unitor endpoint bridge. This is the
+structural form needed for the source side of the syntactic triangle
+constructor. -/
+noncomputable def homotopy2_whiskerLeft_leftUnitor_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (HigherTerms.whiskerLeft r (HigherTerms.leftUnitor p)))
+      (reductionSeq_whiskerLeft_in_Theory2 K r
+        (reductionSeq_leftUnitor_shell_in_Theory2 K p)) := by
+  change Theory3 K
+    (reductionSeq_whiskerLeft_in_Theory2 K r
+      (homotopy2_in_Theory2 K (HigherTerms.leftUnitor p)))
+    (reductionSeq_whiskerLeft_in_Theory2 K r
+      (reductionSeq_leftUnitor_shell_in_Theory2 K p))
+  exact reductionSeq_whiskerLeftCongr_in_Theory3 K r
+    (homotopy2_leftUnitor_bridge_in_Theory3 K p)
 
 /-- Degenerating the semantic composition triangle yields a boundary-aware
 semantic tetrahedron whose middle face is the reflexive 2-cell on the semantic
@@ -7432,10 +10423,40 @@ noncomputable def homotopy2_whiskerLeftTrans_in_Theory3
       (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r)
         (Theory2.trans K (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)))
       (Theory2.trans K
-        (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K α))
-        (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K β))) :=
+      (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K α))
+      (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K r) (homotopy2_in_Theory2 K β))) :=
   Theory3.whiskerLeftTrans K (reductionSeq_in_Theory1 K r)
     (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)
+
+/-- Left whiskering along a composite explicit path agrees with iterated left
+whiskering plus the associator comparison on interpreted explicit 2-cells. -/
+noncomputable def homotopy2_whiskerLeftComp_in_Theory3
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N)
+    {r s : ReductionSeq N P} (α : Homotopy2 r s) :
+    Theory3 K
+      (Theory2.whiskerLeft K
+        (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+        (homotopy2_in_Theory2 K α))
+      (Theory2.trans K
+        (Theory2.associator K
+          (reductionSeq_in_Theory1 K p)
+          (reductionSeq_in_Theory1 K q)
+          (reductionSeq_in_Theory1 K r))
+        (Theory2.trans K
+          (Theory2.whiskerLeft K
+            (reductionSeq_in_Theory1 K p)
+            (Theory2.whiskerLeft K (reductionSeq_in_Theory1 K q)
+              (homotopy2_in_Theory2 K α)))
+          (Theory2.symm K
+            (Theory2.associator K
+              (reductionSeq_in_Theory1 K p)
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K s))))) :=
+  Theory3.whiskerLeftComp K
+    (reductionSeq_in_Theory1 K p)
+    (reductionSeq_in_Theory1 K q)
+    (homotopy2_in_Theory2 K α)
 
 /-- Left whiskering commutes with symmetry for interpreted explicit 2-cells. -/
 noncomputable def homotopy2_whiskerLeftSymm_in_Theory3
@@ -7510,6 +10531,30 @@ noncomputable def homotopy2_invWhiskerRight_in_Theory3
          (reductionSeq_in_Theory1 K s)) :=
   Theory3.invWhiskerRight K (homotopy2_in_Theory2 K α)
     (reductionSeq_in_Theory1 K s)
+
+/-- Right composition with an interpreted explicit 2-cell followed by its inverse
+normalizes to the reflexive source 2-cell. -/
+noncomputable def homotopy2_transRightCancel_in_Theory3
+    (K : ExtensionalKanComplex) {M N : Term}
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    Theory3 K
+      (Theory2.trans K
+        (homotopy2_in_Theory2 K α)
+        (Theory2.symm K (homotopy2_in_Theory2 K α)))
+      (Theory2.refl K (reductionSeq_in_Theory1 K p)) :=
+  Theory3.transRightCancel K (homotopy2_in_Theory2 K α)
+
+/-- Left composition with the inverse of an interpreted explicit 2-cell
+normalizes to the reflexive target 2-cell. -/
+noncomputable def homotopy2_transLeftCancel_in_Theory3
+    (K : ExtensionalKanComplex) {M N : Term}
+    {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.symm K (homotopy2_in_Theory2 K α))
+        (homotopy2_in_Theory2 K α))
+      (Theory2.refl K (reductionSeq_in_Theory1 K q)) :=
+  Theory3.transLeftCancel K (homotopy2_in_Theory2 K α)
 
 /-- Triangle coherence for interpreted explicit paths. -/
 noncomputable def reductionSeq_triangle_in_Theory3
@@ -7666,8 +10711,8 @@ noncomputable def reductionSeq_whiskerRight_refl_simplify_in_Theory3
   homotopy2_whiskerRightRefl_in_Theory3 K p s
 
 /-- The inner composite in the legacy structural right-whisker reflexivity
-shell normalizes to the comparison 2-cell `c`. This isolates the remaining
-blocker to transporting along the fixed left factor `symm c`. -/
+shell normalizes to the comparison 2-cell `c`. This isolates the final
+cancellation step for the unnormalized structural shell. -/
 noncomputable def reductionSeq_whiskerRight_refl_inner_in_Theory3
     (K : ExtensionalKanComplex) {L M N : Term}
     (p : ReductionSeq L M) (s : ReductionSeq M N) :
@@ -7683,6 +10728,316 @@ noncomputable def reductionSeq_whiskerRight_refl_inner_in_Theory3
       (reductionSeq_whiskerRight_refl_simplify_in_Theory3 K p s)
       (reductionSeq_comp_in_Theory2 K p s))
     (Theory3.transReflLeft K (reductionSeq_comp_in_Theory2 K p s))
+
+/-- The full legacy structural right-whisker reflexivity shell contracts to the
+reflexive semantic 2-cell on the interpreted concatenation. -/
+noncomputable def reductionSeq_whiskerRight_refl_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    Theory3 K
+      (reductionSeq_whiskerRight_in_Theory2 K
+        (Theory2.refl K (reductionSeq_in_Theory1 K p)) s)
+      (Theory2.refl K (reductionSeq_in_Theory1 K (ReductionSeq.concat p s))) := by
+  let c := reductionSeq_comp_in_Theory2 K p s
+  exact Theory3.trans K
+    (Theory3.transCongrRight K (Theory2.symm K c)
+      (reductionSeq_whiskerRight_refl_inner_in_Theory3 K p s))
+    (Theory3.transLeftCancel K c)
+
+/-- Interpreting a syntactic right whisker agrees with the legacy structural
+right-whisker semantic shell, up to a semantic 3-cell. The only nontrivial
+case is the reflexive input, where the direct interpreter normalizes eagerly. -/
+noncomputable def homotopy2Deriv_whiskerRight_bridge_in_Theory3
+    (K : ExtensionalKanComplex) :
+    {L M N : Term} → {p q : ReductionSeq L M} →
+      (α : Homotopy2Deriv p q) → (s : ReductionSeq M N) →
+        Theory3 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerRight α s))
+          (reductionSeq_whiskerRight_in_Theory2 K (homotopy2Deriv_in_Theory2 K α) s)
+  | _, _, _, _, _, .refl p, s =>
+      Theory3.trans K
+        (homotopy2_whiskerRight_refl_source_bridge_in_Theory3 K p s)
+        (Theory3.symm K (reductionSeq_whiskerRight_refl_bridge_in_Theory3 K p s))
+  | _, _, _, _, _, .ofEq h, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.ofEq h)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.ofEq h)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.ofEq h)) s)
+  | _, _, _, _, _, .symm α, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.symm α)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.symm α)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.symm α)) s)
+  | _, _, _, _, _, .trans α β, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.trans α β)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.trans α β)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.trans α β)) s)
+  | _, _, _, _, _, .diamond p₁ p₂ q₁ q₂, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.diamond p₁ p₂ q₁ q₂)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.diamond p₁ p₂ q₁ q₂)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.diamond p₁ p₂ q₁ q₂)) s)
+  | _, _, _, _, _, .whiskerLeft r α, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerLeft r α)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerLeft r α)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerLeft r α)) s)
+  | _, _, _, _, _, .whiskerRight α r, s => by
+      change Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerRight α r)) s)
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerRight α r)) s)
+      exact Theory3.refl K
+        (reductionSeq_whiskerRight_in_Theory2 K
+          (homotopy2Deriv_in_Theory2 K (Homotopy2Deriv.whiskerRight α r)) s)
+
+/-- Interpreting a syntactic right whisker agrees with the legacy structural
+right-whisker semantic shell, up to a semantic 3-cell. -/
+noncomputable def homotopy2_whiskerRight_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q : ReductionSeq L M} (α : Homotopy2 p q) (s : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (whiskerRight α s))
+      (reductionSeq_whiskerRight_in_Theory2 K (homotopy2_in_Theory2 K α) s) :=
+  homotopy2Deriv_whiskerRight_bridge_in_Theory3 K α.deriv s
+
+/-- The first normalization step for the structural right-whisker transitivity
+shell replaces the inner whisker of a semantic composite by the composite of
+the normalized whiskers, leaving only the remaining rebracketing and
+comparison-shell insertion problem. -/
+noncomputable def reductionSeq_whiskerRightTrans_head_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q r : ReductionSeq L M}
+    (η : Theory2 K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+    (θ : Theory2 K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+    (s : ReductionSeq M N) :
+    Theory3 K
+      (reductionSeq_whiskerRight_in_Theory2 K (Theory2.trans K η θ) s)
+      (Theory2.trans K
+        (Theory2.symm K (reductionSeq_comp_in_Theory2 K p s))
+        (Theory2.trans K
+          (Theory2.trans K
+            (Theory2.whiskerRight K η (reductionSeq_in_Theory1 K s))
+            (Theory2.whiskerRight K θ (reductionSeq_in_Theory1 K s)))
+          (reductionSeq_comp_in_Theory2 K r s))) :=
+  Theory3.transCongrRight K
+    (Theory2.symm K (reductionSeq_comp_in_Theory2 K p s))
+    (Theory3.transCongrLeft K
+      (Theory3.whiskerRightTrans K η θ (reductionSeq_in_Theory1 K s))
+      (reductionSeq_comp_in_Theory2 K r s))
+
+/-- The full structural right-whisker transitivity shell contracts to the
+composite of the structural right-whisker shells of the two factors. -/
+noncomputable def reductionSeq_whiskerRightTrans_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q r : ReductionSeq L M}
+    (η : Theory2 K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+    (θ : Theory2 K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+    (s : ReductionSeq M N) :
+    Theory3 K
+      (reductionSeq_whiskerRight_in_Theory2 K (Theory2.trans K η θ) s)
+      (Theory2.trans K
+        (reductionSeq_whiskerRight_in_Theory2 K η s)
+        (reductionSeq_whiskerRight_in_Theory2 K θ s)) := by
+  let c_p := reductionSeq_comp_in_Theory2 K p s
+  let c_q := reductionSeq_comp_in_Theory2 K q s
+  let c_r := reductionSeq_comp_in_Theory2 K r s
+  let etaWhisk := Theory2.whiskerRight K η (reductionSeq_in_Theory1 K s)
+  let thetaWhisk := Theory2.whiskerRight K θ (reductionSeq_in_Theory1 K s)
+  have h_inner :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K c_p)
+          (Theory2.trans K (Theory2.trans K etaWhisk thetaWhisk) c_r))
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_p) etaWhisk)
+          (Theory2.trans K thetaWhisk c_r)) := by
+    exact Theory3.trans K
+      (Theory3.transCongrRight K (Theory2.symm K c_p)
+        (Theory3.transAssoc K etaWhisk thetaWhisk c_r))
+      (Theory3.symm K
+        (Theory3.transAssoc K (Theory2.symm K c_p) etaWhisk
+          (Theory2.trans K thetaWhisk c_r)))
+  have h_insert_η :
+      Theory3 K
+        etaWhisk
+        (Theory2.trans K
+          (Theory2.trans K etaWhisk c_q)
+          (Theory2.symm K c_q)) := by
+    exact Theory3.trans K
+      (Theory3.symm K (Theory3.transReflRight K etaWhisk))
+      (Theory3.trans K
+        (Theory3.transCongrRight K etaWhisk
+          (Theory3.symm K (Theory3.transRightCancel K c_q)))
+        (Theory3.symm K
+          (Theory3.transAssoc K etaWhisk c_q (Theory2.symm K c_q))))
+  have h_left_insert :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K c_p) etaWhisk)
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_p)
+            (Theory2.trans K etaWhisk c_q))
+          (Theory2.symm K c_q)) := by
+    exact Theory3.trans K
+      (Theory3.transCongrRight K (Theory2.symm K c_p) h_insert_η)
+      (Theory3.symm K
+        (Theory3.transAssoc K (Theory2.symm K c_p)
+          (Theory2.trans K etaWhisk c_q)
+          (Theory2.symm K c_q)))
+  have h_finish :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_p) etaWhisk)
+          (Theory2.trans K thetaWhisk c_r))
+        (Theory2.trans K
+          (Theory2.trans K
+            (Theory2.trans K (Theory2.symm K c_p)
+              (Theory2.trans K etaWhisk c_q))
+            (Theory2.symm K c_q))
+          (Theory2.trans K thetaWhisk c_r)) := by
+    exact Theory3.transCongrLeft K h_left_insert
+      (Theory2.trans K thetaWhisk c_r)
+  have h_assoc_out :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.trans K
+            (Theory2.trans K (Theory2.symm K c_p)
+              (Theory2.trans K etaWhisk c_q))
+            (Theory2.symm K c_q))
+          (Theory2.trans K thetaWhisk c_r))
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_p)
+            (Theory2.trans K etaWhisk c_q))
+          (Theory2.trans K (Theory2.symm K c_q)
+            (Theory2.trans K thetaWhisk c_r))) := by
+    exact Theory3.transAssoc K
+      (Theory2.trans K (Theory2.symm K c_p)
+        (Theory2.trans K etaWhisk c_q))
+      (Theory2.symm K c_q)
+      (Theory2.trans K thetaWhisk c_r)
+  simpa [reductionSeq_whiskerRight_in_Theory2, c_p, c_q, c_r, etaWhisk, thetaWhisk] using
+    Theory3.trans K
+      (reductionSeq_whiskerRightTrans_head_in_Theory3 K η θ s)
+      (Theory3.trans K
+        h_inner
+        (Theory3.trans K h_finish h_assoc_out))
+
+/-- The full structural right-whisker symmetry shell contracts to the symmetry
+of the original structural right-whisker shell. -/
+noncomputable def reductionSeq_whiskerRightSymm_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q : ReductionSeq L M}
+    (η : Theory2 K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+    (s : ReductionSeq M N) :
+    Theory3 K
+      (reductionSeq_whiskerRight_in_Theory2 K (Theory2.symm K η) s)
+      (Theory2.symm K (reductionSeq_whiskerRight_in_Theory2 K η s)) := by
+  let c_p := reductionSeq_comp_in_Theory2 K p s
+  let c_q := reductionSeq_comp_in_Theory2 K q s
+  let etaWhisk := Theory2.whiskerRight K η (reductionSeq_in_Theory1 K s)
+  let etaWhiskSymm :=
+    Theory2.whiskerRight K (Theory2.symm K η) (reductionSeq_in_Theory1 K s)
+  let ss_cp := Theory2.symm K (Theory2.symm K c_p)
+  have h_source_assoc :
+      Theory3 K
+        (reductionSeq_whiskerRight_in_Theory2 K (Theory2.symm K η) s)
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_q) etaWhiskSymm)
+          c_p) := by
+    simpa [reductionSeq_whiskerRight_in_Theory2, c_q, etaWhiskSymm] using
+      (Theory3.symm K
+        (Theory3.transAssoc K (Theory2.symm K c_q) etaWhiskSymm c_p))
+  have h_source_ss :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_q) etaWhiskSymm)
+          c_p)
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_q) etaWhiskSymm)
+          ss_cp) := by
+    exact Theory3.transCongrRight K
+      (Theory2.trans K (Theory2.symm K c_q) etaWhiskSymm)
+      (Theory3.symm K (Theory3.symmSymm K c_p))
+  have h_target_outer :
+      Theory3 K
+        (Theory2.symm K (reductionSeq_whiskerRight_in_Theory2 K η s))
+        (Theory2.trans K
+          (Theory2.symm K (Theory2.trans K etaWhisk c_q))
+          ss_cp) := by
+    simpa [reductionSeq_whiskerRight_in_Theory2, c_p, etaWhisk, ss_cp] using
+      (Theory3.symmTrans K (Theory2.symm K c_p)
+        (Theory2.trans K etaWhisk c_q))
+  have h_target_inner :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.symm K (Theory2.trans K etaWhisk c_q))
+          ss_cp)
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K c_q) etaWhiskSymm)
+          ss_cp) := by
+    let inner :=
+      Theory3.transCongrLeft K
+        (Theory3.symmTrans K etaWhisk c_q) ss_cp
+    let whisk :=
+      Theory3.transCongrLeft K
+        (Theory3.transCongrRight K (Theory2.symm K c_q)
+          (by
+            simpa [etaWhisk, etaWhiskSymm] using
+              (Theory3.invWhiskerRight K η (reductionSeq_in_Theory1 K s))))
+        ss_cp
+    exact Theory3.trans K inner whisk
+  exact Theory3.trans K h_source_assoc
+    (Theory3.trans K h_source_ss
+      (Theory3.symm K (Theory3.trans K h_target_outer h_target_inner)))
+
+/-- Interpreting structural right whiskering of a vertical composite agrees with
+the composite of the interpreted structural right whiskers of the factors. -/
+noncomputable def homotopy2_whiskerRightTrans_bridge_in_Theory3
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {p q r : ReductionSeq L M}
+    (α : Homotopy2 p q) (β : Homotopy2 q r) (s : ReductionSeq M N) :
+    Theory3 K
+      (homotopy2_in_Theory2 K (whiskerRight (Homotopy2.trans α β) s))
+      (Theory2.trans K
+        (homotopy2_in_Theory2 K (whiskerRight α s))
+        (homotopy2_in_Theory2 K (whiskerRight β s))) := by
+  let η := homotopy2_in_Theory2 K α
+  let θ := homotopy2_in_Theory2 K β
+  let shellη := reductionSeq_whiskerRight_in_Theory2 K η s
+  let shellθ := reductionSeq_whiskerRight_in_Theory2 K θ s
+  let directη := homotopy2_in_Theory2 K (whiskerRight α s)
+  let directθ := homotopy2_in_Theory2 K (whiskerRight β s)
+  exact Theory3.trans K
+    (homotopy2_whiskerRight_bridge_in_Theory3 K (Homotopy2.trans α β) s)
+    (Theory3.trans K
+      (reductionSeq_whiskerRightTrans_in_Theory3 K η θ s)
+      (Theory3.trans K
+        (Theory3.transCongrLeft K
+          (Theory3.symm K (homotopy2_whiskerRight_bridge_in_Theory3 K α s))
+          shellθ)
+        (Theory3.transCongrRight K directη
+          (Theory3.symm K (homotopy2_whiskerRight_bridge_in_Theory3 K β s)))))
 
 /-- Every structurally supported syntactic 3-cell between parallel explicit
 2-cells induces a semantic 3-conversion between the corresponding interpreted
@@ -7709,8 +11064,32 @@ noncomputable def structuralHomotopy3_in_Theory3
         (homotopy2_in_Theory2 K α) (homotopy2_in_Theory2 K β)
   | _, _, _, _, _, _, .whiskerLeftSymm r α =>
       reductionSeq_whiskerLeftSymm_in_Theory3 K r (homotopy2_in_Theory2 K α)
+  | _, _, _, _, _, _, .invWhiskerLeft r α =>
+      Theory3.symm K
+        (reductionSeq_whiskerLeftSymm_in_Theory3 K r (homotopy2_in_Theory2 K α))
   | _, _, _, _, _, _, .whiskerRightRefl p s =>
       homotopy2_refl_in_Theory3 K (Homotopy2.refl (ReductionSeq.concat p s))
+  | _, _, _, _, _, _, .whiskerRightTrans α β s =>
+      homotopy2_whiskerRightTrans_bridge_in_Theory3 K α β s
+  | _, _, _, _, _, _, .whiskerRightSymm α s =>
+      Theory3.trans K
+        (homotopy2_whiskerRight_bridge_in_Theory3 K (Homotopy2.symm α) s)
+        (Theory3.trans K
+          (reductionSeq_whiskerRightSymm_in_Theory3 K
+            (homotopy2_in_Theory2 K α) s)
+          (Theory3.symmCongr K
+            (Theory3.symm K
+              (homotopy2_whiskerRight_bridge_in_Theory3 K α s))))
+  | _, _, _, _, _, _, .invWhiskerRight α s =>
+      Theory3.trans K
+        (Theory3.symmCongr K
+          (homotopy2_whiskerRight_bridge_in_Theory3 K α s))
+        (Theory3.trans K
+          (Theory3.symm K
+            (reductionSeq_whiskerRightSymm_in_Theory3 K
+              (homotopy2_in_Theory2 K α) s))
+          (Theory3.symm K
+            (homotopy2_whiskerRight_bridge_in_Theory3 K (Homotopy2.symm α) s)))
   | _, _, _, _, _, _, .interchange α β =>
       homotopy2_eq_in_Theory3 K rfl
 
@@ -7896,6 +11275,195 @@ noncomputable def reductionSeq_rightUnitor_in_HoTFT2
       (reductionSeq_in_HoTFT1 p) :=
   HoTFT2.rightUnitor (reductionSeq_in_HoTFT1 p)
 
+/-- HoTFT counterpart of `reductionSeq_rightUnitor_shell_in_Theory2`. -/
+noncomputable def reductionSeq_rightUnitor_shell_in_HoTFT2
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFT2
+      (reductionSeq_in_HoTFT1 (ReductionSeq.concat p (ReductionSeq.refl N)))
+      (reductionSeq_in_HoTFT1 p) :=
+  HoTFT2.trans
+    (HoTFT2.symm (reductionSeq_comp_in_HoTFT2 p (ReductionSeq.refl N)))
+    (reductionSeq_rightUnitor_in_HoTFT2 p)
+
+/-- HoTFT counterpart of `reductionSeq_leftUnitor_shell_in_Theory2`. -/
+noncomputable def reductionSeq_leftUnitor_shell_in_HoTFT2
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFT2
+      (reductionSeq_in_HoTFT1 (ReductionSeq.concat (ReductionSeq.refl M) p))
+      (reductionSeq_in_HoTFT1 p) :=
+  HoTFT2.trans
+    (HoTFT2.symm (reductionSeq_comp_in_HoTFT2 (ReductionSeq.refl M) p))
+    (reductionSeq_leftUnitor_in_HoTFT2 p)
+
+/-- HoTFT counterpart of `reductionSeq_associator_shell_in_Theory2`. -/
+noncomputable def reductionSeq_associator_source_in_HoTFT2
+    {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFT2
+      (reductionSeq_in_HoTFT1
+        (ReductionSeq.concat (ReductionSeq.concat p q) r))
+      (HoTFT1.comp
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+        (reductionSeq_in_HoTFT1 r)) :=
+  HoTFT2.trans
+    (HoTFT2.symm (reductionSeq_comp_in_HoTFT2 (ReductionSeq.concat p q) r))
+    (HoTFT2.whiskerRight
+      (HoTFT2.symm (reductionSeq_comp_in_HoTFT2 p q))
+      (reductionSeq_in_HoTFT1 r))
+
+/-- HoTFT counterpart of `reductionSeq_associator_target_in_Theory2`. -/
+noncomputable def reductionSeq_associator_target_in_HoTFT2
+    {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFT2
+      (HoTFT1.comp
+        (reductionSeq_in_HoTFT1 p)
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r)))
+      (reductionSeq_in_HoTFT1
+        (ReductionSeq.concat p (ReductionSeq.concat q r))) :=
+  HoTFT2.trans
+    (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 p)
+      (reductionSeq_comp_in_HoTFT2 q r))
+    (reductionSeq_comp_in_HoTFT2 p (ReductionSeq.concat q r))
+
+/-- HoTFT counterpart of `reductionSeq_associator_shell_in_Theory2`. -/
+noncomputable def reductionSeq_associator_shell_in_HoTFT2
+    {L M N P : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFT2
+      (reductionSeq_in_HoTFT1
+        (ReductionSeq.concat (ReductionSeq.concat p q) r))
+      (reductionSeq_in_HoTFT1
+        (ReductionSeq.concat p (ReductionSeq.concat q r))) :=
+  HoTFT2.trans
+    (reductionSeq_associator_source_in_HoTFT2 p q r)
+    (HoTFT2.trans
+      (reductionSeq_associator_in_HoTFT2 p q r)
+      (reductionSeq_associator_target_in_HoTFT2 p q r))
+
+/-- HoTFT counterpart of `reductionSeq_leftUnitorNaturality_in_Theory3`. -/
+noncomputable def reductionSeq_leftUnitorNaturality_in_HoTFT3
+    {M N P : Term} (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.whiskerLeft (HoTFT1.refl M)
+          (reductionSeq_comp_in_HoTFT2 q r))
+        (HoTFT2.leftUnitor
+          (reductionSeq_in_HoTFT1 (ReductionSeq.concat q r))))
+      (HoTFT2.trans
+        (HoTFT2.leftUnitor
+          (HoTFT1.comp (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r)))
+        (reductionSeq_comp_in_HoTFT2 q r)) :=
+  fun K => reductionSeq_leftUnitorNaturality_in_Theory3 K q r
+
+/-- HoTFT counterpart of `reductionSeq_comp_associator_refl_in_Theory3`. -/
+noncomputable def reductionSeq_comp_associator_refl_in_HoTFT3
+    {M N P : Term} (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    HoTFT3
+      (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.refl M) q r)
+      (HoTFT2.ofEq
+        (congrArg (fun t => reductionSeq_in_HoTFT1 t)
+          (ReductionSeq.concat_assoc (ReductionSeq.refl M) q r))) :=
+  fun K => reductionSeq_comp_associator_refl_in_Theory3 K q r
+
+/-- HoTFT counterpart of `reductionSeq_comp_associator_step_finish_in_Theory3`.
+This packages the purely inductive bookkeeping once the step-head geometric
+normalization has been proved at the HoTFT layer. -/
+noncomputable def reductionSeq_comp_associator_step_finish_in_HoTFT3
+    {L M N P Q : Term}
+    (s : BetaEtaStep L M) (rest : ReductionSeq M N)
+    (q : ReductionSeq N P) (r : ReductionSeq P Q)
+    (ih :
+      HoTFT3
+        (reductionSeq_associator_shell_in_HoTFT2 rest q r)
+        (HoTFT2.ofEq
+          (congrArg (fun u => reductionSeq_in_HoTFT1 u)
+            (ReductionSeq.concat_assoc rest q r))))
+    (head :
+      HoTFT3
+        (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.step s rest) q r)
+        (HoTFT2.whiskerLeft
+          (betaEtaStep_in_HoTFT1 L M s)
+          (reductionSeq_associator_shell_in_HoTFT2 rest q r))) :
+    HoTFT3
+      (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.step s rest) q r)
+      (HoTFT2.ofEq
+        (congrArg (fun u => reductionSeq_in_HoTFT1 u)
+          (ReductionSeq.concat_assoc (ReductionSeq.step s rest) q r))) := by
+  let α : HoTFT1 L M := betaEtaStep_in_HoTFT1 L M s
+  let hRest :=
+    congrArg (fun u => reductionSeq_in_HoTFT1 u)
+      (ReductionSeq.concat_assoc rest q r)
+  exact HoTFT3.trans head
+    (HoTFT3.whiskerLeftCongrOfEq α hRest ih)
+
+/-- HoTFT counterpart of `reductionSeq_comp_associator_stepInv_finish_in_Theory3`.
+This is the inverse-step bookkeeping analogue. -/
+noncomputable def reductionSeq_comp_associator_stepInv_finish_in_HoTFT3
+    {L M N P Q : Term}
+    (s : BetaEtaStep M L) (rest : ReductionSeq M N)
+    (q : ReductionSeq N P) (r : ReductionSeq P Q)
+    (ih :
+      HoTFT3
+        (reductionSeq_associator_shell_in_HoTFT2 rest q r)
+        (HoTFT2.ofEq
+          (congrArg (fun u => reductionSeq_in_HoTFT1 u)
+            (ReductionSeq.concat_assoc rest q r))))
+    (head :
+      HoTFT3
+        (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.stepInv s rest) q r)
+        (HoTFT2.whiskerLeft
+          (betaEtaStepInv_in_HoTFT1 L M s)
+          (reductionSeq_associator_shell_in_HoTFT2 rest q r))) :
+    HoTFT3
+      (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.stepInv s rest) q r)
+      (HoTFT2.ofEq
+        (congrArg (fun u => reductionSeq_in_HoTFT1 u)
+          (ReductionSeq.concat_assoc (ReductionSeq.stepInv s rest) q r))) := by
+  let α : HoTFT1 L M := betaEtaStepInv_in_HoTFT1 L M s
+  let hRest :=
+    congrArg (fun u => reductionSeq_in_HoTFT1 u)
+      (ReductionSeq.concat_assoc rest q r)
+  exact HoTFT3.trans head
+    (HoTFT3.whiskerLeftCongrOfEq α hRest ih)
+
+/-- HoTFT counterpart of `reductionSeq_comp_associator_in_Theory3_of_heads`.
+
+The recursive bookkeeping is fully packaged here as well, leaving only the two
+local head bridges to be supplied later. -/
+noncomputable def reductionSeq_comp_associator_in_HoTFT3_of_heads
+    (stepHead :
+      ∀ {L M N P Q : Term} (s : BetaEtaStep L M) (rest : ReductionSeq M N)
+          (q : ReductionSeq N P) (r : ReductionSeq P Q),
+        HoTFT3
+          (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.step s rest) q r)
+          (HoTFT2.whiskerLeft (betaEtaStep_in_HoTFT1 L M s)
+            (reductionSeq_associator_shell_in_HoTFT2 rest q r)))
+    (stepInvHead :
+      ∀ {L M N P Q : Term} (s : BetaEtaStep M L) (rest : ReductionSeq M N)
+          (q : ReductionSeq N P) (r : ReductionSeq P Q),
+        HoTFT3
+          (reductionSeq_associator_shell_in_HoTFT2 (ReductionSeq.stepInv s rest) q r)
+          (HoTFT2.whiskerLeft (betaEtaStepInv_in_HoTFT1 L M s)
+            (reductionSeq_associator_shell_in_HoTFT2 rest q r))) :
+    {L M N P : Term} → (p : ReductionSeq L M) → (q : ReductionSeq M N) →
+      (r : ReductionSeq N P) →
+      HoTFT3
+        (reductionSeq_associator_shell_in_HoTFT2 p q r)
+        (HoTFT2.ofEq
+          (congrArg (fun u => reductionSeq_in_HoTFT1 u)
+            (ReductionSeq.concat_assoc p q r)))
+  | _, _, _, _, .refl M, q, r =>
+      reductionSeq_comp_associator_refl_in_HoTFT3 q r
+  | _, _, _, _, .step s rest, q, r =>
+      reductionSeq_comp_associator_step_finish_in_HoTFT3 s rest q r
+        (reductionSeq_comp_associator_in_HoTFT3_of_heads stepHead stepInvHead rest q r)
+        (stepHead s rest q r)
+  | _, _, _, _, .stepInv s rest, q, r =>
+      reductionSeq_comp_associator_stepInv_finish_in_HoTFT3 s rest q r
+        (reductionSeq_comp_associator_in_HoTFT3_of_heads stepHead stepInvHead rest q r)
+        (stepInvHead s rest q r)
+
 /-- Degenerating the semantic composition triangle yields a boundary-aware
 HoTFT tetrahedron whose middle face is the reflexive 2-cell on the semantic
 composite path. -/
@@ -7996,6 +11564,15 @@ noncomputable def homotopy2_trans_in_HoTFTTetrahedron
 
 /-- Interpreting a syntactic reflexive 2-cell at the HoTFT layer is
 definitionally the reflexive HoTFT 2-cell on the interpreted path. -/
+theorem homotopy2_in_HoTFT2_ofEq
+    {M N : Term} {p q : ReductionSeq M N} (h : p = q) :
+    homotopy2_in_HoTFT2 (HigherTerms.Homotopy2.ofEq h) =
+      HoTFT2.ofEq (congrArg (fun r => reductionSeq_in_HoTFT1 r) h) := by
+  cases h
+  rfl
+
+/-- Interpreting a syntactic reflexive 2-cell at the HoTFT layer is
+definitionally the reflexive HoTFT 2-cell on the interpreted path. -/
 theorem homotopy2_in_HoTFT2_refl
     {M N : Term} (p : ReductionSeq M N) :
     homotopy2_in_HoTFT2 (Homotopy2.refl p) =
@@ -8076,10 +11653,40 @@ noncomputable def homotopy2_whiskerLeftTrans_in_HoTFT3
       (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r)
         (HoTFT2.trans (homotopy2_in_HoTFT2 α) (homotopy2_in_HoTFT2 β)))
       (HoTFT2.trans
-        (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 α))
-        (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 β))) :=
+      (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 α))
+      (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 r) (homotopy2_in_HoTFT2 β))) :=
   HoTFT3.whiskerLeftTrans (reductionSeq_in_HoTFT1 r)
     (homotopy2_in_HoTFT2 α) (homotopy2_in_HoTFT2 β)
+
+/-- Left whiskering along a composite explicit path agrees with iterated left
+whiskering plus the associator comparison on interpreted explicit HoTFT
+2-cells. -/
+noncomputable def homotopy2_whiskerLeftComp_in_HoTFT3
+    {L M N P : Term} (p : ReductionSeq L M) (q : ReductionSeq M N)
+    {r s : ReductionSeq N P} (α : Homotopy2 r s) :
+    HoTFT3
+      (HoTFT2.whiskerLeft
+        (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+        (homotopy2_in_HoTFT2 α))
+      (HoTFT2.trans
+        (HoTFT2.associator
+          (reductionSeq_in_HoTFT1 p)
+          (reductionSeq_in_HoTFT1 q)
+          (reductionSeq_in_HoTFT1 r))
+        (HoTFT2.trans
+          (HoTFT2.whiskerLeft
+            (reductionSeq_in_HoTFT1 p)
+            (HoTFT2.whiskerLeft (reductionSeq_in_HoTFT1 q)
+              (homotopy2_in_HoTFT2 α)))
+          (HoTFT2.symm
+            (HoTFT2.associator
+              (reductionSeq_in_HoTFT1 p)
+              (reductionSeq_in_HoTFT1 q)
+              (reductionSeq_in_HoTFT1 s))))) :=
+  HoTFT3.whiskerLeftComp
+    (reductionSeq_in_HoTFT1 p)
+    (reductionSeq_in_HoTFT1 q)
+    (homotopy2_in_HoTFT2 α)
 
 /-- Left whiskering commutes with symmetry for interpreted explicit HoTFT
 2-cells. -/
@@ -8153,6 +11760,28 @@ noncomputable def homotopy2_invWhiskerRight_in_HoTFT3
         (HoTFT2.symm (homotopy2_in_HoTFT2 α))
         (reductionSeq_in_HoTFT1 s)) :=
   HoTFT3.invWhiskerRight (homotopy2_in_HoTFT2 α) (reductionSeq_in_HoTFT1 s)
+
+/-- Right composition with an interpreted explicit HoTFT 2-cell followed by its
+inverse normalizes to the reflexive source 2-cell. -/
+noncomputable def homotopy2_transRightCancel_in_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.trans
+        (homotopy2_in_HoTFT2 α)
+        (HoTFT2.symm (homotopy2_in_HoTFT2 α)))
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 p)) :=
+  HoTFT3.transRightCancel (homotopy2_in_HoTFT2 α)
+
+/-- Left composition with the inverse of an interpreted explicit HoTFT 2-cell
+normalizes to the reflexive target 2-cell. -/
+noncomputable def homotopy2_transLeftCancel_in_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.symm (homotopy2_in_HoTFT2 α))
+        (homotopy2_in_HoTFT2 α))
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 q)) :=
+  HoTFT3.transLeftCancel (homotopy2_in_HoTFT2 α)
 
 /-- Right whiskering of an interpreted explicit 2-cell carries an explicit
 HoTFT tetrahedron with its full boundary triangles. -/
@@ -8258,8 +11887,8 @@ noncomputable def reductionSeq_whiskerRight_refl_simplify_in_HoTFT3
   homotopy2_whiskerRightRefl_in_HoTFT3 p s
 
 /-- HoTFT counterpart of `reductionSeq_whiskerRight_refl_inner_in_Theory3`. It
-collapses the inner `trans w c` shell to `c`, leaving only the missing
-left-transport step for the legacy unnormalized structural shell. -/
+collapses the inner `trans w c` shell to `c`, isolating the final cancellation
+step for the legacy unnormalized structural shell. -/
 noncomputable def reductionSeq_whiskerRight_refl_inner_in_HoTFT3
     {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
     HoTFT3
@@ -8275,6 +11904,79 @@ noncomputable def reductionSeq_whiskerRight_refl_inner_in_HoTFT3
       (reductionSeq_comp_in_HoTFT2 p s))
     (HoTFT3.transReflLeft (reductionSeq_comp_in_HoTFT2 p s))
 
+/-- HoTFT counterpart of `reductionSeq_whiskerRight_refl_bridge_in_Theory3`. -/
+noncomputable def reductionSeq_whiskerRight_refl_bridge_in_HoTFT3
+    {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerRight_in_HoTFT2
+        (HoTFT2.refl (reductionSeq_in_HoTFT1 p)) s)
+      (HoTFT2.refl (reductionSeq_in_HoTFT1 (ReductionSeq.concat p s))) :=
+  fun K => reductionSeq_whiskerRight_refl_bridge_in_Theory3 K p s
+
+/-- Interpreting a syntactic right whisker agrees with the legacy structural
+right-whisker HoTFT shell, up to a HoTFT 3-cell. -/
+noncomputable def homotopy2_whiskerRight_bridge_in_HoTFT3
+    {L M N : Term} {p q : ReductionSeq L M}
+    (α : Homotopy2 p q) (s : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (whiskerRight α s))
+      (reductionSeq_whiskerRight_in_HoTFT2 (homotopy2_in_HoTFT2 α) s) :=
+  fun K => homotopy2_whiskerRight_bridge_in_Theory3 K α s
+
+/-- HoTFT counterpart of `reductionSeq_whiskerRightTrans_head_in_Theory3`. It
+performs the same head normalization of the structural right-whisker
+transitivity shell, leaving the remaining comparison-shell insertion problem
+explicit. -/
+noncomputable def reductionSeq_whiskerRightTrans_head_in_HoTFT3
+    {L M N : Term} {p q r : ReductionSeq L M}
+    (η : HoTFT2 (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+    (θ : HoTFT2 (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r))
+    (s : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerRight_in_HoTFT2 (HoTFT2.trans η θ) s)
+      (HoTFT2.trans
+        (HoTFT2.symm (reductionSeq_comp_in_HoTFT2 p s))
+        (HoTFT2.trans
+          (HoTFT2.trans
+            (HoTFT2.whiskerRight η (reductionSeq_in_HoTFT1 s))
+            (HoTFT2.whiskerRight θ (reductionSeq_in_HoTFT1 s)))
+          (reductionSeq_comp_in_HoTFT2 r s))) :=
+  fun K => reductionSeq_whiskerRightTrans_head_in_Theory3 K (η K) (θ K) s
+
+/-- HoTFT counterpart of `reductionSeq_whiskerRightTrans_in_Theory3`. -/
+noncomputable def reductionSeq_whiskerRightTrans_in_HoTFT3
+    {L M N : Term} {p q r : ReductionSeq L M}
+    (η : HoTFT2 (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+    (θ : HoTFT2 (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r))
+    (s : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerRight_in_HoTFT2 (HoTFT2.trans η θ) s)
+      (HoTFT2.trans
+       (reductionSeq_whiskerRight_in_HoTFT2 η s)
+       (reductionSeq_whiskerRight_in_HoTFT2 θ s)) :=
+  fun K => reductionSeq_whiskerRightTrans_in_Theory3 K (η K) (θ K) s
+
+/-- HoTFT counterpart of `reductionSeq_whiskerRightSymm_in_Theory3`. -/
+noncomputable def reductionSeq_whiskerRightSymm_in_HoTFT3
+    {L M N : Term} {p q : ReductionSeq L M}
+    (η : HoTFT2 (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+    (s : ReductionSeq M N) :
+    HoTFT3
+      (reductionSeq_whiskerRight_in_HoTFT2 (HoTFT2.symm η) s)
+      (HoTFT2.symm (reductionSeq_whiskerRight_in_HoTFT2 η s)) :=
+  fun K => reductionSeq_whiskerRightSymm_in_Theory3 K (η K) s
+
+/-- HoTFT counterpart of `homotopy2_whiskerRightTrans_bridge_in_Theory3`. -/
+noncomputable def homotopy2_whiskerRightTrans_bridge_in_HoTFT3
+    {L M N : Term} {p q r : ReductionSeq L M}
+    (α : Homotopy2 p q) (β : Homotopy2 q r) (s : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (whiskerRight (Homotopy2.trans α β) s))
+      (HoTFT2.trans
+        (homotopy2_in_HoTFT2 (whiskerRight α s))
+        (homotopy2_in_HoTFT2 (whiskerRight β s))) :=
+  fun K => homotopy2_whiskerRightTrans_bridge_in_Theory3 K α β s
+
 /-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 3-cell
 over its interpreted HoTFT 2-cell. -/
 noncomputable def homotopy2_refl_in_HoTFT3 {M N : Term} {p q : ReductionSeq M N}
@@ -8288,6 +11990,34 @@ noncomputable def homotopy2_eq_in_HoTFT3 {M N : Term} {p q : ReductionSeq M N}
     {α β : Homotopy2 p q} (h : α = β) :
     HoTFT3 (homotopy2_in_HoTFT2 α) (homotopy2_in_HoTFT2 β) :=
   HoTFT3.ofEq (congrArg (fun γ => homotopy2_in_HoTFT2 γ) h)
+
+/-- HoTFT counterpart of `homotopy2_rightUnitor_bridge_in_Theory3`. -/
+noncomputable def homotopy2_rightUnitor_bridge_in_HoTFT3
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (HigherTerms.rightUnitor p))
+      (reductionSeq_rightUnitor_shell_in_HoTFT2 p) := by
+  intro K
+  simpa [homotopy2_in_HoTFT2, reductionSeq_rightUnitor_shell_in_HoTFT2]
+    using homotopy2_rightUnitor_bridge_in_Theory3 K p
+
+/-- HoTFT counterpart of `homotopy2_leftUnitor_bridge_in_Theory3`. -/
+noncomputable def homotopy2_leftUnitor_bridge_in_HoTFT3
+    {M N : Term} (p : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (HigherTerms.leftUnitor p))
+      (reductionSeq_leftUnitor_shell_in_HoTFT2 p) :=
+  fun K => homotopy2_leftUnitor_bridge_in_Theory3 K p
+
+/-- HoTFT counterpart of
+`homotopy2_whiskerLeft_leftUnitor_bridge_in_Theory3`. -/
+noncomputable def homotopy2_whiskerLeft_leftUnitor_bridge_in_HoTFT3
+    {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
+    HoTFT3
+      (homotopy2_in_HoTFT2 (HigherTerms.whiskerLeft r (HigherTerms.leftUnitor p)))
+      (reductionSeq_whiskerLeft_in_HoTFT2 r
+        (reductionSeq_leftUnitor_shell_in_HoTFT2 p)) :=
+  fun K => homotopy2_whiskerLeft_leftUnitor_bridge_in_Theory3 K r p
 
 /-- The semantic image of syntactic interchange is already a HoTFT 3-cell in
 the current modelwise simplicial layer. -/
@@ -8337,8 +12067,32 @@ noncomputable def structuralHomotopy3_in_HoTFT3 :
         (homotopy2_in_HoTFT2 α) (homotopy2_in_HoTFT2 β)
   | _, _, _, _, _, _, .whiskerLeftSymm r α =>
       reductionSeq_whiskerLeftSymm_in_HoTFT3 r (homotopy2_in_HoTFT2 α)
+  | _, _, _, _, _, _, .invWhiskerLeft r α =>
+      HoTFT3.symm
+        (reductionSeq_whiskerLeftSymm_in_HoTFT3 r (homotopy2_in_HoTFT2 α))
   | _, _, _, _, _, _, .whiskerRightRefl p s =>
       homotopy2_refl_in_HoTFT3 (Homotopy2.refl (ReductionSeq.concat p s))
+  | _, _, _, _, _, _, .whiskerRightTrans α β s =>
+      homotopy2_whiskerRightTrans_bridge_in_HoTFT3 α β s
+  | _, _, _, _, _, _, .whiskerRightSymm α s =>
+      HoTFT3.trans
+        (homotopy2_whiskerRight_bridge_in_HoTFT3 (Homotopy2.symm α) s)
+        (HoTFT3.trans
+          (reductionSeq_whiskerRightSymm_in_HoTFT3
+            (homotopy2_in_HoTFT2 α) s)
+          (HoTFT3.symmCongr
+            (HoTFT3.symm
+              (homotopy2_whiskerRight_bridge_in_HoTFT3 α s))))
+  | _, _, _, _, _, _, .invWhiskerRight α s =>
+      HoTFT3.trans
+        (HoTFT3.symmCongr
+          (homotopy2_whiskerRight_bridge_in_HoTFT3 α s))
+        (HoTFT3.trans
+          (HoTFT3.symm
+            (reductionSeq_whiskerRightSymm_in_HoTFT3
+              (homotopy2_in_HoTFT2 α) s))
+          (HoTFT3.symm
+            (homotopy2_whiskerRight_bridge_in_HoTFT3 (Homotopy2.symm α) s)))
   | _, _, _, _, _, _, .interchange α β =>
       homotopy2_eq_in_HoTFT3 rfl
 
@@ -8539,6 +12293,187 @@ private def KanComplex.pentagonBackComparisonFromLoopContraction (K : KanComplex
       (K.pentagonInnerBackTriangle p q r s) :=
   K.tetrahedronReplaceFace1 Κ
     (K.pentagonInnerBackComparisonTetrahedron p q r s)
+
+private def KanComplex.pentagonInnerRightReflHorn (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    Horn K.toSimplicialSet 2 0 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h1 : i = 1 then
+        (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).simplex
+      else if h2 : i = 2 then
+        (K.pentagonRightBackTriangle p q r s).simplex
+      else
+        (K.pentagonInnerBackTriangle p q r s).simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h12 | h13 | h23
+      · rcases h12 with ⟨rfl, rfl⟩
+        simpa using
+          (K.pentagonRightBackTriangle p q r s).face1.trans
+            (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).face1.symm
+      · rcases h13 with ⟨rfl, rfl⟩
+        simpa using
+          (K.pentagonInnerBackTriangle p q r s).face1.trans
+            (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).face2.symm
+      · rcases h23 with ⟨rfl, rfl⟩
+        simpa using
+          (K.pentagonInnerBackTriangle p q r s).face2.trans
+            (K.pentagonRightBackTriangle p q r s).face2.symm }
+
+/-- The raw Horn[2,0]-filler behind the remaining pentagon back comparison. -/
+private def KanComplex.pentagonInnerRightReflSimplex (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) : K.Simplex 3 :=
+  K.fill (K.pentagonInnerRightReflHorn p q r s)
+
+/-- The unresolved front face of the Horn[2,0]-filler whose other faces are
+the reflexive back edge, the canonical right-back triangle, and the inner-back
+triangle. Proving that this front face contracts to `reflPath2` is the
+remaining semantic pentagon blocker. -/
+private def KanComplex.pentagonInnerRightFrontPath2 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path2
+      (K.compPath q (K.compPath r s))
+      (K.compPath q (K.compPath r s)) := by
+  let Λ := K.pentagonInnerRightReflHorn p q r s
+  refine
+    { simplex := K.face 2 0 (K.pentagonInnerRightReflSimplex p q r s)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h1 :
+        K.face 2 1 (K.pentagonInnerRightReflSimplex p q r s) =
+          (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 0 (K.pentagonInnerRightReflSimplex p q r s))
+          = K.face 1 0 (K.face 2 1 (K.pentagonInnerRightReflSimplex p q r s)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.pentagonInnerRightReflSimplex p q r s)
+                  (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).simplex := by
+            rw [h1]
+      _ = (K.reflPath e).simplex := (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).face0
+  · have h2 :
+        K.face 2 2 (K.pentagonInnerRightReflSimplex p q r s) =
+          (K.pentagonRightBackTriangle p q r s).simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 0 (K.pentagonInnerRightReflSimplex p q r s))
+          = K.face 1 0 (K.face 2 2 (K.pentagonInnerRightReflSimplex p q r s)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.pentagonInnerRightReflSimplex p q r s)
+                  (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 1 0 (K.pentagonRightBackTriangle p q r s).simplex := by
+            rw [h2]
+      _ = (K.compPath q (K.compPath r s)).simplex :=
+            (K.pentagonRightBackTriangle p q r s).face0
+  · have h3 :
+        K.face 2 3 (K.pentagonInnerRightReflSimplex p q r s) =
+          (K.pentagonInnerBackTriangle p q r s).simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 0 (K.pentagonInnerRightReflSimplex p q r s))
+          = K.face 1 0 (K.face 2 3 (K.pentagonInnerRightReflSimplex p q r s)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.pentagonInnerRightReflSimplex p q r s)
+                  (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 1 0 (K.pentagonInnerBackTriangle p q r s).simplex := by
+            rw [h3]
+      _ = (K.compPath q (K.compPath r s)).simplex :=
+            (K.pentagonInnerBackTriangle p q r s).face0
+
+/-- The Horn[2,0]-filler already provides the desired back, right, and inner
+faces for the missing pentagon tetrahedron; only its front face still needs to
+be contracted to the reflexive 2-cell on `q · (r · s)`. -/
+private def KanComplex.pentagonInnerRightReflCandidateTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.pentagonInnerRightFrontPath2 p q r s).toTriangle
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).toTriangle
+      (K.pentagonRightBackTriangle p q r s)
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let Λ := K.pentagonInnerRightReflHorn p q r s
+  refine
+    { simplex := K.pentagonInnerRightReflSimplex p q r s
+      face0 := rfl
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa [KanComplex.pentagonInnerRightReflSimplex, Λ] using
+      (K.fill_spec Λ (i := 1) (by omega) (by omega))
+  · simpa [KanComplex.pentagonInnerRightReflSimplex, Λ] using
+      (K.fill_spec Λ (i := 2) (by omega) (by omega))
+  · simpa [KanComplex.pentagonInnerRightReflSimplex, Λ] using
+      (K.fill_spec Λ (i := 3) (by omega) (by omega))
+
+/-- A contraction of the unresolved front face suffices to remove the remaining
+pentagon axiom. -/
+private def KanComplex.pentagonBackComparisonReflPath3OfFrontPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e)
+    (frontContract :
+      K.Path3
+        (K.pentagonInnerRightFrontPath2 p q r s)
+        (K.reflPath2 (K.compPath q (K.compPath r s)))) :
+    K.Path3
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s))
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)) :=
+  K.symmPath3 <|
+    K.tetrahedronFrontPath3 frontContract
+      (K.pentagonInnerRightReflCandidateTetrahedron p q r s)
+      (K.pentagonInnerBackComparisonTetrahedron p q r s)
+
+/-!
+### Pentagon back-triangle coherence: the remaining frontier
+
+The last axiom in this file is `pentagonInnerRightFrontReflPath3`. It asserts
+the smallest remaining semantic 3-cell
+
+  `K.Path3 (K.pentagonInnerRightFrontPath2 p q r s)
+     (K.reflPath2 outerRight)`
+
+where `outerRight = compPath q (compPath r s)` is the common outer-right edge of
+the canonical Horn[2,0]-filler whose remaining faces are the reflexive back
+edge, the canonical right-back triangle, and the inner-back triangle.
+
+The new helper chain
+
+* `pentagonInnerRightReflHorn`
+* `pentagonInnerRightReflSimplex`
+* `pentagonInnerRightFrontPath2`
+* `pentagonInnerRightReflCandidateTetrahedron`
+* `pentagonBackComparisonReflPath3OfFrontPath3`
+
+extracts the canonical Horn[2,0]-filler all the way to a boundary-aware
+tetrahedron.  So the remaining blocker is now reduced to the smallest possible
+front-face contraction:
+
+  `K.Path3 (K.pentagonInnerRightFrontPath2 p q r s)
+     (K.reflPath2 (K.compPath q (K.compPath r s)))`
+
+Once that front contraction is available, the older back-comparison theorem
+`pentagonBackComparisonReflPath3` follows immediately from
+`pentagonBackComparisonReflPath3OfFrontPath3`.
+
+**What would close the gap.**
+•  A `StrictKanComplex` (unique fillers) would make
+   `pentagonInnerRightFrontPath2 p q r s` definitionally equal to
+   `reflPath2 outerRight`.
+•  Any general lemma contracting `Path2 u u` loops with the boundary carried by
+   `pentagonInnerRightFrontPath2` to `reflPath2 u` would also suffice.
+-/
 
 /-- The target 3-fold composite on the right side of the pentagon identity,
 connected to the horn-fill raw path by `tetrahedronPath3`. Both tetrahedra
@@ -8783,14 +12718,25 @@ private noncomputable def KanComplex.pentagonBackNormalizationTetrahedronFromBac
         ((K.reflPath3 (K.pentagonRHSRawPath2 p q r s)).toTetrahedron)))
     (K.pentagonRawBigComparisonTetrahedron p q r s)
 
-axiom KanComplex.pentagonBackComparisonReflPath3 (K : KanComplex)
+private axiom KanComplex.pentagonInnerRightFrontReflPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonInnerRightFrontPath2 p q r s)
+      (K.reflPath2 (K.compPath q (K.compPath r s)))
+
+/-- The older back-triangle comparison theorem is now derived from the smaller
+front-face contraction on the canonical Horn[2,0]-filler. -/
+noncomputable def KanComplex.pentagonBackComparisonReflPath3 (K : KanComplex)
     {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
     (r : K.PathSpace c d) (s : K.PathSpace d e) :
     K.Path3
       (K.trianglePath2
         (K.pentagonInnerBackTriangle p q r s)
         (K.pentagonRightBackTriangle p q r s))
-      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s))
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)) :=
+  K.pentagonBackComparisonReflPath3OfFrontPath3 p q r s
+    (K.pentagonInnerRightFrontReflPath3 p q r s)
 
 /-- The remaining back-loop contraction also yields the final normalized
 right-to-left pentagon comparison directly, without passing through the raw RHS
@@ -8883,6 +12829,379 @@ noncomputable def KanComplex.pentagonPath3 (K : KanComplex)
           (K.associatorPath2 p (K.compPath q r) s))
         (K.whiskerLeftPath2 p (K.associatorPath2 q r s))) :=
   K.symmPath3 (K.pentagonBigLeftPath3 p q r s)
+
+namespace StrictKanComplex
+
+private def simplex2Face0Horn (K : StrictKanComplex) {a b c : K.Obj}
+    (p : K.PathSpace a b) (m : K.PathSpace a c) :
+    Horn K.toSimplicialSet 1 0 :=
+  { missing_le := by omega
+    facet := fun i _ => if h1 : i = 1 then m.simplex else p.simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hi1 : i = 1 := by omega
+      have hj2 : j = 2 := by omega
+      subst hi1
+      subst hj2
+      simp
+      exact p.source.trans m.source.symm }
+
+private theorem simplex2_eq_of_face1_face2 (K : StrictKanComplex)
+    {a b c : K.Obj} {p : K.PathSpace a b} {m : K.PathSpace a c}
+    {q : K.PathSpace b c} (τ : K.Triangle p m q) {σ : K.Simplex 2}
+    (h1 : K.face 1 1 σ = m.simplex) (h2 : K.face 1 2 σ = p.simplex) :
+    σ = τ.simplex := by
+  let Λ := K.simplex2Face0Horn p m
+  have hσ : σ = K.fill Λ := by
+    apply K.fill_unique Λ σ
+    intro i hi hmi
+    have hi_cases : i = 1 ∨ i = 2 := by omega
+    rcases hi_cases with rfl | rfl
+    · simpa [simplex2Face0Horn, Λ] using h1
+    · simpa [simplex2Face0Horn, Λ] using h2
+  have hτ : τ.simplex = K.fill Λ := by
+    apply K.fill_unique Λ τ.simplex
+    intro i hi hmi
+    have hi_cases : i = 1 ∨ i = 2 := by omega
+    rcases hi_cases with rfl | rfl
+    · simpa [simplex2Face0Horn, Λ] using τ.face1
+    · simpa [simplex2Face0Horn, Λ] using τ.face2
+  exact hσ.trans hτ.symm
+
+private def simplex3Face0Horn (K : StrictKanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c}
+    {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (ω : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3) :
+    Horn K.toSimplicialSet 2 0 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h1 : i = 1 then α.simplex
+      else if h2 : i = 2 then τ2.simplex
+      else τ3.simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h12 | h13 | h23
+      · rcases h12 with ⟨rfl, rfl⟩
+        calc
+          K.face 1 1 τ2.simplex = K.face 1 1 (K.face 2 2 ω.simplex) := by
+            rw [ω.face2]
+          _ = K.face 1 1 (K.face 2 1 ω.simplex) := by
+            simpa using (K.face_face 1 ω.simplex (i := 1) (j := 1) (by omega) (by omega))
+          _ = K.face 1 1 (KanComplex.Path2.toTriangle K.toKanComplex α).simplex := by
+            rw [ω.face1]
+          _ = K.face 1 1 α.simplex := by
+            rfl
+      · rcases h13 with ⟨rfl, rfl⟩
+        calc
+          K.face 1 1 τ3.simplex = K.face 1 1 (K.face 2 3 ω.simplex) := by
+            rw [ω.face3]
+          _ = K.face 1 2 (K.face 2 1 ω.simplex) := by
+            simpa using (K.face_face 1 ω.simplex (i := 1) (j := 2) (by omega) (by omega))
+          _ = K.face 1 2 (KanComplex.Path2.toTriangle K.toKanComplex α).simplex := by
+            rw [ω.face1]
+          _ = K.face 1 2 α.simplex := by
+            rfl
+      · rcases h23 with ⟨rfl, rfl⟩
+        calc
+          K.face 1 2 τ3.simplex = K.face 1 2 (K.face 2 3 ω.simplex) := by
+            rw [ω.face3]
+          _ = K.face 1 2 (K.face 2 2 ω.simplex) := by
+            simpa using (K.face_face 1 ω.simplex (i := 2) (j := 2) (by omega) (by omega))
+          _ = K.face 1 2 τ2.simplex := by rw [ω.face2] }
+
+private theorem simplex3_eq_of_face1_face2_face3 (K : StrictKanComplex)
+    {a b c : K.Obj} {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c}
+    {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (ω : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3) {σ : K.Simplex 3}
+    (h1 : K.face 2 1 σ = α.simplex)
+    (h2 : K.face 2 2 σ = τ2.simplex)
+    (h3 : K.face 2 3 σ = τ3.simplex) :
+    σ = ω.simplex := by
+  let Λ := K.simplex3Face0Horn ω
+  have hσ : σ = K.fill Λ := by
+    apply K.fill_unique Λ σ
+    intro i hi hmi
+    have hi_cases : i = 1 ∨ i = 2 ∨ i = 3 := by omega
+    rcases hi_cases with rfl | hrest
+    · simpa [simplex3Face0Horn, Λ] using h1
+    · rcases hrest with rfl | rfl
+      · simpa [simplex3Face0Horn, Λ] using h2
+      · simpa [simplex3Face0Horn, Λ] using h3
+  have hω : ω.simplex = K.fill Λ := by
+    apply K.fill_unique Λ ω.simplex
+    intro i hi hmi
+    have hi_cases : i = 1 ∨ i = 2 ∨ i = 3 := by omega
+    rcases hi_cases with rfl | hrest
+    · simpa [simplex3Face0Horn, Λ] using ω.face1
+    · rcases hrest with rfl | rfl
+      · simpa [simplex3Face0Horn, Λ] using ω.face2
+      · simpa [simplex3Face0Horn, Λ] using ω.face3
+  exact hσ.trans hω.symm
+
+private theorem path2_eq_of_simplex_eq (K : StrictKanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (α β : K.Path2 p q)
+    (h : α.simplex = β.simplex) : α = β := by
+  cases α
+  cases β
+  cases h
+  simp
+
+/-- In a strict Kan complex, the direct front loop for the remaining right half
+of `whiskerLeftWhiskerRight` contracts because its two visible boundary faces
+already force it to be the reflexive 2-cell on `reflPath d`. -/
+noncomputable def whiskerLeftWhiskerRightMidRightFrontReflPath3 (K : StrictKanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path3
+      (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+      (K.reflPath2 (K.reflPath d)) := by
+  have hFrontSimplex :
+      (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ).simplex =
+        (K.reflPath2 (K.reflPath d)).simplex := by
+    apply K.simplex2_eq_of_face1_face2 ((K.reflPath2 (K.reflPath d)).toTriangle)
+    · simpa using (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ).face1
+    · simpa using (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ).face2
+  have hFront :
+      K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ =
+        K.reflPath2 (K.reflPath d) :=
+    K.path2_eq_of_simplex_eq
+      (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ)
+      (K.reflPath2 (K.reflPath d))
+      hFrontSimplex
+  simpa [hFront] using
+    (K.reflPath3 (K.whiskerLeftWhiskerRightMidRightFrontPath2 α η δ))
+
+/-- The remaining right half of `whiskerLeftWhiskerRight` is axiom-free in a
+strict Kan complex. -/
+noncomputable def whiskerLeftWhiskerRightMidRightPath3 (K : StrictKanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path3
+      (K.trianglePath2
+        (K.whiskerLeftWhiskerRightMidPath2 α η δ).toTriangle
+        (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ).toTriangle)
+      (K.symmPath2 (K.associatorPath2 α γ δ)) :=
+  K.whiskerLeftWhiskerRightMidRightPath3OfFrontPath3 α η δ
+    (K.whiskerLeftWhiskerRightMidRightFrontReflPath3 α η δ)
+
+/-- `whiskerLeftWhiskerRight` coherence is axiom-free in a strict Kan complex. -/
+noncomputable def whiskerLeftWhiskerRightPath3 (K : StrictKanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path3
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ)
+      (K.transPath2
+        (K.associatorPath2 α β δ)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ))
+          (K.symmPath2 (K.associatorPath2 α γ δ)))) :=
+  K.whiskerLeftWhiskerRightPath3FromTriangleComparison α η δ <|
+    K.whiskerLeftWhiskerRightTriangleComparisonFromMidpointRightComparison α η δ <|
+      K.whiskerLeftWhiskerRightMidRightPath3 α η δ
+
+/-- In a strict Kan complex, the two pentagon back triangles coincide because
+their shared boundary determines a unique Horn[1,0]-filler. -/
+private theorem pentagonInnerBackTriangle_simplex_eq_right (K : StrictKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    (K.pentagonInnerBackTriangle p q r s).simplex =
+      (K.pentagonRightBackTriangle p q r s).simplex := by
+  apply K.simplex2_eq_of_face1_face2 (K.pentagonRightBackTriangle p q r s)
+  · simpa using (K.pentagonInnerBackTriangle p q r s).face1
+  · simpa using (K.pentagonInnerBackTriangle p q r s).face2
+
+/-- The reduced pentagon front-face obstruction contracts in a strict Kan
+complex because the canonical Horn[2,0]-filler is uniquely determined by its
+other three faces. -/
+noncomputable def pentagonInnerRightFrontReflPath3 (K : StrictKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonInnerRightFrontPath2 p q r s)
+      (K.reflPath2 (K.compPath q (K.compPath r s))) := by
+  let τ := K.pentagonRightBackTriangle p q r s
+  let ω := K.reflTriangleTetrahedron τ
+  let κ := K.pentagonInnerRightReflCandidateTetrahedron p q r s
+  have hτ :
+      (K.pentagonInnerBackTriangle p q r s).simplex = τ.simplex :=
+    K.pentagonInnerBackTriangle_simplex_eq_right p q r s
+  have hκ : κ.simplex = ω.simplex := by
+    apply K.simplex3_eq_of_face1_face2_face3 ω
+    · simpa [κ] using κ.face1
+    · simpa [κ] using κ.face2
+    · calc
+        K.face 2 3 κ.simplex = (K.pentagonInnerBackTriangle p q r s).simplex := by
+          simpa [κ] using κ.face3
+        _ = τ.simplex := hτ
+  have hFrontSimplex :
+      (K.pentagonInnerRightFrontPath2 p q r s).simplex =
+        (K.reflPath2 (K.compPath q (K.compPath r s))).simplex := by
+    have hFace0 := congrArg (K.face 2 0) hκ
+    calc
+      (K.pentagonInnerRightFrontPath2 p q r s).simplex
+          = K.face 2 0 κ.simplex := by
+              symm
+              simpa [κ] using κ.face0
+      _ = K.face 2 0 ω.simplex := hFace0
+      _ = (K.reflPath2 (K.compPath q (K.compPath r s))).simplex := by
+            simpa [ω] using ω.face0
+  have hFront :
+      K.pentagonInnerRightFrontPath2 p q r s =
+        K.reflPath2 (K.compPath q (K.compPath r s)) :=
+    K.path2_eq_of_simplex_eq
+      (K.pentagonInnerRightFrontPath2 p q r s)
+      (K.reflPath2 (K.compPath q (K.compPath r s)))
+      hFrontSimplex
+  simpa [hFront] using
+    (K.reflPath3 (K.pentagonInnerRightFrontPath2 p q r s))
+
+/-- The old back-comparison loop contracts axiom-free in a strict Kan complex. -/
+noncomputable def pentagonBackComparisonReflPath3 (K : StrictKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s))
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)) :=
+  K.pentagonBackComparisonReflPath3OfFrontPath3 p q r s
+    (K.pentagonInnerRightFrontReflPath3 p q r s)
+
+/-- Pentagon coherence is axiom-free in a strict Kan complex. -/
+noncomputable def pentagonPath3 (K : StrictKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))) :=
+  K.symmPath3 <|
+    K.tetrahedronFace2Path3
+      (K.pentagonBackComparisonReflPath3 p q r s)
+      (K.pentagonLeftBigComparisonTetrahedron p q r s)
+      ((K.reflPath3
+        (K.transPath2
+          (K.associatorPath2 (K.compPath p q) r s)
+          (K.associatorPath2 p q (K.compPath r s)))).toTetrahedron)
+
+end StrictKanComplex
+
+/-- The reduced pentagon front-face contraction is axiom-free in a strict
+extensional Kan model. -/
+noncomputable def StrictExtensionalKanComplex.pentagonInnerRightFrontReflPath3
+    (K : StrictExtensionalKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonInnerRightFrontPath2 p q r s)
+      (K.reflPath2 (K.compPath q (K.compPath r s))) :=
+  StrictKanComplex.pentagonInnerRightFrontReflPath3 K.toStrictKanComplex p q r s
+
+/-- The old back-comparison loop is also axiom-free in a strict extensional Kan
+model. -/
+noncomputable def StrictExtensionalKanComplex.pentagonBackComparisonReflPath3
+    (K : StrictExtensionalKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s))
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)) :=
+  StrictKanComplex.pentagonBackComparisonReflPath3 K.toStrictKanComplex p q r s
+
+/-- Pentagon coherence is axiom-free in a strict extensional Kan model. -/
+noncomputable def StrictExtensionalKanComplex.pentagonPath3
+    (K : StrictExtensionalKanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))) :=
+  StrictKanComplex.pentagonPath3 K.toStrictKanComplex p q r s
+
+/-- `whiskerLeftWhiskerRight` specialized to strict extensional Kan models. This
+uses the axiom-free strict front-loop contraction rather than the generic open
+right-half frontier. -/
+noncomputable def StrictExtensionalKanComplex.whiskerLeftWhiskerRightPath3
+    (K : StrictExtensionalKanComplex)
+    {a b c d : K.Obj} (α : K.PathSpace a b)
+    {β γ : K.PathSpace b c} (η : K.Path2 β γ) (δ : K.PathSpace c d) :
+    K.Path3
+      (K.whiskerRightPath2 (K.whiskerLeftPath2 α η) δ)
+      (K.transPath2
+        (K.associatorPath2 α β δ)
+        (K.transPath2
+          (K.whiskerLeftPath2 α (K.whiskerRightPath2 η δ))
+          (K.symmPath2 (K.associatorPath2 α γ δ)))) :=
+  StrictKanComplex.whiskerLeftWhiskerRightPath3 K.toStrictKanComplex α η δ
+
+/-- `whiskerLeftWhiskerRight` specialized to strict extensional Kan models. This
+uses the axiom-free strict front-loop contraction rather than the generic open
+right-half frontier. -/
+noncomputable def Theory3.strictWhiskerLeftWhiskerRight
+    (K : StrictExtensionalKanComplex)
+    {L M N P : Term}
+    (α : Theory1 K.toExtensionalKanComplex L M)
+    {β γ : Theory1 K.toExtensionalKanComplex M N}
+    (η : Theory2 K.toExtensionalKanComplex β γ)
+    (δ : Theory1 K.toExtensionalKanComplex N P) :
+    Theory3 K.toExtensionalKanComplex
+      (Theory2.whiskerRight K.toExtensionalKanComplex
+        (Theory2.whiskerLeft K.toExtensionalKanComplex α η) δ)
+      (Theory2.trans K.toExtensionalKanComplex
+        (Theory2.associator K.toExtensionalKanComplex α β δ)
+        (Theory2.trans K.toExtensionalKanComplex
+          (Theory2.whiskerLeft K.toExtensionalKanComplex α
+            (Theory2.whiskerRight K.toExtensionalKanComplex η δ))
+          (Theory2.symm K.toExtensionalKanComplex
+            (Theory2.associator K.toExtensionalKanComplex α γ δ)))) :=
+  fun ρ =>
+    StrictExtensionalKanComplex.whiskerLeftWhiskerRightPath3 K
+      (α ρ) (η ρ) (δ ρ)
+
+/-- Pentagon coherence specialized to strict extensional Kan models. This uses
+the axiom-free strict filler-uniqueness proof rather than the generic
+front-face axiom. -/
+noncomputable def Theory3.strictPentagon
+    (K : StrictExtensionalKanComplex)
+    {L M N P Q : Term}
+    (α : Theory1 K.toExtensionalKanComplex L M)
+    (β : Theory1 K.toExtensionalKanComplex M N)
+    (γ : Theory1 K.toExtensionalKanComplex N P)
+    (δ : Theory1 K.toExtensionalKanComplex P Q) :
+    Theory3 K.toExtensionalKanComplex
+      (Theory2.trans K.toExtensionalKanComplex
+        (Theory2.associator K.toExtensionalKanComplex
+          (Theory1.comp K.toExtensionalKanComplex α β) γ δ)
+        (Theory2.associator K.toExtensionalKanComplex α β
+          (Theory1.comp K.toExtensionalKanComplex γ δ)))
+      (Theory2.trans K.toExtensionalKanComplex
+        (Theory2.trans K.toExtensionalKanComplex
+          (Theory2.whiskerRight K.toExtensionalKanComplex
+            (Theory2.associator K.toExtensionalKanComplex α β γ) δ)
+          (Theory2.associator K.toExtensionalKanComplex α
+            (Theory1.comp K.toExtensionalKanComplex β γ) δ))
+        (Theory2.whiskerLeft K.toExtensionalKanComplex α
+          (Theory2.associator K.toExtensionalKanComplex β γ δ))) :=
+  fun ρ => StrictExtensionalKanComplex.pentagonPath3 K (α ρ) (β ρ) (γ ρ) (δ ρ)
 
 /-- Pentagon coherence at the semantic 3-cell layer. -/
 noncomputable def Theory3.pentagon
@@ -9031,6 +13350,7 @@ noncomputable def reductionSeq_pentagon_in_HoTFT3
     (reductionSeq_in_HoTFT1 q)
     (reductionSeq_in_HoTFT1 r)
     (reductionSeq_in_HoTFT1 s)
+
 end HigherLambdaModel.Lambda.ExtensionalKan
 
 

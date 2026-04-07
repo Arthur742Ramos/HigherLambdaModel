@@ -451,10 +451,11 @@ end Homotopy3
 This keeps only the constructors already matched by explicit simplicial
 operations in `ExtensionalKan`: reflexivity, literal equality of 2-cells,
 symmetry, vertical composition, the reflexive left and right whiskering
-witnesses, the left-whiskering symmetry witness, and the interchange witness
-coming from the chosen definition of horizontal composition. The remaining
-primitive constructors of `Homotopy3Deriv` stay in the full syntax but are not
-yet included in this restricted fragment. -/
+witnesses, the left- and right-whiskering transitivity, symmetry, and
+inverse-symmetry witnesses, and the interchange witness coming from the chosen
+definition of horizontal composition. The remaining primitive constructors of
+`Homotopy3Deriv` stay in the full syntax but are not yet included in this
+restricted fragment. -/
 inductive StructuralHomotopy3 :
     {M N : Term} → {p q : ReductionSeq M N} →
     (α β : Homotopy2 p q) → Type where
@@ -474,6 +475,11 @@ inductive StructuralHomotopy3 :
   | whiskerRightRefl {L M N : Term} (p : ReductionSeq L M) (s : ReductionSeq M N) :
       StructuralHomotopy3 (whiskerRight (Homotopy2.refl p) s)
         (Homotopy2.refl (ReductionSeq.concat p s))
+  | whiskerRightTrans {L M N : Term}
+      {p q r : ReductionSeq L M} (α : Homotopy2 p q) (β : Homotopy2 q r)
+      (s : ReductionSeq M N) :
+      StructuralHomotopy3 (whiskerRight (Homotopy2.trans α β) s)
+        (Homotopy2.trans (whiskerRight α s) (whiskerRight β s))
   | whiskerLeftTrans {L M N : Term} (r : ReductionSeq L M)
       {p q s : ReductionSeq M N} (α : Homotopy2 p q) (β : Homotopy2 q s) :
       StructuralHomotopy3 (whiskerLeft r (Homotopy2.trans α β))
@@ -482,6 +488,18 @@ inductive StructuralHomotopy3 :
       {p q : ReductionSeq M N} (α : Homotopy2 p q) :
       StructuralHomotopy3 (whiskerLeft r (Homotopy2.symm α))
         (Homotopy2.symm (whiskerLeft r α))
+  | whiskerRightSymm {L M N : Term}
+      {p q : ReductionSeq L M} (α : Homotopy2 p q) (s : ReductionSeq M N) :
+      StructuralHomotopy3 (whiskerRight (Homotopy2.symm α) s)
+        (Homotopy2.symm (whiskerRight α s))
+  | invWhiskerLeft {L M N : Term} (r : ReductionSeq L M)
+      {p q : ReductionSeq M N} (α : Homotopy2 p q) :
+      StructuralHomotopy3 (Homotopy2.symm (whiskerLeft r α))
+        (whiskerLeft r (Homotopy2.symm α))
+  | invWhiskerRight {L M N : Term}
+      {p q : ReductionSeq L M} (α : Homotopy2 p q) (s : ReductionSeq M N) :
+      StructuralHomotopy3 (Homotopy2.symm (whiskerRight α s))
+        (whiskerRight (Homotopy2.symm α) s)
   | interchange {M N P : Term}
       {p p' : ReductionSeq M N} {q q' : ReductionSeq N P}
       (α : Homotopy2 p p') (β : Homotopy2 q q') :
@@ -502,10 +520,18 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftRefl r p)
   | .whiskerRightRefl p s =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerRightRefl p s)
+  | .whiskerRightTrans α β s =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerRightTrans α β s)
   | .whiskerLeftTrans r α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftTrans r α β)
   | .whiskerLeftSymm r α =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftSymm r α)
+  | .whiskerRightSymm α s =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.whiskerRightSymm α s)
+  | .invWhiskerLeft r α =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.invWhiskerLeft r α)
+  | .invWhiskerRight α s =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.invWhiskerRight α s)
   | .interchange α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.interchange α β)
 

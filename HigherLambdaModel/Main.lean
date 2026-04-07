@@ -47,7 +47,8 @@ This file summarizes the main results from our formalization of
 - Main Theorem: TH_λ= ⊆ HoTFT
 - Explicit `Homotopy2` cells now interpret directly into semantic `HoTFT2` cells carried by the structural HoTFT 1-cells of their boundaries
 - Reflexive, equality-generated, symmetric, vertically composable, and interchange 3-cells over those semantic `HoTFT2` boundaries now land in an actual simplicial `HoTFT3` layer
-- A supported explicit syntactic 3-cell fragment `StructuralHomotopy3`, now closed under symmetry, vertical composition, reflexive left/right whiskering, left-whiskering transitivity, left-whiskering symmetry, and interchange, maps directly into that `HoTFT3` layer
+- A supported explicit syntactic 3-cell fragment `StructuralHomotopy3`, now closed under symmetry, vertical composition, reflexive left/right whiskering, left/right-whiskering transitivity, left/right-whiskering symmetry, inverse left/right-whiskering, and interchange, maps directly into that `HoTFT3` layer
+- Interpreted syntactic right whiskers now bridge back to the legacy structural shell, and the recursive associator bookkeeping is packaged by `reductionSeq_comp_associator_in_*_of_heads`; the remaining primitive `Homotopy3Deriv` gap is now the unsupported coherence fragment outside `StructuralHomotopy3`, concentrated on the forward and inverse associator step-head bridges
 - Reflexive 4-cells over the current interpreted 3-cell fragment now land in an actual simplicial `HoTFT4` layer
 
 ## Key Results

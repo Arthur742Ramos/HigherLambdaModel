@@ -159,65 +159,49 @@ It does **not** mean that every statement in the source papers is formalized
 verbatim. The remaining paper-level partials and missing claims are deliberate,
 documented, and visible in [`docs/theorem_index.md`](./docs/theorem_index.md).
 
-The main paper-level gaps still tracked there are:
+The Section 4 closure story is now materially stronger than the earlier roadmap
+checkpoints:
 
-Proposition 4.1 is now fully internalized: `kInfinity_algebraic`,
-`kInfinity_boundedComplete`, and `kInfinityScottDomain` close the exact `K∞`
-Homotopy Scott Domain statement, so the remaining paper-facing obstructions are
-now semantic rather than domain-theoretic.
+- Proposition 4.1 is fully internalized: `kInfinity_algebraic`,
+  `kInfinity_boundedComplete`, and `kInfinityScottDomain` close the exact `K∞`
+  Homotopy Scott Domain statement.
+- Example 4.2 is also closed at the current chosen-point /
+  interpreted-witness level. The repository has the continuous λ-term
+  interpreter over CHPO products and continuous exponentials, the public
+  substitution and arbitrary one-step βη soundness theorems, the proof-relevant
+  one-step and explicit 1-term witness layers, and the paper-facing β₁ / η₁
+  witness packages `betaEtaPaper_beta1Witness_interpretation` /
+  `betaEtaPaper_eta1Witness_interpretation`. Those explicit 1-term witness
+  packages now arise from the generic Prop-level classification-based map
+  `example42NTerm1Witness_interpretation` on arbitrary
+  `NTerm1Witness betaEtaPaperSource betaEtaPaperTarget`, rather than routing
+  through the bespoke two-tag `Example42DirectWitness` selector, and they
+  inherit the full existing no 1/2/3/4/5/recursive-higher-cell separation
+  suite.
 
-- the full interpreted beta/eta separation statement of Example 4.2
-  (the repository now packages the strongest honest current endpoint as
-  `proposition_4_4_example_4_2`, combining the completed non-trivial homotopy
-  λ-model witness with the full β/η point-separation suite through the explicit
-  1/2/3/4/5-cell hierarchy and the recursively completed all-dimensional tower;
-  the repo now also has a well-scoped λ-term semantics over CHPO product
-  contexts and continuous exponentials, together with public substitution and
-  arbitrary one-step βη soundness theorems
-  `interpretContinuous_subst`, `interpretContinuous_subst0`,
-  `beta_sound_continuous`, `betaStep_sound_continuous`,
-  `eta_sound_continuous`, `etaStep_sound_continuous`,
-  `betaEtaStep_sound_continuous`, and the bridge lemma
-  `interpretContinuous_lam_reflect_apply`; it fixes the paper's concrete
-  witness terms `(λz.xz) y` and `xy` in `KInfinity/Examples.lean`, proves the
-  object-level equalities
-  `betaEtaPaperFunction_interpretContinuous` and
-  `betaEtaPaperSource_interpretContinuous` via those generic theorems, packages
-  the explicit β₁/η₁ witness maps themselves as
-  `betaEtaPaper_beta1_continuousWitness` and
-  `betaEtaPaper_eta1_continuousWitness`, and now also packages them with the
-  chosen separated `K∞` points as
-  `betaEtaPaper_beta1_interpretation` / `betaEtaPaper_eta1_interpretation`;
-  those chosen-data packages now inherit the full existing separation suite
-  through no 1/2/3/4/5-cell and no recursive higher cell via
-  `betaEtaPaper_witness_interpretations_no_path`,
-  `betaEtaPaper_witness_interpretations_no_2cell`,
-  `betaEtaPaper_witness_interpretations_no_3cell`,
-  `betaEtaPaper_witness_interpretations_no_4cell`,
-  `betaEtaPaper_witness_interpretations_no_5cell`, and
-  `betaEtaPaper_witness_interpretations_no_recursive_higher_cell`; the repo now
-  also makes the proof-relevance issue explicit through
-  `Example42DirectWitness` and `betaEtaPaper_beta1_eq_eta1`, showing that the
-  ordinary `NTerm1.redex` layer already identifies the direct β₁ and η₁
-  witnesses because `BetaEtaStep` is proposition-valued. The file now also
-  upgrades that wrapper into a canonical proof-relevant direct-witness bridge:
-  `Example42DirectWitness.continuousWitness`,
-  `Example42DirectWitness.point_injective`,
-  `Example42DirectWitnessInterpretation`, and
-  `Example42DirectWitnessInterpretation.toWitnessInterpretation` show that the
-  paper-facing chosen-data packages are forgetful images of a proof-relevant
-  direct witness interpretation, not merely ad hoc pairings. So the remaining
-  Example 4.2 gap is now narrower again: extend that canonical bridge beyond
-  the bespoke two-tag `Example42DirectWitness` layer to a genuinely general
-  proof-relevant witness semantics for the paper's contraction language),
+The remaining paper-level gaps are now:
+
 - a direct semantic interpretation of the full primitive `Homotopy3Deriv`
   language rather than only the current structural fragment (the structural
   fragment now reaches reflexivity, equality, symmetry, transitivity,
-  reflexive left/right whiskering, left-whisker transitivity, left-whisker
-  symmetry, and interchange; outside that structural fragment, the direct
-  primitive coverage now also includes triangle, right-whisker transitivity,
-  forward and inverse right-whisker symmetry, and the second interchange
-  form, so the remaining gap has narrowed to pentagon),
+  reflexive left/right whiskering, left/right-whisker transitivity,
+  left/right-whisker symmetry, inverse left/right-whisker symmetry, and
+  interchange; outside that structural fragment, standalone primitive semantic
+  theorems already cover triangle, pentagon, and the second interchange form.
+  Interpreted syntactic right whiskers now also bridge back to the legacy
+  structural shell, so the live `ExtensionalKan.lean` file now also proves the
+  self-comparison contraction `triangleSelfReflPath3`; for a bare generic
+  `KanComplex`, the remaining pentagon frontier is the smaller local front-face
+  axiom `pentagonInnerRightFrontReflPath3`, while the new strict
+  filler-uniqueness layer (`StrictKanComplex`, `StrictExtensionalKanComplex`,
+  `Theory3.strictPentagon`) now discharges that pentagon axiom-free. The
+  recursive associator bookkeeping is now packaged on both the semantic and
+  HoTFT sides by `reductionSeq_comp_associator_in_Theory3_of_heads` and
+  `reductionSeq_comp_associator_in_HoTFT3_of_heads`, so the live `Homotopy3`
+  gap is now the unsupported coherence fragment outside `StructuralHomotopy3`,
+  concretely the forward and inverse associator step-head normalizations and,
+  from there, the final direct endpoint-language bridge from full primitive
+  syntax back to the structural `HoTFT3` interface),
 - and a stronger all-dimensional constructive omega-groupoid story beyond the
   current explicit 5-cell core plus recursive identity tower.
 

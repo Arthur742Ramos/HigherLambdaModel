@@ -64,6 +64,63 @@ inductive BetaEtaStep : Term → Term → Prop where
   | beta : ∀ {M N}, BetaStep M N → BetaEtaStep M N
   | eta : ∀ {M N}, EtaStep M N → BetaEtaStep M N
 
+/-- A proof-relevant single β-step witness. This keeps the exact reduction
+shape in `Type`, unlike `BetaStep` which lives in `Prop`. -/
+inductive BetaStepWitness : Term → Term → Type where
+  | beta : ∀ M N, BetaStepWitness (app (lam M) N) (M[N])
+  | appL : ∀ {M M' N}, BetaStepWitness M M' → BetaStepWitness (app M N) (app M' N)
+  | appR : ∀ {M N N'}, BetaStepWitness N N' → BetaStepWitness (app M N) (app M N')
+  | lam : ∀ {M M'}, BetaStepWitness M M' → BetaStepWitness (Term.lam M) (Term.lam M')
+
+namespace BetaStepWitness
+
+/-- Forget a proof-relevant β-step witness to the ordinary proposition-valued
+β-step relation. -/
+def toBetaStep : BetaStepWitness M N → BetaStep M N
+  | .beta M N => BetaStep.beta M N
+  | .appL h => BetaStep.appL h.toBetaStep
+  | .appR h => BetaStep.appR h.toBetaStep
+  | .lam h => BetaStep.lam h.toBetaStep
+
+end BetaStepWitness
+
+/-- A proof-relevant single η-step witness. This keeps the exact reduction
+shape in `Type`, unlike `EtaStep` which lives in `Prop`. -/
+inductive EtaStepWitness : Term → Term → Type where
+  | eta : ∀ M, ¬hasFreeVar 0 M = true →
+      EtaStepWitness (Term.lam (app M (var 0))) (shift (-1) 0 M)
+  | appL : ∀ {M M' N}, EtaStepWitness M M' → EtaStepWitness (app M N) (app M' N)
+  | appR : ∀ {M N N'}, EtaStepWitness N N' → EtaStepWitness (app M N) (app M N')
+  | lam : ∀ {M M'}, EtaStepWitness M M' → EtaStepWitness (Term.lam M) (Term.lam M')
+
+namespace EtaStepWitness
+
+/-- Forget a proof-relevant η-step witness to the ordinary proposition-valued
+η-step relation. -/
+def toEtaStep : EtaStepWitness M N → EtaStep M N
+  | .eta M h => EtaStep.eta M h
+  | .appL h => EtaStep.appL h.toEtaStep
+  | .appR h => EtaStep.appR h.toEtaStep
+  | .lam h => EtaStep.lam h.toEtaStep
+
+end EtaStepWitness
+
+/-- A proof-relevant single βη-step witness. This retains which branch and
+which congruence shape produced the step. -/
+inductive BetaEtaStepWitness : Term → Term → Type where
+  | beta : ∀ {M N}, BetaStepWitness M N → BetaEtaStepWitness M N
+  | eta : ∀ {M N}, EtaStepWitness M N → BetaEtaStepWitness M N
+
+namespace BetaEtaStepWitness
+
+/-- Forget a proof-relevant βη-step witness to the ordinary proposition-valued
+βη-step relation. -/
+def toBetaEtaStep : BetaEtaStepWitness M N → BetaEtaStep M N
+  | .beta h => BetaEtaStep.beta h.toBetaStep
+  | .eta h => BetaEtaStep.eta h.toEtaStep
+
+end BetaEtaStepWitness
+
 /-! ## Reduction Closures -/
 
 /-- Reflexive-transitive closure of βη-reduction.

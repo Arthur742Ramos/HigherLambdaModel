@@ -1,9 +1,11 @@
 import HigherLambdaModel.KInfinity.Properties
+import HigherLambdaModel.Lambda.NTerms
 
 namespace HigherLambdaModel.KInfinity
 
 open HigherLambdaModel.Domain
 open HigherLambdaModel.Lambda
+open HigherLambdaModel.Lambda.NTerms
 open HigherLambdaModel.Lambda.HomotopyOrder
 open Term
 
@@ -365,6 +367,177 @@ private theorem closedAtDepth_shift1
     (hClosed : Term.closedAtDepth n M = true) :
     Term.closedAtDepth (n + 1) (Term.shift1 M) = true := by
   simpa [Term.shift1] using closedAtDepth_shift_succ M (n := n) (c := 0) (Nat.zero_le n) hClosed
+
+/-- Substituting a well-scoped term into a well-scoped body preserves
+well-scopedness. -/
+private theorem closedAtDepth_subst_preserve (M : Term) :
+    ∀ {n : Nat} (j : Fin (n + 1)) (N : Term),
+      Term.closedAtDepth (n + 1) M = true →
+      Term.closedAtDepth n N = true →
+      Term.closedAtDepth n (Term.subst j.1 N M) = true := by
+  induction M with
+  | var m =>
+      intro n j N hClosed hN
+      have hm : m < n + 1 := by
+        simpa [Term.closedAtDepth] using hClosed
+      by_cases hmEq : m = j.1
+      · subst hmEq
+        simpa [Term.subst] using hN
+      · by_cases hmLt : m < j.1
+        · have hjn : j.1 ≤ n := Nat.lt_succ_iff.mp j.2
+          have hmn : m < n := Nat.lt_of_lt_of_le hmLt hjn
+          have hNotGt : ¬ m > j.1 := by omega
+          simpa [Term.closedAtDepth, Term.subst, hmEq, hNotGt] using hmn
+        · have hjm : j.1 < m := by omega
+          have hSub : (↑m + (-1 : Int)).toNat = m - 1 := by
+            have hInt : (↑m : Int) + (-1 : Int) = ↑(m - 1) := by omega
+            rw [hInt]
+            exact Int.toNat_natCast (m - 1)
+          have hmn : m - 1 < n := by omega
+          simpa [Term.closedAtDepth, Term.subst, hmEq, hjm, hSub] using hmn
+  | app M N ihM ihN =>
+      intro n j P hClosed hP
+      have hMN :
+          Term.closedAtDepth (n + 1) M = true ∧
+            Term.closedAtDepth (n + 1) N = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth, Term.subst,
+        ihM j P hMN.1 hP, ihN j P hMN.2 hP]
+  | lam M ih =>
+      intro n j N hClosed hN
+      have hM : Term.closedAtDepth (n + 2) M = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      have hShiftN : Term.closedAtDepth (n + 1) (Term.shift1 N) = true :=
+        closedAtDepth_shift1 N hN
+      simpa [Term.closedAtDepth, Term.subst] using
+        ih ⟨j.1 + 1, Nat.succ_lt_succ j.2⟩ (Term.shift1 N) hM hShiftN
+
+/-- Shifting down by one above a cutoff preserves well-scopedness when the
+cutoff variable is absent. -/
+private theorem closedAtDepth_unshift_preserve (M : Term) :
+    ∀ {n c : Nat}, c ≤ n →
+      Term.hasFreeVar c M = false →
+      Term.closedAtDepth (n + 1) M = true →
+      Term.closedAtDepth n (Term.shift (-1) c M) = true := by
+  induction M with
+  | var m =>
+      intro n c hcn hFree hClosed
+      simp [Term.hasFreeVar] at hFree
+      have hm : m < n + 1 := by
+        simpa [Term.closedAtDepth] using hClosed
+      by_cases hmc : m < c
+      · have hmn : m < n := Nat.lt_of_lt_of_le hmc hcn
+        simpa [Term.closedAtDepth, Term.shift, hmc] using hmn
+      · have hcm : c ≤ m := Nat.le_of_not_lt hmc
+        have hne : m ≠ c := by
+          intro hEq
+          simpa [hEq] using hFree
+        have hgt : c < m := Nat.lt_of_le_of_ne hcm (Ne.symm hne)
+        have hSub : (↑m + (-1 : Int)).toNat = m - 1 := by
+          have hInt : (↑m : Int) + (-1 : Int) = ↑(m - 1) := by omega
+          rw [hInt]
+          exact Int.toNat_natCast (m - 1)
+        have hmn : m - 1 < n := by omega
+        simpa [Term.closedAtDepth, Term.shift, hmc, hSub] using hmn
+  | app M N ihM ihN =>
+      intro n c hcn hFree hClosed
+      simp [Term.hasFreeVar] at hFree
+      have hMN :
+          Term.closedAtDepth (n + 1) M = true ∧
+            Term.closedAtDepth (n + 1) N = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth, Term.shift,
+        ihM hcn hFree.1 hMN.1, ihN hcn hFree.2 hMN.2]
+  | lam M ih =>
+      intro n c hcn hFree hClosed
+      simp [Term.hasFreeVar] at hFree
+      have hM : Term.closedAtDepth (n + 2) M = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      have hcSucc : c + 1 ≤ n + 1 := Nat.succ_le_succ hcn
+      simpa [Term.closedAtDepth, Term.shift] using
+        ih hcSucc hFree hM
+
+/-- β-reduction preserves well-scopedness at a fixed depth. -/
+private theorem betaStep_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (h : BetaStep M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true := by
+  intro hClosed
+  induction h generalizing n with
+  | beta M N =>
+      have hApp :
+          Term.closedAtDepth n (Term.lam M) = true ∧
+            Term.closedAtDepth n N = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      have hM : Term.closedAtDepth (n + 1) M = true := by
+        simpa [Term.closedAtDepth] using hApp.1
+      simpa [Term.subst0] using
+        closedAtDepth_subst_preserve M ⟨0, Nat.succ_pos n⟩ N hM hApp.2
+  | appL h ih =>
+      rename_i M₁ M₂ P
+      have hMN : Term.closedAtDepth n M₁ = true ∧ Term.closedAtDepth n P = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using And.intro (ih hMN.1) hMN.2
+  | appR h ih =>
+      rename_i M₁ N₁ N₂
+      have hMN : Term.closedAtDepth n M₁ = true ∧ Term.closedAtDepth n N₁ = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using And.intro hMN.1 (ih hMN.2)
+  | lam h ih =>
+      rename_i M₁ M₂
+      have hM : Term.closedAtDepth (n + 1) M₁ = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using ih hM
+
+/-- η-reduction preserves well-scopedness at a fixed depth. -/
+private theorem etaStep_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (h : EtaStep M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true := by
+  intro hClosed
+  induction h generalizing n with
+  | eta M hNotFree =>
+      have hBody : Term.closedAtDepth (n + 1) (Term.app M (Term.var 0)) = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      have hM :
+          Term.closedAtDepth (n + 1) M = true ∧
+            Term.closedAtDepth (n + 1) (Term.var 0) = true := by
+        simpa [Term.closedAtDepth] using hBody
+      have hFree : Term.hasFreeVar 0 M = false := by
+        cases hfv : Term.hasFreeVar 0 M <;> simp [hfv] at hNotFree ⊢
+      exact closedAtDepth_unshift_preserve M (n := n) (c := 0) (Nat.zero_le n) hFree hM.1
+  | appL h ih =>
+      rename_i M₁ M₂ P
+      have hMN : Term.closedAtDepth n M₁ = true ∧ Term.closedAtDepth n P = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using And.intro (ih hMN.1) hMN.2
+  | appR h ih =>
+      rename_i M₁ N₁ N₂
+      have hMN : Term.closedAtDepth n M₁ = true ∧ Term.closedAtDepth n N₁ = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using And.intro hMN.1 (ih hMN.2)
+  | lam h ih =>
+      rename_i M₁ M₂
+      have hM : Term.closedAtDepth (n + 1) M₁ = true := by
+        simpa [Term.closedAtDepth] using hClosed
+      simpa [Term.closedAtDepth] using ih hM
+
+/-- Combined βη-steps preserve well-scopedness at a fixed depth. -/
+private theorem betaEtaStep_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (h : BetaEtaStep M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true := by
+  intro hClosed
+  cases h with
+  | beta hb => exact betaStep_preserves_closedAtDepth hb hClosed
+  | eta he => exact etaStep_preserves_closedAtDepth he hClosed
+
+/-- Proof-relevant βη-step witnesses preserve well-scopedness at a fixed depth. -/
+private theorem betaEtaStepWitness_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (h : BetaEtaStepWitness M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true :=
+  betaEtaStep_preserves_closedAtDepth h.toBetaEtaStep
 
 /-- Finite-context semantic shift lemma: shifting free indices above a cutoff is
 interpreted by removing the corresponding semantic slot from the iterated
@@ -796,6 +969,163 @@ theorem betaEtaStep_sound_continuous
   cases h with
   | beta hb => exact betaStep_sound_continuous R hb hM hN ρ
   | eta he => exact etaStep_sound_continuous R he hM hN ρ
+
+/-- Proof-relevant β-step witnesses preserve the continuous interpretation. -/
+theorem betaStepWitness_sound_continuous
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (h : BetaStepWitness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true)
+    (ρ : (SemanticContext K n).Obj) :
+    (interpretContinuous R.toReflexiveCHPO n M hM).toFun ρ =
+      (interpretContinuous R.toReflexiveCHPO n N hN).toFun ρ :=
+  betaStep_sound_continuous R h.toBetaStep hM hN ρ
+
+/-- Proof-relevant η-step witnesses preserve the continuous interpretation. -/
+theorem etaStepWitness_sound_continuous
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (h : EtaStepWitness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true)
+    (ρ : (SemanticContext K n).Obj) :
+    (interpretContinuous R.toReflexiveCHPO n M hM).toFun ρ =
+      (interpretContinuous R.toReflexiveCHPO n N hN).toFun ρ :=
+  etaStep_sound_continuous R h.toEtaStep hM hN ρ
+
+/-- Proof-relevant βη-step witnesses preserve the continuous interpretation. -/
+theorem betaEtaStepWitness_sound_continuous
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (h : BetaEtaStepWitness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true)
+    (ρ : (SemanticContext K n).Obj) :
+    (interpretContinuous R.toReflexiveCHPO n M hM).toFun ρ =
+      (interpretContinuous R.toReflexiveCHPO n N hN).toFun ρ :=
+  betaEtaStep_sound_continuous R h.toBetaEtaStep hM hN ρ
+
+/-- Package a proof-relevant βη-step witness as an equality of continuous
+endpoint maps. -/
+noncomputable def betaEtaStepWitness_continuousWitness
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (h : BetaEtaStepWitness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true) :
+    interpretContinuous R.toReflexiveCHPO n M hM =
+      interpretContinuous R.toReflexiveCHPO n N hN := by
+  apply ContinuousMap.ext
+  intro ρ
+  exact betaEtaStepWitness_sound_continuous R h hM hN ρ
+
+/-- Indexed 1-terms preserve well-scopedness at a fixed depth. -/
+private theorem nterm1_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (t : NTerm1 M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true := by
+  intro hClosed
+  induction t with
+  | redex s =>
+      exact betaEtaStep_preserves_closedAtDepth s hClosed
+  | seq t₁ t₂ ih₁ ih₂ =>
+      exact ih₂ (ih₁ hClosed)
+  | refl =>
+      exact hClosed
+
+/-- Proof-relevant indexed 1-terms preserve well-scopedness at a fixed depth. -/
+private theorem nterm1Witness_preserves_closedAtDepth
+    {n : Nat} {M N : Term} (t : NTerm1Witness M N) :
+    Term.closedAtDepth n M = true →
+      Term.closedAtDepth n N = true := by
+  intro hClosed
+  induction t with
+  | redex s =>
+      exact betaEtaStepWitness_preserves_closedAtDepth s hClosed
+  | seq t₁ t₂ ih₁ ih₂ =>
+      exact ih₂ (ih₁ hClosed)
+  | refl =>
+      exact hClosed
+
+/-- Indexed 1-terms preserve the continuous interpretation. -/
+theorem nterm1_sound_continuous
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (t : NTerm1 M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true)
+    (ρ : (SemanticContext K n).Obj) :
+    (interpretContinuous R.toReflexiveCHPO n M hM).toFun ρ =
+      (interpretContinuous R.toReflexiveCHPO n N hN).toFun ρ := by
+  induction t generalizing n ρ with
+  | redex s =>
+      exact betaEtaStep_sound_continuous R s hM hN ρ
+  | seq t₁ t₂ ih₁ ih₂ =>
+      rename_i L P N'
+      have hP := nterm1_preserves_closedAtDepth (n := n) t₁ hM
+      calc
+        (interpretContinuous R.toReflexiveCHPO n L hM).toFun ρ =
+            _ := by
+              exact ih₁ hM hP ρ
+        _ =
+            (interpretContinuous R.toReflexiveCHPO n N' hN).toFun ρ := by
+              exact ih₂ hP hN ρ
+  | refl =>
+      rfl
+
+/-- Package an indexed 1-term as an equality of continuous endpoint maps. -/
+noncomputable def nterm1_continuousWitness
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (t : NTerm1 M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true) :
+    interpretContinuous R.toReflexiveCHPO n M hM =
+      interpretContinuous R.toReflexiveCHPO n N hN := by
+  apply ContinuousMap.ext
+  intro ρ
+  exact nterm1_sound_continuous R t hM hN ρ
+
+/-- Proof-relevant indexed 1-terms preserve the continuous interpretation. -/
+theorem nterm1Witness_sound_continuous
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (t : NTerm1Witness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true)
+    (ρ : (SemanticContext K n).Obj) :
+    (interpretContinuous R.toReflexiveCHPO n M hM).toFun ρ =
+      (interpretContinuous R.toReflexiveCHPO n N hN).toFun ρ := by
+  induction t generalizing n ρ with
+  | redex s =>
+      exact betaEtaStepWitness_sound_continuous R s hM hN ρ
+  | seq t₁ t₂ ih₁ ih₂ =>
+      rename_i L P N'
+      have hP := nterm1Witness_preserves_closedAtDepth (n := n) t₁ hM
+      calc
+        (interpretContinuous R.toReflexiveCHPO n L hM).toFun ρ =
+            _ := by
+              exact ih₁ hM hP ρ
+        _ =
+            (interpretContinuous R.toReflexiveCHPO n N' hN).toFun ρ := by
+              exact ih₂ hP hN ρ
+  | refl =>
+      rfl
+
+/-- Package a proof-relevant indexed 1-term as an equality of continuous
+endpoint maps. -/
+noncomputable def nterm1Witness_continuousWitness
+    {K : CompleteHomotopyPartialOrder}
+    (R : TwoSidedReflexiveCHPO K)
+    {n : Nat} {M N : Term} (t : NTerm1Witness M N)
+    (hM : Term.closedAtDepth n M = true)
+    (hN : Term.closedAtDepth n N = true) :
+    interpretContinuous R.toReflexiveCHPO n M hM =
+      interpretContinuous R.toReflexiveCHPO n N hN := by
+  apply ContinuousMap.ext
+  intro ρ
+  exact nterm1Witness_sound_continuous R t hM hN ρ
 
 /-- `K∞` now carries the two-sided continuous reflexivity package needed by the
 new continuous semantics layer. -/
