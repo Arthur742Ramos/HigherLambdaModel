@@ -44,8 +44,8 @@ Current snapshot, excluding `.lake`:
 
 - `31` Lean files
 - `13,492` lines of Lean
-- `204` named `theorem` / `lemma` declarations
-- no local `axiom`, `sorry`, or `admit` declarations
+- `309` named `theorem` / `lemma` declarations
+- `1` remaining local `axiom` (the bare semantic pentagon back-loop contraction in `ExtensionalKan.lean`) and no `sorry` / `admit` declarations
 - all closure backlog issues `0` through `8` completed
 
 ## Key Results Formalized
@@ -59,7 +59,7 @@ Current snapshot, excluding `.lake`:
 | Canonical omega-groupoid API and generic coherence packaging | `HigherLambdaModel/Simplicial/OmegaGroupoid.lean`, `HigherLambdaModel/Lambda/Coherence.lean`, `HigherLambdaModel/Lambda/TruncationCore.lean`, `HigherLambdaModel/Lambda/Truncation.lean` | `done` |
 | Concrete admissible `K∞` instance | `HigherLambdaModel/KInfinity/Properties.lean` | `done` |
 | Non-trivial example suite | `HigherLambdaModel/KInfinity/Examples.lean` | `done` |
-| Paper-level exactness for the full `K∞ ≃ [K∞ → K∞]` story | `docs/theorem_index.md` | `partial` / `missing` |
+| Paper-level exactness for the continuous `K∞ ≃ [K∞ → K∞]` story | `docs/theorem_index.md` | `done` |
 
 ## Project Structure
 
@@ -171,13 +171,38 @@ now semantic rather than domain-theoretic.
   `proposition_4_4_example_4_2`, combining the completed non-trivial homotopy
   λ-model witness with the full β/η point-separation suite through the explicit
   1/2/3/4/5-cell hierarchy and the recursively completed all-dimensional tower;
-  the current missing ingredient is still a bridge from the Section 4
-  `NonTrivialHomotopyLambdaModel` / `ReflexiveCHPO` packaging into the
-  `ReflexiveKanComplex`-based term interpretation used by `ExtensionalKan`;
-  the sharp mismatch is that `ReflexiveCHPO` only exposes reify/reflect on
-  **continuous** self-maps in the CHPO exponential, while `ExtensionalKan`
-  expects `G` on the full function space `Obj → Obj` together with the Kan-side
-  η-law),
+  the repo now also has a well-scoped λ-term semantics over CHPO product
+  contexts and continuous exponentials, together with public substitution and
+  arbitrary one-step βη soundness theorems
+  `interpretContinuous_subst`, `interpretContinuous_subst0`,
+  `beta_sound_continuous`, `betaStep_sound_continuous`,
+  `eta_sound_continuous`, `etaStep_sound_continuous`,
+  `betaEtaStep_sound_continuous`, and the bridge lemma
+  `interpretContinuous_lam_reflect_apply`; it fixes the paper's concrete
+  witness terms `(λz.xz) y` and `xy` in `KInfinity/Examples.lean`, proves the
+  object-level equalities
+  `betaEtaPaperFunction_interpretContinuous` and
+  `betaEtaPaperSource_interpretContinuous` via those generic theorems, packages
+  the explicit β₁/η₁ witness maps themselves as
+  `betaEtaPaper_beta1_continuousWitness` and
+  `betaEtaPaper_eta1_continuousWitness`, and now also packages them with the
+  chosen separated `K∞` points as
+  `betaEtaPaper_beta1_interpretation` / `betaEtaPaper_eta1_interpretation`;
+  those chosen-data packages now inherit the full existing separation suite
+  through no 1/2/3/4/5-cell and no recursive higher cell via
+  `betaEtaPaper_witness_interpretations_no_path`,
+  `betaEtaPaper_witness_interpretations_no_2cell`,
+  `betaEtaPaper_witness_interpretations_no_3cell`,
+  `betaEtaPaper_witness_interpretations_no_4cell`,
+  `betaEtaPaper_witness_interpretations_no_5cell`, and
+  `betaEtaPaper_witness_interpretations_no_recursive_higher_cell`; the repo now
+  also makes the proof-relevance issue explicit through
+  `Example42DirectWitness` and `betaEtaPaper_beta1_eq_eta1`, showing that the
+  ordinary `NTerm1.redex` layer already identifies the direct β₁ and η₁
+  witnesses because `BetaEtaStep` is proposition-valued. So what still remains
+  is not the chosen-data identification itself, but a proof-relevant semantic
+  derivation that these representatives are the canonical images of the paper
+  witnesses rather than an explicit packaging choice),
 - a direct semantic interpretation of the full primitive `Homotopy3Deriv`
   language rather than only the current structural fragment (the structural
   fragment now reaches reflexivity, equality, symmetry, transitivity,

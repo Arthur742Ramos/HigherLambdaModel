@@ -3804,6 +3804,173 @@ theorem hInfinity_kInfinityContinuous_apply
   | succ n =>
       exact hInfinity_kInfinityContinuous_succ n x
 
+/-- Finite-stage section shadow for the global `k`/`h` candidates. Although the
+full reverse equation `k ∘ h = id` on the continuous function space is still
+open, every finite-stage restriction is already recovered exactly. -/
+theorem kInfinityContinuous_hInfinityContinuous_restrict
+    (n : Nat) (g : (Exponential.chpo KInfinityCHPO KInfinityCHPO).Obj) :
+    restrictEndomapToStageContinuous (genericStageEmbedding n)
+      (kInfinityContinuous (hInfinityContinuous g)) =
+        restrictEndomapToStageContinuous (genericStageEmbedding n) g := by
+  rw [restrictEndomapToStage_kInfinityContinuous]
+  simpa [hInfinityContinuous] using project_hInfinity_succ n g
+
+/-- Evaluating the finite-stage section shadow on the canonical stage embedding
+recovers the original endomap exactly at that stage. -/
+theorem kInfinityContinuous_hInfinityContinuous_restrict_apply
+    (n : Nat) (g : (Exponential.chpo KInfinityCHPO KInfinityCHPO).Obj)
+    (x : (K n).Obj) :
+    projectToLevel n
+        ((kInfinityContinuous (hInfinityContinuous g)).toFun
+          (embedFiniteStageToLimit n x)) =
+      projectToLevel n (g.toFun (embedFiniteStageToLimit n x)) := by
+  have h :=
+    congrArg
+      (fun f : ContinuousMap (K n) (K n) => f.toFun x)
+      (kInfinityContinuous_hInfinityContinuous_restrict n g)
+  simpa [genericStageEmbedding, embedFiniteStageContinuous,
+    restrictEndomapToStageContinuous_apply] using h
+
+private theorem genericLevelCoords_rebase
+    {n m : Nat} (hnm : n ≤ m) (x : (K n).Obj) :
+    ∀ k : Nat,
+      genericLevelCoords m (projectToLevel m (embedFiniteStageToLimit n x)) k =
+        genericLevelCoords n x k := by
+  intro k
+  induction k with
+  | zero =>
+      have hk : 0 ≤ m := Nat.zero_le m
+      rw [genericLevelCoords_below m
+        (projectToLevel m (embedFiniteStageToLimit n x)) hk]
+      change
+        projectDown m (projectToLevel m (embedFiniteStageToLimit n x)) 0 hk =
+          projectToLevel 0 (embedFiniteStageToLimit n x)
+      apply stage_antisymmetric 0
+      · simpa using projectDown_thread (embedFiniteStageToLimit n x) m hk
+      · simpa using thread_projectDown (embedFiniteStageToLimit n x) m hk
+  | succ k ih =>
+      by_cases hk : k + 1 ≤ m
+      · rw [genericLevelCoords_below m
+          (projectToLevel m (embedFiniteStageToLimit n x)) hk]
+        change
+          projectDown m (projectToLevel m (embedFiniteStageToLimit n x)) (k + 1) hk =
+            projectToLevel (k + 1) (embedFiniteStageToLimit n x)
+        apply stage_antisymmetric (k + 1)
+        · simpa using projectDown_thread (embedFiniteStageToLimit n x) m hk
+        · simpa using thread_projectDown (embedFiniteStageToLimit n x) m hk
+      · have hkn : ¬ k + 1 ≤ n := by omega
+        rw [genericLevelCoords_above m
+          (projectToLevel m (embedFiniteStageToLimit n x)) (m := k) hk]
+        rw [genericLevelCoords_above n x (m := k) hkn]
+        simpa using congrArg (fun z => (fPlus k).toFun z) ih
+
+private theorem embedFiniteStageToLimit_rebase
+    {n m : Nat} (hnm : n ≤ m) (x : (K n).Obj) :
+    embedFiniteStageToLimit m (projectToLevel m (embedFiniteStageToLimit n x)) =
+      embedFiniteStageToLimit n x := by
+  apply Projective.Thread.ext
+  intro k
+  simpa [projectToLevel] using genericLevelCoords_rebase hnm x k
+
+private theorem kInfinityContinuous_hInfinityContinuous_onStage
+    (n : Nat) (g : (Exponential.chpo KInfinityCHPO KInfinityCHPO).Obj)
+    (x : (K n).Obj) :
+    (kInfinityContinuous (hInfinityContinuous g)).toFun (embedFiniteStageToLimit n x) =
+      g.toFun (embedFiniteStageToLimit n x) := by
+  apply Projective.Thread.ext
+  intro m
+  by_cases hmn : m ≤ n
+  · let lhs :=
+      (kInfinityContinuous (hInfinityContinuous g)).toFun
+        (embedFiniteStageToLimit n x)
+    let rhs := g.toFun (embedFiniteStageToLimit n x)
+    have hTop :
+        projectToLevel n lhs = projectToLevel n rhs := by
+      simpa [lhs, rhs] using
+        kInfinityContinuous_hInfinityContinuous_restrict_apply n g x
+    apply stage_antisymmetric m
+    · exact (K m).rel_trans
+        (thread_projectDown lhs n hmn)
+        (by simpa [hTop] using projectDown_thread rhs n hmn)
+    · exact (K m).rel_trans
+        (thread_projectDown rhs n hmn)
+        (by simpa [hTop] using projectDown_thread lhs n hmn)
+  · have hnm' : n ≤ m := by omega
+    let y : (K m).Obj := projectToLevel m (embedFiniteStageToLimit n x)
+    have hRebase :
+        embedFiniteStageToLimit m y = embedFiniteStageToLimit n x := by
+      simpa [y] using embedFiniteStageToLimit_rebase hnm' x
+    simpa [y, hRebase] using
+      kInfinityContinuous_hInfinityContinuous_restrict_apply m g y
+
+/-- The completed global `K∞` reflection/reification pair also satisfies the
+reverse section law on the continuous function space. -/
+theorem kInfinityContinuous_hInfinityContinuous_apply
+    (g : (Exponential.chpo KInfinityCHPO KInfinityCHPO).Obj) :
+    kInfinityContinuous (hInfinityContinuous g) = g := by
+  apply ContinuousMap.ext
+  intro x
+  let f : ContinuousMap KInfinityCHPO KInfinityCHPO :=
+    kInfinityContinuous (hInfinityContinuous g)
+  let X : KInfinityCHPO.Obj → Prop := kInfinityCompactApproxPred x
+  have hDir : KInfinityCHPO.Directed X :=
+    kInfinityCompactApproxPred_directed x
+  have hChosen :
+      KInfinityCHPO.IsLeastUpperBound X (KInfinityCHPO.sup X hDir) :=
+    KInfinityCHPO.sup_spec X hDir
+  have hExact :
+      KInfinityCHPO.IsLeastUpperBound X x :=
+    kInfinityCompactApproxPred_isLub x
+  have hEqv :
+      KInfinityCHPO.Rel (KInfinityCHPO.sup X hDir) x ∧
+        KInfinityCHPO.Rel x (KInfinityCHPO.sup X hDir) :=
+    equivalent_of_isLeastUpperBound
+      KInfinityCHPO.toHomotopyPartialOrder
+      hChosen
+      hExact
+  have hLubF :
+      KInfinityCHPO.IsLeastUpperBound (image f.toFun X) (f.toFun x) :=
+    isLeastUpperBound_of_equiv
+      KInfinityCHPO.toHomotopyPartialOrder
+      (f.preserves_sup X hDir)
+      (f.monotone' hEqv.1)
+      (f.monotone' hEqv.2)
+  have hLubG :
+      KInfinityCHPO.IsLeastUpperBound (image g.toFun X) (g.toFun x) :=
+    isLeastUpperBound_of_equiv
+      KInfinityCHPO.toHomotopyPartialOrder
+      (g.preserves_sup X hDir)
+      (g.monotone' hEqv.1)
+      (g.monotone' hEqv.2)
+  have hImageEq :
+      ∀ y : KInfinityCHPO.Obj, image f.toFun X y ↔ image g.toFun X y := by
+    intro y
+    constructor <;> intro hy
+    · rcases hy with ⟨z, hz, rfl⟩
+      rcases hz with ⟨n, a, ha, rfl⟩
+      exact ⟨embedFiniteStageToLimit n a, ⟨n, a, ha, rfl⟩,
+        (kInfinityContinuous_hInfinityContinuous_onStage n g a).symm⟩
+    · rcases hy with ⟨z, hz, rfl⟩
+      rcases hz with ⟨n, a, ha, rfl⟩
+      exact ⟨embedFiniteStageToLimit n a, ⟨n, a, ha, rfl⟩,
+        kInfinityContinuous_hInfinityContinuous_onStage n g a⟩
+  have hLubG' :
+      KInfinityCHPO.IsLeastUpperBound (image f.toFun X) (g.toFun x) :=
+    (isLeastUpperBound_congr
+      KInfinityCHPO.toHomotopyPartialOrder hImageEq).mpr hLubG
+  have hOutEqv :
+      KInfinityCHPO.Rel (f.toFun x) (g.toFun x) ∧
+        KInfinityCHPO.Rel (g.toFun x) (f.toFun x) :=
+    equivalent_of_isLeastUpperBound
+      KInfinityCHPO.toHomotopyPartialOrder
+      hLubF
+      hLubG'
+  apply Projective.Thread.ext
+  intro n
+  exact stage_antisymmetric n
+    ((Projective.rel_iff.mp hOutEqv.1) n)
+    ((Projective.rel_iff.mp hOutEqv.2) n)
+
 /-- The global reflection candidate completes the actual `K∞` reflexivity
 package. -/
 noncomputable def kInfinityReflexiveCHPO : ReflexiveCHPO KInfinityCHPO where
@@ -3958,6 +4125,14 @@ structure Proposition43Witness where
     ∀ (n : Nat) (x : KInfinityCHPO.Obj),
       restrictEndomapToStageContinuous (genericStageEmbedding n) (globalReflect x) =
         projectToLevel (n + 1) x
+  globalSection_restrict :
+    ∀ (n : Nat) (g : (Exponential.chpo KInfinityCHPO KInfinityCHPO).Obj),
+      restrictEndomapToStageContinuous (genericStageEmbedding n)
+        (globalReflect (globalReify g)) =
+          restrictEndomapToStageContinuous (genericStageEmbedding n) g
+  globalSection :
+    ContinuousMap.comp globalReflect globalReify =
+      ContinuousMap.id (Exponential.chpo KInfinityCHPO KInfinityCHPO)
   globalApplication :
     ContinuousMap (Product.chpo KInfinityCHPO KInfinityCHPO) KInfinityCHPO
   globalApplication_apply :
@@ -4030,6 +4205,10 @@ noncomputable def proposition_4_3_shadow : Proposition43Witness where
   globalReify_exactSucc := project_hInfinity_succ
   globalReflect := kInfinityContinuous
   globalReflect_restrict := restrictEndomapToStage_kInfinityContinuous
+  globalSection_restrict := kInfinityContinuous_hInfinityContinuous_restrict
+  globalSection := by
+    ext g
+    exact kInfinityContinuous_hInfinityContinuous_apply g
   globalApplication := applicationContinuous
   globalApplication_apply := applicationContinuous_apply
   globalApplication_restrict := remark_4_3

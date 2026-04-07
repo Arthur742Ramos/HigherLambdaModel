@@ -1144,6 +1144,93 @@ def KanComplex.tetrahedronFrontPath3 (K : KanComplex) {a b c : K.Obj}
       _ = K.face 2 1 ρ.simplex := by rw [h4]
       _ = (K.reflPath2 p02).simplex := ρ.face1
 
+/-- Replace the middle face of a tetrahedron along a semantic 3-cell while
+keeping the front and outer faces fixed. -/
+private def KanComplex.tetrahedronReplaceFace1 (K : KanComplex) {a b c : K.Obj}
+    {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c}
+    {p02 p03 : K.PathSpace a c}
+    {γ : K.Path2 p12 p13} {α β : K.Path2 p02 p03}
+    {τ2 : K.Triangle p01 p03 p13} {τ3 : K.Triangle p01 p02 p12}
+    (Κ : K.Path3 α β)
+    (ω : K.Tetrahedron γ.toTriangle α.toTriangle τ2 τ3) :
+    K.Tetrahedron γ.toTriangle β.toTriangle τ2 τ3 := by
+  let ε := (K.reflPath3 γ).toTetrahedron
+  let ρ := K.reflTriangleTetrahedron τ3
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then Κ.toTetrahedron.simplex
+        else if h3 : i = 3 then ω.simplex
+        else ρ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using Κ.toTetrahedron.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using ρ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω.face1.trans Κ.toTetrahedron.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using ρ.face1.trans Κ.toTetrahedron.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using ρ.face3.trans ω.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = γ.toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = Κ.toTetrahedron.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 Κ.toTetrahedron.simplex := by rw [h1]
+      _ = β.toTriangle.simplex := Κ.toTetrahedron.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω.simplex := by rw [h3]
+      _ = τ2.simplex := ω.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 ρ.simplex := by rw [h4]
+      _ = τ3.simplex := ρ.face2
+
 private def KanComplex.tetrahedronComparisonHorn (K : KanComplex) {a b c : K.Obj}
     {p01 : K.PathSpace a b} {p12 p13 : K.PathSpace b c}
     {p021 p022 p03 : K.PathSpace a c}
@@ -1374,6 +1461,16 @@ def KanComplex.transCongrLeftPath3 (K : KanComplex) {a b : K.Obj}
     (K.transFillerTetrahedron η₁ θ)
     (K.transFillerTetrahedron η₂ θ)
 
+/-- Vertical composition of semantic 2-cells is congruent in its right argument
+up to semantic 3-cells. -/
+def KanComplex.transCongrRightPath3 (K : KanComplex) {a b : K.Obj}
+    {p q r : K.PathSpace a b} (η : K.Path2 p q)
+    {θ₁ θ₂ : K.Path2 q r} (Κ : K.Path3 θ₁ θ₂) :
+    K.Path3 (K.transPath2 η θ₁) (K.transPath2 η θ₂) :=
+  K.tetrahedronFace2Path3 (K.reflPath3 η)
+    (K.tetrahedronReplaceFace1 Κ (K.transFillerTetrahedron η θ₁))
+    (K.transFillerTetrahedron η θ₂)
+
 /-- Vertical composition with a reflexive left factor normalizes to the right
 factor up to a semantic 3-cell. -/
 def KanComplex.transReflLeftPath3 (K : KanComplex) {a b : K.Obj}
@@ -1391,6 +1488,15 @@ def KanComplex.transReflRightPath3 (K : KanComplex) {a b : K.Obj}
   K.tetrahedronFace2Path3 (K.reflPath3 η)
     (K.transFillerTetrahedron η (K.reflPath2 q))
     (K.reflTriangleTetrahedron η.toTriangle)
+
+/-- Right composition with a 2-cell followed by its inverse yields the reflexive
+2-cell, up to a semantic 3-cell. -/
+def KanComplex.transRightCancelPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} (η : K.Path2 p q) :
+    K.Path3 (K.transPath2 η (K.symmPath2 η)) (K.reflPath2 p) :=
+  K.tetrahedronFace2Path3 (K.reflPath3 η)
+    (K.transFillerTetrahedron η (K.symmPath2 η))
+    (K.symmTetrahedron η)
 
 /-- The auxiliary triangle whose comparison with the chosen composition
 triangle yields the semantic associator 2-cell. -/
@@ -2807,6 +2913,99 @@ private def KanComplex.assocTriangleFillerTetrahedron (K : KanComplex)
     rfl
   · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
 
+/-- Composing `q` on the left with the chosen composition triangle for `(r, s)`
+produces the triangle whose outer edges are `q · r` and `s`. -/
+private def KanComplex.whiskerLeftCompHorn (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    Horn K.toSimplicialSet 2 1 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then (K.compTriangle r s).simplex
+      else if h2 : i = 2 then (K.compTriangle q (K.compPath r s)).simplex
+      else (K.compTriangle q r).simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h02 | h03 | h23
+      · rcases h02 with ⟨rfl, rfl⟩
+        simpa using (K.compTriangle q (K.compPath r s)).face0.trans
+          (K.compTriangle r s).face1.symm
+      · rcases h03 with ⟨rfl, rfl⟩
+        simpa using (K.compTriangle q r).face0.trans
+          (K.compTriangle r s).face2.symm
+      · rcases h23 with ⟨rfl, rfl⟩
+        simpa using (K.compTriangle q r).face2.trans
+          (K.compTriangle q (K.compPath r s)).face2.symm }
+
+/-- The left-whiskered composition triangle whose edges are `q · r`,
+`q · (r · s)`, and `s`. -/
+private def KanComplex.whiskerLeftCompTriangle (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Triangle
+      (K.compPath q r)
+      (K.compPath q (K.compPath r s))
+      s := by
+  let Λ := K.whiskerLeftCompHorn q r s
+  refine
+    { simplex := K.face 2 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h0 : K.face 2 0 (K.fill Λ) = (K.compTriangle r s).simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 1 (K.fill Λ))
+          = K.face 1 0 (K.face 2 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 (K.compTriangle r s).simplex := by rw [h0]
+      _ = s.simplex := (K.compTriangle r s).face0
+  · have h2 : K.face 2 2 (K.fill Λ) = (K.compTriangle q (K.compPath r s)).simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.compTriangle q (K.compPath r s)).simplex := by rw [h2]
+      _ = (K.compPath q (K.compPath r s)).simplex := (K.compTriangle q (K.compPath r s)).face1
+  · have h3 : K.face 2 3 (K.fill Λ) = (K.compTriangle q r).simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 1 (K.fill Λ))
+          = K.face 1 1 (K.face 2 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 1 1 (K.compTriangle q r).simplex := by rw [h3]
+      _ = (K.compPath q r).simplex := (K.compTriangle q r).face1
+
+/-- The raw tetrahedron filled to define `whiskerLeftCompTriangle`. -/
+private def KanComplex.whiskerLeftCompTriangleFillerTetrahedron (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.compTriangle r s)
+      (K.whiskerLeftCompTriangle q r s)
+      (K.compTriangle q (K.compPath r s))
+      (K.compTriangle q r) := by
+  let Λ := K.whiskerLeftCompHorn q r s
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · change K.face 2 1 (K.fill Λ) = (K.whiskerLeftCompTriangle q r s).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 2) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
 /-- The right-back triangle for pentagon coherence: it keeps the left edge `p`
 fixed, uses the fully right-associated tail `q · (r · s)` as the outer edge,
 and lands at the fully left-associated composite `((p · q) · r) · s`. -/
@@ -2902,6 +3101,121 @@ private def KanComplex.pentagonRightBackFillerTetrahedron (K : KanComplex)
     rfl
   · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
 
+private def KanComplex.pentagonInnerBackHorn (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    Horn K.toSimplicialSet 2 2 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then (K.whiskerLeftCompTriangle q r s).simplex
+      else if h1 : i = 1 then
+        (K.whiskerRightTriangle (K.associatorPath2 p q r) s).simplex
+      else (K.compTriangle p (K.compPath q r)).simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 1 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h01 | h03 | h13
+      · rcases h01 with ⟨rfl, rfl⟩
+        simpa using
+          (K.whiskerRightTriangle (K.associatorPath2 p q r) s).face0.trans
+            (K.whiskerLeftCompTriangle q r s).face0.symm
+      · rcases h03 with ⟨rfl, rfl⟩
+        simpa using
+          (K.compTriangle p (K.compPath q r)).face0.trans
+            (K.whiskerLeftCompTriangle q r s).face2.symm
+      · rcases h13 with ⟨rfl, rfl⟩
+        simpa using
+          (K.compTriangle p (K.compPath q r)).face1.trans
+            (K.whiskerRightTriangle (K.associatorPath2 p q r) s).face2.symm }
+
+/-- Auxiliary back triangle for the corrected pentagon step-1 geometry. It has the
+same outer boundary as `pentagonRightBackTriangle`, but is obtained directly from
+the whiskered front and right faces. -/
+private def KanComplex.pentagonInnerBackTriangle (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Triangle
+      p
+      (K.compPath (K.compPath (K.compPath p q) r) s)
+      (K.compPath q (K.compPath r s)) := by
+  let Λ := K.pentagonInnerBackHorn p q r s
+  refine
+    { simplex := K.face 2 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h0 : K.face 2 0 (K.fill Λ) = (K.whiskerLeftCompTriangle q r s).simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 2 (K.fill Λ))
+          = K.face 1 1 (K.face 2 0 (K.fill Λ)) := by
+              simpa using (K.face_face 1 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.whiskerLeftCompTriangle q r s).simplex := by rw [h0]
+      _ = (K.compPath q (K.compPath r s)).simplex := (K.whiskerLeftCompTriangle q r s).face1
+  · have h1 :
+      K.face 2 1 (K.fill Λ) =
+        (K.whiskerRightTriangle (K.associatorPath2 p q r) s).simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 2 (K.fill Λ))
+          = K.face 1 1 (K.face 2 1 (K.fill Λ)) := by
+              simpa using (K.face_face 1 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.whiskerRightTriangle (K.associatorPath2 p q r) s).simplex := by
+            rw [h1]
+      _ = (K.compPath (K.compPath (K.compPath p q) r) s).simplex :=
+            (K.whiskerRightTriangle (K.associatorPath2 p q r) s).face1
+  · have h3 : K.face 2 3 (K.fill Λ) = (K.compTriangle p (K.compPath q r)).simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 2 (K.fill Λ))
+          = K.face 1 2 (K.face 2 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 1 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 1 2 (K.compTriangle p (K.compPath q r)).simplex := by rw [h3]
+      _ = p.simplex := (K.compTriangle p (K.compPath q r)).face2
+
+/-- The raw tetrahedron filled to define `pentagonInnerBackTriangle`. -/
+private def KanComplex.pentagonInnerBackFillerTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.whiskerLeftCompTriangle q r s)
+      (K.whiskerRightTriangle (K.associatorPath2 p q r) s)
+      (K.pentagonInnerBackTriangle p q r s)
+      (K.compTriangle p (K.compPath q r)) := by
+  let Λ := K.pentagonInnerBackHorn p q r s
+  refine
+    { simplex := K.fill Λ
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · simpa using K.fill_spec Λ (i := 0) (by omega) (by omega)
+  · simpa using K.fill_spec Λ (i := 1) (by omega) (by omega)
+  · change K.face 2 2 (K.fill Λ) = (K.pentagonInnerBackTriangle p q r s).simplex
+    rfl
+  · simpa using K.fill_spec Λ (i := 3) (by omega) (by omega)
+
+/-- Comparison tetrahedron between the directly whiskered back triangle and the
+canonical right-back triangle already used in the pentagon route. -/
+private def KanComplex.pentagonInnerBackComparisonTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s)).toTriangle
+      (K.pentagonRightBackTriangle p q r s)
+      (K.pentagonInnerBackTriangle p q r s) :=
+  K.triangleComparisonTetrahedron
+    (K.pentagonInnerBackTriangle p q r s)
+    (K.pentagonRightBackTriangle p q r s)
+
 /-- Boundary-aware back-face comparison for the pentagon law: it packages the
 left-side associator `((p · q), r, s)` against the triangle on the right route
 whose outer edge is `q · (r · s)`. -/
@@ -2991,6 +3305,152 @@ private def KanComplex.pentagonBackComparisonTetrahedron (K : KanComplex)
                 (i := 2) (j := 3) (by omega) (by omega))
       _ = K.face 2 2 κ.simplex := by rw [h4]
       _ = (K.pentagonRightBackTriangle p q r s).simplex := κ.face2
+
+/-- Front bridge for pentagon coherence: it compares the reflexive front face on
+`q · (r · s)` with the actual associator `(q, r, s)`, while exposing the
+triangle comparison between the two outer triangles as the last face. -/
+private def KanComplex.pentagonFrontBridgeTetrahedron (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.associatorPath2 q r s).toTriangle
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s)).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.reflTriangleTetrahedron (K.compTriangle q (K.compPath r s)))
+    (K.associatorTetrahedron q r s)
+    (K.triangleComparisonTetrahedron
+      (K.compTriangle q (K.compPath r s))
+      (K.assocTriangle q r s))
+
+/-- The front 2-cell obtained by comparing the directly whiskered composition
+triangle against the ordinary composition triangle on `(q · r, s)`. -/
+private def KanComplex.pentagonWhiskerFrontPath2 (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Path2
+      (K.compPath q (K.compPath r s))
+      (K.compPath (K.compPath q r) s) :=
+  K.trianglePath2
+    (K.whiskerLeftCompTriangle q r s)
+    (K.compTriangle (K.compPath q r) s)
+
+
+/-- A front-boundary tetrahedron comparing the whiskered front pentagon face with
+the reverse triangle comparison attached to the associator on `(q, r, s)`. -/
+private def KanComplex.pentagonFrontComparisonTetrahedron (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 s).toTriangle
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s)).toTriangle
+      (K.compTriangle (K.compPath q r) s)
+      (K.whiskerLeftCompTriangle q r s) := by
+  let ε := K.reflTriangleTetrahedron (K.compTriangle r s)
+  let ω₂ := K.triangleComparisonTetrahedron
+    (K.compTriangle q (K.compPath r s))
+    (K.assocTriangle q r s)
+  let ω₁ := K.assocTriangleFillerTetrahedron q r s
+  let ρ := K.whiskerLeftCompTriangleFillerTetrahedron q r s
+  let Λ : Horn K.toSimplicialSet 3 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else if h3 : i = 3 then ω₁.simplex
+        else ρ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h02 | hrest
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ω₂.face0.trans ε.face1.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₁.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using ρ.face0.trans ε.face3.symm
+            · rcases hrest with h23 | hrest
+              · rcases h23 with ⟨rfl, rfl⟩
+                simpa using ω₁.face2.trans ω₂.face2.symm
+              · rcases hrest with h24 | h34
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using ρ.face2.trans ω₂.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using ρ.face3.trans ω₁.face3.symm }
+  refine
+    { simplex := K.face 3 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.fill Λ))
+          = K.face 2 0 (K.face 3 0 (K.fill Λ)) := by
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 s).toTriangle.simplex := ε.face0
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 2 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h2]
+      _ =
+        (K.trianglePath2
+          (K.compTriangle q (K.compPath r s))
+          (K.assocTriangle q r s)).toTriangle.simplex := ω₂.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h3]
+      _ = (K.compTriangle (K.compPath q r) s).simplex := ω₁.face1
+  · have h4 : K.face 3 4 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using
+                (K.face_face 2 (K.fill Λ) (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 ρ.simplex := by rw [h4]
+      _ = (K.whiskerLeftCompTriangle q r s).simplex := ρ.face1
+
+/-- The directly whiskered front pentagon 2-cell is 3-homotopic to the reverse
+front comparison built from the chosen associator triangle. -/
+private def KanComplex.pentagonWhiskerFrontComparisonPath3 (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonWhiskerFrontPath2 q r s)
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s)) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron
+      (K.whiskerLeftCompTriangle q r s)
+      (K.compTriangle (K.compPath q r) s))
+    (K.pentagonFrontComparisonTetrahedron q r s)
 
 /-- Right-side boundary tetrahedron for the triangle law. -/
 private def KanComplex.triangleRightBoundaryTetrahedron (K : KanComplex)
@@ -3600,6 +4060,16 @@ private def KanComplex.trianglePath2TransBoundaryTetrahedron (K : KanComplex)
 
 /-- Triangle comparison is compatible with vertical composition along a common
 boundary triangle, up to a semantic 3-cell. -/
+private def KanComplex.trianglePath2ReflPath3 (K : KanComplex)
+    {a b c : K.Obj} {p : K.PathSpace a b} {m : K.PathSpace a c}
+    {q : K.PathSpace b c} (τ : K.Triangle p m q) :
+    K.Path3 (K.trianglePath2 τ τ) (K.reflPath2 m) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron τ τ)
+    (K.reflTriangleTetrahedron τ)
+
+/-- Triangle comparison is compatible with vertical composition along a common
+boundary triangle, up to a semantic 3-cell. -/
 private def KanComplex.trianglePath2TransPath3 (K : KanComplex)
     {a b c : K.Obj} {p : K.PathSpace a b} {l m n : K.PathSpace a c}
     {q : K.PathSpace b c}
@@ -3624,6 +4094,607 @@ private def KanComplex.trianglePath2SymmPath3 (K : KanComplex)
       ((K.symmReflPath2BridgeTetrahedron q).toPath3)
       (K.trianglePath2SymmAuxTetrahedron τ₁ τ₂)
       (K.triangleComparisonTetrahedron τ₂ τ₁))
+
+/-- The scratch pentagon front face `χ` is the symmetry of the ordinary
+associator `(q, r, s)` up to a semantic 3-cell. -/
+private def KanComplex.pentagonFrontSymmAssociatorPath3 (K : KanComplex)
+    {b c d e : K.Obj} (q : K.PathSpace b c) (r : K.PathSpace c d)
+    (s : K.PathSpace d e) :
+    K.Path3
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s))
+      (K.symmPath2 (K.associatorPath2 q r s)) :=
+  K.trianglePath2SymmPath3
+    (K.assocTriangle q r s)
+    (K.compTriangle q (K.compPath r s))
+
+/-- First corrected pentagon step-1 tetrahedron: it uses the directly whiskered
+front route and the directly whiskered back route, postponing normalization to
+the scratch `χ`-front and canonical right-back triangle to separate comparison
+steps. -/
+private def KanComplex.pentagonStep1CoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.pentagonWhiskerFrontPath2 q r s).toTriangle
+      (K.whiskerRightPath2 (K.associatorPath2 p q r) s).toTriangle
+      (K.assocTriangle p (K.compPath q r) s)
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let ε :=
+    K.triangleComparisonTetrahedron
+      (K.whiskerLeftCompTriangle q r s)
+      (K.compTriangle (K.compPath q r) s)
+  let ω₁ := K.whiskerRightTetrahedron (K.associatorPath2 p q r) s
+  let ω₂ := K.assocTriangleFillerTetrahedron p (K.compPath q r) s
+  let κ := K.pentagonInnerBackFillerTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = (K.pentagonWhiskerFrontPath2 q r s).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h1]
+      _ = (K.whiskerRightPath2 (K.associatorPath2 p q r) s).toTriangle.simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h3]
+      _ = (K.assocTriangle p (K.compPath q r) s).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.pentagonInnerBackTriangle p q r s).simplex := κ.face2
+
+/-- The front-normalized pentagon step-1 tetrahedron: it replaces the whiskered
+front comparison by the ordinary front comparison while keeping the same
+whiskered middle face and inner back face. -/
+private def KanComplex.pentagonStep1BoundaryCoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s)).toTriangle
+      (K.whiskerRightPath2 (K.associatorPath2 p q r) s).toTriangle
+      (K.assocTriangle p (K.compPath q r) s)
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let ε := K.pentagonFrontComparisonTetrahedron q r s
+  let ω₁ := K.whiskerRightTetrahedron (K.associatorPath2 p q r) s
+  let ω₂ := K.assocTriangleFillerTetrahedron p (K.compPath q r) s
+  let κ := K.pentagonInnerBackFillerTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h3 : i = 3 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ =
+        (K.trianglePath2
+          (K.compTriangle q (K.compPath r s))
+          (K.assocTriangle q r s)).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h1]
+      _ = (K.whiskerRightPath2 (K.associatorPath2 p q r) s).toTriangle.simplex := ω₁.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h3]
+      _ = (K.assocTriangle p (K.compPath q r) s).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.pentagonInnerBackTriangle p q r s).simplex := κ.face2
+
+/-- Corrected pentagon step-1/2 tetrahedron: after the first whiskered step, it
+adds the associator on `(p, q·r, s)` while keeping the directly whiskered front
+and back routes. -/
+private def KanComplex.pentagonStep12CoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.pentagonWhiskerFrontPath2 q r s).toTriangle
+      (K.transPath2
+        (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+        (K.associatorPath2 p (K.compPath q r) s)).toTriangle
+      (K.compTriangle p (K.compPath (K.compPath q r) s))
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let ε := K.reflTriangleTetrahedron ((K.pentagonWhiskerFrontPath2 q r s).toTriangle)
+  let ω₁ := K.transFillerTetrahedron
+    (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+    (K.associatorPath2 p (K.compPath q r) s)
+  let ω₂ := K.associatorTetrahedron p (K.compPath q r) s
+  let κ := K.pentagonStep1CoreTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ε.simplex := by rw [h0]
+      _ = (K.pentagonWhiskerFrontPath2 q r s).toTriangle.simplex := ε.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ =
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s)).toTriangle.simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.compTriangle p (K.compPath (K.compPath q r) s)).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.pentagonInnerBackTriangle p q r s).simplex := κ.face3
+
+/-- Boundary-aware step-1/2 tetrahedron with the normalized front face and the
+inner back face still explicit. -/
+private def KanComplex.pentagonStep12BoundaryCoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.trianglePath2
+        (K.compTriangle q (K.compPath r s))
+        (K.assocTriangle q r s)).toTriangle
+      (K.transPath2
+        (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+        (K.associatorPath2 p (K.compPath q r) s)).toTriangle
+      (K.compTriangle p (K.compPath (K.compPath q r) s))
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let ε := K.reflTriangleTetrahedron
+    ((K.trianglePath2
+      (K.compTriangle q (K.compPath r s))
+      (K.assocTriangle q r s)).toTriangle)
+  let ω₁ := K.transFillerTetrahedron
+    (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+    (K.associatorPath2 p (K.compPath q r) s)
+  let ω₂ := K.associatorTetrahedron p (K.compPath q r) s
+  let κ := K.pentagonStep1BoundaryCoreTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ε.simplex := by rw [h0]
+      _ =
+        (K.trianglePath2
+          (K.compTriangle q (K.compPath r s))
+          (K.assocTriangle q r s)).toTriangle.simplex := ε.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ =
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s)).toTriangle.simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.compTriangle p (K.compPath (K.compPath q r) s)).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.pentagonInnerBackTriangle p q r s).simplex := κ.face3
+
+/-- Boundary-aware step-1/2/3 tetrahedron: the front is now normalized all the
+way to the reflexive 2-cell on `q · (r · s)`, and the only remaining noncanonical
+face is the directly whiskered inner back triangle. -/
+private def KanComplex.pentagonStep123BoundaryCoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.compTriangle p (K.compPath q (K.compPath r s)))
+      (K.pentagonInnerBackTriangle p q r s) := by
+  let ε := K.pentagonFrontBridgeTetrahedron q r s
+  let ω₁ := K.transFillerTetrahedron
+    (K.transPath2
+      (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+      (K.associatorPath2 p (K.compPath q r) s))
+    (K.whiskerLeftPath2 p (K.associatorPath2 q r s))
+  let ω₂ := K.whiskerLeftTetrahedron p (K.associatorPath2 q r s)
+  let κ := K.pentagonStep12BoundaryCoreTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle.simplex := ε.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ =
+        (K.transPath2
+          (K.transPath2
+            (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+            (K.associatorPath2 p (K.compPath q r) s))
+          (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle.simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.compTriangle p (K.compPath q (K.compPath r s))).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.pentagonInnerBackTriangle p q r s).simplex := κ.face3
+
+/-- Canonical right boundary for the left-associated composite side of the
+pentagon: it already has the reflexive front and chosen right-back face, but it
+stops before comparing against the whiskered-right route. -/
+private def KanComplex.pentagonRightBoundaryCoreTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s))).toTriangle
+      (K.compTriangle p (K.compPath q (K.compPath r s)))
+      (K.pentagonRightBackTriangle p q r s) := by
+  let ε := K.reflTriangleTetrahedron
+    ((K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle)
+  let ω₁ := K.transFillerTetrahedron
+    (K.associatorPath2 (K.compPath p q) r s)
+    (K.associatorPath2 p q (K.compPath r s))
+  let ω₂ := K.associatorTetrahedron p q (K.compPath r s)
+  let κ := K.pentagonBackComparisonTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ε.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ε.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle.simplex := ε.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ =
+        (K.transPath2
+          (K.associatorPath2 (K.compPath p q) r s)
+          (K.associatorPath2 p q (K.compPath r s))).toTriangle.simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.compTriangle p (K.compPath q (K.compPath r s))).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.pentagonRightBackTriangle p q r s).simplex := κ.face3
 
 /-- Boundary-aware tetrahedron comparing a vertical composite with the symmetry of
 its right factor, while keeping the left factor explicit on the boundary. -/
@@ -3801,8 +4872,19 @@ private def KanComplex.symmTransBoundaryTetrahedron (K : KanComplex)
               symm
               simpa using (K.face_face 2 (K.fill Λ)
                 (i := 1) (j := 3) (by omega) (by omega))
-      _ = K.face 2 1 κ.simplex := by rw [h4]
-      _ = (K.symmPath2 β).toTriangle.simplex := κ.face1
+       _ = K.face 2 1 κ.simplex := by rw [h4]
+       _ = (K.symmPath2 β).toTriangle.simplex := κ.face1
+
+/-- The symmetry of a vertical composite agrees, up to a semantic 3-cell, with
+the vertical composite of the symmetries of its factors in reverse order. -/
+def KanComplex.symmTransPath3 (K : KanComplex) {a b : K.Obj}
+    {p q r : K.PathSpace a b} (α : K.Path2 p q) (β : K.Path2 q r) :
+    K.Path3
+      (K.symmPath2 (K.transPath2 α β))
+      (K.transPath2 (K.symmPath2 β) (K.symmPath2 α)) :=
+  K.tetrahedronFace2Path3 (K.reflPath3 (K.symmPath2 β))
+    (K.symmTransBoundaryTetrahedron α β)
+    (K.transFillerTetrahedron (K.symmPath2 β) (K.symmPath2 α))
 
 /-- Boundary-aware tetrahedron fixing the source-degenerate front face while
 comparing right whiskering of a composite against the first whiskering step. -/
@@ -5029,15 +6111,20 @@ noncomputable def Theory3.transCongrLeft (K : ExtensionalKanComplex) {M N : Term
     (Theory3.transFillerTetrahedron K η₁ θ)
     (Theory3.transFillerTetrahedron K η₂ θ)
 
+/-- Vertical composition of semantic 2-cells is congruent in its right argument
+up to semantic 3-cells. -/
+noncomputable def Theory3.transCongrRight (K : ExtensionalKanComplex) {M N : Term}
+    {α β γ : Theory1 K M N} (η : Theory2 K α β)
+    {θ₁ θ₂ : Theory2 K β γ} (Κ : Theory3 K θ₁ θ₂) :
+    Theory3 K (Theory2.trans K η θ₁) (Theory2.trans K η θ₂) :=
+  fun ρ => K.transCongrRightPath3 (η ρ) (Κ ρ)
+
 /-- Vertical composition with a reflexive left factor normalizes to the right
 factor up to a semantic 3-cell. -/
 noncomputable def Theory3.transReflLeft (K : ExtensionalKanComplex) {M N : Term}
     {α β : Theory1 K M N} (η : Theory2 K α β) :
     Theory3 K (Theory2.trans K (Theory2.refl K α) η) η :=
-  TheoryTetrahedron.face2Path3 K
-    (Theory3.refl K (Theory2.refl K α))
-    (Theory3.transFillerTetrahedron K (Theory2.refl K α) η)
-    (fun ρ => (K.reflPath3 (η ρ)).toTetrahedron)
+  fun ρ => K.transReflLeftPath3 (η ρ)
 
 /-- Vertical composition with a reflexive right factor normalizes to the left
 factor up to a semantic 3-cell. The witness is a degenerate tetrahedron formed
@@ -5045,20 +6132,22 @@ by degenerating the source 2-cell along its second face map. -/
 noncomputable def Theory3.transReflRight (K : ExtensionalKanComplex) {M N : Term}
     {α β : Theory1 K M N} (η : Theory2 K α β) :
     Theory3 K (Theory2.trans K η (Theory2.refl K β)) η :=
-  TheoryTetrahedron.face2Path3 K
-    (Theory3.refl K η)
-    (Theory3.transFillerTetrahedron K η (Theory2.refl K β))
-    (fun ρ => K.reflTriangleTetrahedron ((η ρ).toTriangle))
+  fun ρ => K.transReflRightPath3 (η ρ)
 
 /-- Right composition with a 2-cell followed by its inverse yields the reflexive
 2-cell, up to a semantic 3-cell. -/
 noncomputable def Theory3.transRightCancel (K : ExtensionalKanComplex) {M N : Term}
     {α β : Theory1 K M N} (η : Theory2 K α β) :
     Theory3 K (Theory2.trans K η (Theory2.symm K η)) (Theory2.refl K α) :=
-  TheoryTetrahedron.face2Path3 K
-    (Theory3.refl K η)
-    (Theory3.transFillerTetrahedron K η (Theory2.symm K η))
-    (fun ρ => K.symmTetrahedron (η ρ))
+  fun ρ => K.transRightCancelPath3 (η ρ)
+
+/-- The symmetry of a semantic vertical composite agrees with the composite of
+the symmetries of its factors in reverse order, up to a semantic 3-cell. -/
+noncomputable def Theory3.symmTrans (K : ExtensionalKanComplex) {M N : Term}
+    {α β γ : Theory1 K M N} (η : Theory2 K α β) (θ : Theory2 K β γ) :
+    Theory3 K (Theory2.symm K (Theory2.trans K η θ))
+      (Theory2.trans K (Theory2.symm K θ) (Theory2.symm K η)) :=
+  fun ρ => K.symmTransPath3 (η ρ) (θ ρ)
 
 /-- A proof-relevant semantic 4-conversion between parallel semantic
 3-conversions in a fixed extensional Kan complex, represented by actual
@@ -5844,6 +6933,14 @@ noncomputable def HoTFT3.transCongrLeft {M N : Term}
     HoTFT3 (HoTFT2.trans η₁ θ) (HoTFT2.trans η₂ θ) :=
   fun K => Theory3.transCongrLeft K (Κ K) (θ K)
 
+/-- Vertical composition of HoTFT 2-cells is congruent in its right argument up
+to HoTFT 3-cells. -/
+noncomputable def HoTFT3.transCongrRight {M N : Term}
+    {α β γ : HoTFT1 M N} (η : HoTFT2 α β)
+    {θ₁ θ₂ : HoTFT2 β γ} (Κ : HoTFT3 θ₁ θ₂) :
+    HoTFT3 (HoTFT2.trans η θ₁) (HoTFT2.trans η θ₂) :=
+  fun K => Theory3.transCongrRight K (η K) (Κ K)
+
 /-- Vertical composition with a reflexive left factor normalizes to the right
 factor at the HoTFT semantic layer. -/
 noncomputable def HoTFT3.transReflLeft {M N : Term}
@@ -5864,6 +6961,14 @@ noncomputable def HoTFT3.transRightCancel {M N : Term}
     {α β : HoTFT1 M N} (η : HoTFT2 α β) :
     HoTFT3 (HoTFT2.trans η (HoTFT2.symm η)) (HoTFT2.refl α) :=
   fun K => Theory3.transRightCancel K (η K)
+
+/-- The symmetry of a HoTFT vertical composite agrees with the composite of the
+symmetries of its factors in reverse order, up to a HoTFT 3-cell. -/
+noncomputable def HoTFT3.symmTrans {M N : Term}
+    {α β γ : HoTFT1 M N} (η : HoTFT2 α β) (θ : HoTFT2 β γ) :
+    HoTFT3 (HoTFT2.symm (HoTFT2.trans η θ))
+      (HoTFT2.trans (HoTFT2.symm θ) (HoTFT2.symm η)) :=
+  fun K => Theory3.symmTrans K (η K) (θ K)
 
 /-- Proof-relevant HoTFT 4-conversions between parallel proof-relevant HoTFT
 3-conversions. -/
@@ -7278,4 +8383,655 @@ noncomputable def ExtensionalKanComplex.toHomotopicLambdaModel
     intro M N p
     exact K.reflPath2 p
 
+/-- The raw horn for the pentagon right-hand-side route: a 2-horn missing face 1
+whose remaining faces are the degenerate front triangle on `q · (r · s)`,
+the composition triangle, and the pentagon right-back triangle. -/
+private def KanComplex.pentagonRHSRawHorn (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    Horn K.toSimplicialSet 2 1 :=
+  { missing_le := by omega
+    facet := fun i _ =>
+      if h0 : i = 0 then (K.reflPath2 (K.compPath q (K.compPath r s))).simplex
+      else if h2 : i = 2 then (K.compTriangle p (K.compPath q (K.compPath r s))).simplex
+      else (K.pentagonRightBackTriangle p q r s).simplex
+    compatibility := by
+      intro i j hi hj hmi hmj hij
+      have hij_cases : (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 2 ∧ j = 3) := by
+        omega
+      rcases hij_cases with h02 | h03 | h23
+      · rcases h02 with ⟨rfl, rfl⟩
+        simpa using (K.compTriangle p (K.compPath q (K.compPath r s))).face0.trans
+          (K.reflPath2 (K.compPath q (K.compPath r s))).face1.symm
+      · rcases h03 with ⟨rfl, rfl⟩
+        simpa using (K.pentagonRightBackTriangle p q r s).face0.trans
+          (K.reflPath2 (K.compPath q (K.compPath r s))).face2.symm
+      · rcases h23 with ⟨rfl, rfl⟩
+        simpa using (K.pentagonRightBackTriangle p q r s).face2.trans
+          (K.compTriangle p (K.compPath q (K.compPath r s))).face2.symm }
+
+private def KanComplex.pentagonRHSRawSimplex (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) : K.Simplex 3 :=
+  K.fill (K.pentagonRHSRawHorn p q r s)
+
+/-- The raw Path2 extracted from the pentagon RHS horn fill. -/
+private def KanComplex.pentagonRHSRawPath2 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path2
+      (K.compPath (K.compPath (K.compPath p q) r) s)
+      (K.compPath p (K.compPath q (K.compPath r s))) := by
+  let Λ := K.pentagonRHSRawHorn p q r s
+  refine
+    { simplex := K.face 2 1 (K.pentagonRHSRawSimplex p q r s)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_ }
+  · have h0 : K.face 2 0 (K.pentagonRHSRawSimplex p q r s) =
+        (K.reflPath2 (K.compPath q (K.compPath r s))).simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 1 0 (K.face 2 1 (K.pentagonRHSRawSimplex p q r s))
+          = K.face 1 0 (K.face 2 0 (K.pentagonRHSRawSimplex p q r s)) := by
+              simpa using
+                (K.face_face 1 (K.pentagonRHSRawSimplex p q r s)
+                  (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 1 0 (K.reflPath2 (K.compPath q (K.compPath r s))).simplex := by rw [h0]
+      _ = (K.reflPath e).simplex := (K.reflPath2 (K.compPath q (K.compPath r s))).face0
+  · have h2 : K.face 2 2 (K.pentagonRHSRawSimplex p q r s) =
+        (K.compTriangle p (K.compPath q (K.compPath r s))).simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 1 1 (K.face 2 1 (K.pentagonRHSRawSimplex p q r s))
+          = K.face 1 1 (K.face 2 2 (K.pentagonRHSRawSimplex p q r s)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.pentagonRHSRawSimplex p q r s)
+                  (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 1 1 (K.compTriangle p (K.compPath q (K.compPath r s))).simplex := by rw [h2]
+      _ = (K.compPath p (K.compPath q (K.compPath r s))).simplex :=
+            (K.compTriangle p (K.compPath q (K.compPath r s))).face1
+  · have h3 : K.face 2 3 (K.pentagonRHSRawSimplex p q r s) =
+        (K.pentagonRightBackTriangle p q r s).simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 1 2 (K.face 2 1 (K.pentagonRHSRawSimplex p q r s))
+          = K.face 1 1 (K.face 2 3 (K.pentagonRHSRawSimplex p q r s)) := by
+              symm
+              simpa using
+                (K.face_face 1 (K.pentagonRHSRawSimplex p q r s)
+                  (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 1 1 (K.pentagonRightBackTriangle p q r s).simplex := by rw [h3]
+      _ = (K.compPath (K.compPath (K.compPath p q) r) s).simplex :=
+            (K.pentagonRightBackTriangle p q r s).face1
+
+/-- The boundary-aware tetrahedron from the pentagon RHS horn fill. -/
+private def KanComplex.pentagonRHSRawTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.pentagonRHSRawPath2 p q r s).toTriangle
+      (K.compTriangle p (K.compPath q (K.compPath r s)))
+      (K.pentagonRightBackTriangle p q r s) := by
+  let Λ := K.pentagonRHSRawHorn p q r s
+  refine
+    { simplex := K.pentagonRHSRawSimplex p q r s
+      face0 := ?_
+      face1 := rfl
+      face2 := ?_
+      face3 := ?_ }
+  · simpa [KanComplex.pentagonRHSRawSimplex, Λ] using
+      (K.fill_spec Λ (i := 0) (by omega) (by omega))
+  · simpa [KanComplex.pentagonRHSRawSimplex, Λ] using
+      (K.fill_spec Λ (i := 2) (by omega) (by omega))
+  · simpa [KanComplex.pentagonRHSRawSimplex, Λ] using
+      (K.fill_spec Λ (i := 3) (by omega) (by omega))
+
+/-- The pure-Path2 pentagon comparison tetrahedron, obtained by comparing the
+raw RHS route against the left-route associator. -/
+private def KanComplex.pentagonComparisonTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.associatorPath2 p q (K.compPath r s)).toTriangle
+      (K.pentagonRHSRawPath2 p q r s).toTriangle
+      (K.associatorPath2 (K.compPath p q) r s).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.pentagonRHSRawTetrahedron p q r s)
+    (K.associatorTetrahedron p q (K.compPath r s))
+    (K.pentagonBackComparisonTetrahedron p q r s)
+
+/-- The raw pentagon Path3 from the left route to the horn-fill-determined
+right route. -/
+private def KanComplex.pentagonRawPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))
+      (K.pentagonRHSRawPath2 p q r s) :=
+  K.tetrahedronFace2Path3
+    (K.reflPath3 (K.associatorPath2 (K.compPath p q) r s))
+    (K.transFillerTetrahedron
+      (K.associatorPath2 (K.compPath p q) r s)
+      (K.associatorPath2 p q (K.compPath r s)))
+    (K.pentagonComparisonTetrahedron p q r s)
+
+/-- Contracting the loop comparing the two pentagon back triangles is enough to
+normalize the back-face comparison to a reflexive middle face. -/
+private def KanComplex.pentagonBackComparisonFromLoopContraction (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e)
+    (Κ :
+      K.Path3
+        (K.trianglePath2
+          (K.pentagonInnerBackTriangle p q r s)
+          (K.pentagonRightBackTriangle p q r s))
+        (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s))) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s)).toTriangle
+      (K.pentagonRightBackTriangle p q r s)
+      (K.pentagonInnerBackTriangle p q r s) :=
+  K.tetrahedronReplaceFace1 Κ
+    (K.pentagonInnerBackComparisonTetrahedron p q r s)
+
+/-- The target 3-fold composite on the right side of the pentagon identity,
+connected to the horn-fill raw path by `tetrahedronPath3`. Both tetrahedra
+share the same boundary except face 1, so `tetrahedronPath3` extracts the
+bridge Path3 between the two face 1 cells.
+
+Current state:
+
+* The normalized-front comparison layer is already implemented via
+  `pentagonFrontComparisonTetrahedron`,
+  `pentagonWhiskerFrontComparisonPath3`,
+  `pentagonStep1BoundaryCoreTetrahedron`, and
+  `pentagonStep12BoundaryCoreTetrahedron`.
+* The full triple-composite right-hand route also has a boundary-aware
+  tetrahedron `pentagonStep123BoundaryCoreTetrahedron`.
+* So the remaining gap is now strictly smaller than before: the full boundary
+  tetrahedron is no longer postulated directly. It is reconstructed from a
+  smaller back-only 3-cell `pentagonBackComparisonReflPath3`, which contracts
+  the comparison between `pentagonInnerBackTriangle p q r s` and
+  `pentagonRightBackTriangle p q r s` to reflexivity on the common back edge.
+-/
+private noncomputable def KanComplex.pentagonBoundaryTetrahedronFromMiddleComparison (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e)
+    (middleComparison :
+      K.Tetrahedron
+        (K.reflPath2 (K.reflPath e)).toTriangle
+        (K.transPath2
+          (K.transPath2
+            (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+            (K.associatorPath2 p (K.compPath q r) s))
+          (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+        (K.transPath2
+          (K.transPath2
+            (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+            (K.associatorPath2 p (K.compPath q r) s))
+          (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+        (K.trianglePath2
+          (K.pentagonInnerBackTriangle p q r s)
+          (K.pentagonRightBackTriangle p q r s)).toTriangle) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.compTriangle p (K.compPath q (K.compPath r s)))
+      (K.pentagonRightBackTriangle p q r s) := by
+  let ε := K.reflTriangleTetrahedron
+    ((K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle)
+  let ω := K.pentagonStep123BoundaryCoreTetrahedron p q r s
+  let κ := K.pentagonInnerBackComparisonTetrahedron p q r s
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then middleComparison.simplex
+        else if h3 : i = 3 then ω.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using middleComparison.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω.face1.trans middleComparison.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans middleComparison.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using κ.face3.trans ω.face3.symm
+      }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = middleComparison.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 middleComparison.simplex := by rw [h1]
+      _ = (K.transPath2
+            (K.transPath2
+              (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+              (K.associatorPath2 p (K.compPath q r) s))
+            (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle.simplex :=
+          middleComparison.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω.simplex := by rw [h3]
+      _ = (K.compTriangle p (K.compPath q (K.compPath r s))).simplex := ω.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 κ.simplex := by rw [h4]
+      _ = (K.pentagonRightBackTriangle p q r s).simplex := κ.face2
+
+/-- Comparing the raw RHS horn-fill tetrahedron against the normalized
+step-1/2/3 boundary core keeps the back comparison explicit while isolating the
+middle-face difference between the raw horn-fill route and the fully normalized
+right-hand composite. -/
+private noncomputable def KanComplex.pentagonRawBigComparisonTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.pentagonRHSRawPath2 p q r s).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s)).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.pentagonStep123BoundaryCoreTetrahedron p q r s)
+    (K.pentagonRHSRawTetrahedron p q r s)
+    (K.pentagonInnerBackComparisonTetrahedron p q r s)
+
+/-- Comparing the normalized step-1/2/3 boundary core against the canonical
+left-hand pentagon boundary keeps the same back-triangle comparison explicit
+while isolating the middle-face difference between the normalized right-hand
+composite and the left-hand composite route. -/
+private noncomputable def KanComplex.pentagonLeftBigComparisonTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s)).toTriangle :=
+  K.tetrahedronComparisonTetrahedron
+    (K.pentagonStep123BoundaryCoreTetrahedron p q r s)
+    (K.pentagonRightBoundaryCoreTetrahedron p q r s)
+    (K.pentagonInnerBackComparisonTetrahedron p q r s)
+
+/-- Even before the back comparison contracts, the two big comparison
+tetrahedra already give a direct semantic 3-cell from the raw RHS horn-fill
+route back to the left-associated pentagon route. This packages the remaining
+gap as the comparison between two different left-to-raw proofs. -/
+private noncomputable def KanComplex.pentagonRawLeftComparisonPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonRHSRawPath2 p q r s)
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s))) :=
+  K.tetrahedronPath3
+    (K.pentagonRHSRawTetrahedron p q r s)
+    (K.pentagonRightBoundaryCoreTetrahedron p q r s)
+
+/-- The left-associated pentagon route also reaches the raw RHS horn-fill route
+through the same back-comparison face that remains unresolved later on. -/
+private noncomputable def KanComplex.pentagonRawAlternativePath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))
+      (K.pentagonRHSRawPath2 p q r s) :=
+  K.symmPath3 (K.pentagonRawLeftComparisonPath3 p q r s)
+
+/-- If the back-triangle comparison contracts to reflexivity, then the raw RHS
+comparison tetrahedron upgrades to the smaller back-normalization tetrahedron
+used by `pentagonBoundaryTetrahedronFromMiddleComparison`. -/
+private noncomputable def KanComplex.pentagonBackNormalizationTetrahedronFromBackContract
+    (K : KanComplex) {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e)
+    (backContract :
+      K.Path3
+        (K.trianglePath2
+          (K.pentagonInnerBackTriangle p q r s)
+          (K.pentagonRightBackTriangle p q r s))
+        (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s))) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s)).toTriangle :=
+  K.tetrahedronReplaceFace1
+    (K.symmPath3
+      (K.tetrahedronFace2Path3 backContract
+        (K.pentagonRawBigComparisonTetrahedron p q r s)
+        ((K.reflPath3 (K.pentagonRHSRawPath2 p q r s)).toTetrahedron)))
+    (K.pentagonRawBigComparisonTetrahedron p q r s)
+
+axiom KanComplex.pentagonBackComparisonReflPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s))
+      (K.reflPath2 (K.compPath (K.compPath (K.compPath p q) r) s))
+
+/-- The remaining back-loop contraction also yields the final normalized
+right-to-left pentagon comparison directly, without passing through the raw RHS
+horn-fill route. -/
+private noncomputable def KanComplex.pentagonBigLeftPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s)))
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s))) :=
+  K.tetrahedronFace2Path3
+    (K.pentagonBackComparisonReflPath3 p q r s)
+    (K.pentagonLeftBigComparisonTetrahedron p q r s)
+    ((K.reflPath3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))).toTetrahedron)
+
+private noncomputable def KanComplex.pentagonBackNormalizationTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath e)).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.trianglePath2
+        (K.pentagonInnerBackTriangle p q r s)
+        (K.pentagonRightBackTriangle p q r s)).toTriangle :=
+  K.pentagonBackNormalizationTetrahedronFromBackContract p q r s
+    (K.pentagonBackComparisonReflPath3 p q r s)
+
+private noncomputable def KanComplex.pentagonBoundaryTetrahedron (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Tetrahedron
+      (K.reflPath2 (K.compPath q (K.compPath r s))).toTriangle
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))).toTriangle
+      (K.compTriangle p (K.compPath q (K.compPath r s)))
+      (K.pentagonRightBackTriangle p q r s) :=
+  K.pentagonBoundaryTetrahedronFromMiddleComparison p q r s
+    (K.pentagonBackNormalizationTetrahedron p q r s)
+
+/-- The remaining pentagon bridge is extracted from the final
+boundary-normalized tetrahedron. -/
+noncomputable def KanComplex.pentagonBridgePath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.pentagonRHSRawPath2 p q r s)
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))) :=
+  K.tetrahedronPath3
+    (K.pentagonRHSRawTetrahedron p q r s)
+    (K.pentagonBoundaryTetrahedron p q r s)
+
+/-- Pentagon coherence: the 3-cell witnessing that two different ways of
+reassociating four consecutive paths are homotopic. This packages the standard
+simplicial pentagon filler for the chosen associators. -/
+noncomputable def KanComplex.pentagonPath3 (K : KanComplex)
+    {a b c d e : K.Obj} (p : K.PathSpace a b) (q : K.PathSpace b c)
+    (r : K.PathSpace c d) (s : K.PathSpace d e) :
+    K.Path3
+      (K.transPath2
+        (K.associatorPath2 (K.compPath p q) r s)
+        (K.associatorPath2 p q (K.compPath r s)))
+      (K.transPath2
+        (K.transPath2
+          (K.whiskerRightPath2 (K.associatorPath2 p q r) s)
+          (K.associatorPath2 p (K.compPath q r) s))
+        (K.whiskerLeftPath2 p (K.associatorPath2 q r s))) :=
+  K.symmPath3 (K.pentagonBigLeftPath3 p q r s)
+
+/-- Pentagon coherence at the semantic 3-cell layer. -/
+noncomputable def Theory3.pentagon
+    (K : ExtensionalKanComplex)
+    {L M N P Q : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N)
+    (γ : Theory1 K N P) (δ : Theory1 K P Q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.comp K α β) γ δ)
+        (Theory2.associator K α β (Theory1.comp K γ δ)))
+      (Theory2.trans K
+        (Theory2.trans K
+          (Theory2.whiskerRight K (Theory2.associator K α β γ) δ)
+          (Theory2.associator K α (Theory1.comp K β γ) δ))
+        (Theory2.whiskerLeft K α (Theory2.associator K β γ δ))) :=
+  fun ρ => K.toReflexiveKanComplex.pentagonPath3 (α ρ) (β ρ) (γ ρ) (δ ρ)
+
+/-- Backward-compatible alias for semantic pentagon coherence. -/
+noncomputable def Theory3.pentagonPath3
+    (K : ExtensionalKanComplex)
+    {L M N P Q : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N)
+    (γ : Theory1 K N P) (δ : Theory1 K P Q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.comp K α β) γ δ)
+        (Theory2.associator K α β (Theory1.comp K γ δ)))
+      (Theory2.trans K
+        (Theory2.trans K
+          (Theory2.whiskerRight K (Theory2.associator K α β γ) δ)
+          (Theory2.associator K α (Theory1.comp K β γ) δ))
+        (Theory2.whiskerLeft K α (Theory2.associator K β γ δ))) :=
+  Theory3.pentagon K α β γ δ
+
+/-- Pentagon coherence at the HoTFT 3-cell layer. -/
+noncomputable def HoTFT3.pentagon
+    {L M N P Q : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N)
+    (γ : HoTFT1 N P) (δ : HoTFT1 P Q) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.associator (HoTFT1.comp α β) γ δ)
+        (HoTFT2.associator α β (HoTFT1.comp γ δ)))
+      (HoTFT2.trans
+        (HoTFT2.trans
+          (HoTFT2.whiskerRight (HoTFT2.associator α β γ) δ)
+          (HoTFT2.associator α (HoTFT1.comp β γ) δ))
+        (HoTFT2.whiskerLeft α (HoTFT2.associator β γ δ))) :=
+  fun K => Theory3.pentagon K (α K) (β K) (γ K) (δ K)
+
+/-- Backward-compatible alias for HoTFT pentagon coherence. -/
+noncomputable def HoTFT3.pentagonPath3
+    {L M N P Q : Term}
+    (α : HoTFT1 L M) (β : HoTFT1 M N)
+    (γ : HoTFT1 N P) (δ : HoTFT1 P Q) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.associator (HoTFT1.comp α β) γ δ)
+        (HoTFT2.associator α β (HoTFT1.comp γ δ)))
+      (HoTFT2.trans
+        (HoTFT2.trans
+          (HoTFT2.whiskerRight (HoTFT2.associator α β γ) δ)
+          (HoTFT2.associator α (HoTFT1.comp β γ) δ))
+        (HoTFT2.whiskerLeft α (HoTFT2.associator β γ δ))) :=
+  HoTFT3.pentagon α β γ δ
+
+
+/-- Pentagon coherence for interpreted explicit reduction sequences in a fixed
+extensional Kan complex. -/
+noncomputable def reductionSeq_pentagon_in_Theory3
+    (K : ExtensionalKanComplex)
+    {L M N P Q : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N)
+    (r : ReductionSeq N P) (s : ReductionSeq P Q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K
+          (Theory1.comp K (reductionSeq_in_Theory1 K p) (reductionSeq_in_Theory1 K q))
+          (reductionSeq_in_Theory1 K r)
+          (reductionSeq_in_Theory1 K s))
+        (Theory2.associator K
+          (reductionSeq_in_Theory1 K p)
+          (reductionSeq_in_Theory1 K q)
+          (Theory1.comp K (reductionSeq_in_Theory1 K r) (reductionSeq_in_Theory1 K s))))
+      (Theory2.trans K
+        (Theory2.trans K
+          (Theory2.whiskerRight K
+            (Theory2.associator K
+              (reductionSeq_in_Theory1 K p)
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s))
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K p)
+            (Theory1.comp K (reductionSeq_in_Theory1 K q) (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s)))
+        (Theory2.whiskerLeft K
+          (reductionSeq_in_Theory1 K p)
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K q)
+            (reductionSeq_in_Theory1 K r)
+            (reductionSeq_in_Theory1 K s)))) :=
+  Theory3.pentagon K
+    (reductionSeq_in_Theory1 K p)
+    (reductionSeq_in_Theory1 K q)
+    (reductionSeq_in_Theory1 K r)
+    (reductionSeq_in_Theory1 K s)
+
+/-- Pentagon coherence for interpreted explicit reduction sequences at the HoTFT
+3-cell layer. -/
+noncomputable def reductionSeq_pentagon_in_HoTFT3
+    {L M N P Q : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N)
+    (r : ReductionSeq N P) (s : ReductionSeq P Q) :
+    HoTFT3
+      (HoTFT2.trans
+        (HoTFT2.associator
+          (HoTFT1.comp (reductionSeq_in_HoTFT1 p) (reductionSeq_in_HoTFT1 q))
+          (reductionSeq_in_HoTFT1 r)
+          (reductionSeq_in_HoTFT1 s))
+        (HoTFT2.associator
+          (reductionSeq_in_HoTFT1 p)
+          (reductionSeq_in_HoTFT1 q)
+          (HoTFT1.comp (reductionSeq_in_HoTFT1 r) (reductionSeq_in_HoTFT1 s))))
+      (HoTFT2.trans
+        (HoTFT2.trans
+          (HoTFT2.whiskerRight
+            (HoTFT2.associator
+              (reductionSeq_in_HoTFT1 p)
+              (reductionSeq_in_HoTFT1 q)
+              (reductionSeq_in_HoTFT1 r))
+            (reductionSeq_in_HoTFT1 s))
+          (HoTFT2.associator
+            (reductionSeq_in_HoTFT1 p)
+            (HoTFT1.comp (reductionSeq_in_HoTFT1 q) (reductionSeq_in_HoTFT1 r))
+            (reductionSeq_in_HoTFT1 s)))
+        (HoTFT2.whiskerLeft
+          (reductionSeq_in_HoTFT1 p)
+          (HoTFT2.associator
+            (reductionSeq_in_HoTFT1 q)
+            (reductionSeq_in_HoTFT1 r)
+            (reductionSeq_in_HoTFT1 s)))) :=
+  HoTFT3.pentagon
+    (reductionSeq_in_HoTFT1 p)
+    (reductionSeq_in_HoTFT1 q)
+    (reductionSeq_in_HoTFT1 r)
+    (reductionSeq_in_HoTFT1 s)
 end HigherLambdaModel.Lambda.ExtensionalKan
+
+
+
