@@ -323,6 +323,7 @@ remembers whether the chosen witness was the β-side or η-side contraction. -/
 inductive Example42DirectWitness where
   | beta
   | eta
+deriving DecidableEq
 
 /-- Forget the proof-relevant witness choice back to the repository's ordinary
 1-term witness type. -/
@@ -337,6 +338,30 @@ paper-facing bridge needs an additional proof-relevant wrapper. -/
 theorem betaEtaPaper_beta1_eq_eta1 :
     betaEtaPaper_beta1 = betaEtaPaper_eta1 := by
   exact congrArg NTerm1.redex (Subsingleton.elim betaEtaPaper_beta betaEtaPaper_eta)
+
+/-- Forgetting the direct witness tag to `NTerm1` erases the β/η distinction
+completely. -/
+theorem Example42DirectWitness.toNTerm1_eq
+    (w v : Example42DirectWitness) :
+    w.toNTerm1 = v.toNTerm1 := by
+  cases w <;> cases v
+  · rfl
+  · exact betaEtaPaper_beta1_eq_eta1
+  · exact betaEtaPaper_beta1_eq_eta1.symm
+  · rfl
+
+/-- Therefore the direct witness tag cannot be recovered from bare `NTerm1`
+data. -/
+theorem Example42DirectWitness.toNTerm1_not_injective :
+    ¬ Function.Injective Example42DirectWitness.toNTerm1 := by
+  intro hInj
+  have hEq :
+      Example42DirectWitness.toNTerm1 .beta =
+        Example42DirectWitness.toNTerm1 .eta :=
+    Example42DirectWitness.toNTerm1_eq .beta .eta
+  have hWitness : (Example42DirectWitness.beta : Example42DirectWitness) = .eta :=
+    hInj hEq
+  cases hWitness
 
 @[simp] theorem Example42DirectWitness.beta_toNTerm1 :
     Example42DirectWitness.toNTerm1 .beta = betaEtaPaper_beta1 := rfl
@@ -373,6 +398,187 @@ noncomputable def Example42DirectWitness.point
     projectToLevel 0 w.point = some w.stage0Point := by
   cases w <;> rfl
 
+/-- Recover one of the paper's two direct witness tags from the stage-0 sphere
+point used in the current `K∞` interpretation. -/
+def Example42DirectWitness.ofStage0Point : SpherePoint → Option Example42DirectWitness
+  | ⟨1, true⟩ => some .beta
+  | ⟨1, false⟩ => some .eta
+  | _ => none
+
+@[simp] theorem Example42DirectWitness.ofStage0Point_s1Right :
+    Example42DirectWitness.ofStage0Point s1Right = some .beta := rfl
+
+@[simp] theorem Example42DirectWitness.ofStage0Point_s1Left :
+    Example42DirectWitness.ofStage0Point s1Left = some .eta := rfl
+
+@[simp] theorem Example42DirectWitness.ofStage0Point_stage0Point
+    (w : Example42DirectWitness) :
+    Example42DirectWitness.ofStage0Point w.stage0Point = some w := by
+  cases w <;> rfl
+
+/-- Recover a direct witness tag from the level-0 projection of a `K∞` point,
+when that point comes from the current Example 4.2 direct witness layer. -/
+def Example42DirectWitness.recoverFromPoint
+    (x : KInfinityCHPO.Obj) : Option Example42DirectWitness :=
+  Option.bind (projectToLevel 0 x) Example42DirectWitness.ofStage0Point
+
+@[simp] theorem Example42DirectWitness.recoverFromPoint_point
+    (w : Example42DirectWitness) :
+    Example42DirectWitness.recoverFromPoint w.point = some w := by
+  simp [Example42DirectWitness.recoverFromPoint, Example42DirectWitness.point_level0]
+
+/-- Canonical continuous equality attached to one of the paper's two direct
+witness tags. This is the proof-relevant continuous witness map for the current
+Example 4.2 bridge. -/
+noncomputable def Example42DirectWitness.continuousWitness
+    (w : Example42DirectWitness) :
+    interpretContinuous kInfinityTwoSidedReflexiveCHPO.toReflexiveCHPO 2
+        betaEtaPaperSource betaEtaPaperSource_closedAtDepth =
+      interpretContinuous kInfinityTwoSidedReflexiveCHPO.toReflexiveCHPO 2
+        betaEtaPaperTarget betaEtaPaperTarget_closedAtDepth :=
+  match w with
+  | .beta => betaEtaPaper_beta1_continuousWitness kInfinityTwoSidedReflexiveCHPO
+  | .eta => betaEtaPaper_eta1_continuousWitness kInfinityTwoSidedReflexiveCHPO
+
+@[simp] theorem Example42DirectWitness.beta_continuousWitness :
+    Example42DirectWitness.continuousWitness .beta =
+      betaEtaPaper_beta1_continuousWitness kInfinityTwoSidedReflexiveCHPO := rfl
+
+@[simp] theorem Example42DirectWitness.eta_continuousWitness :
+    Example42DirectWitness.continuousWitness .eta =
+      betaEtaPaper_eta1_continuousWitness kInfinityTwoSidedReflexiveCHPO := rfl
+
+/-- The proof-relevant direct witness map to `K∞` points is injective: once the
+continuous equality is paired with its chosen `K∞` point, the β/η distinction is
+visible again. -/
+theorem Example42DirectWitness.point_injective :
+    Function.Injective Example42DirectWitness.point := by
+  intro w v hPoint
+  cases w <;> cases v
+  · rfl
+  · exact False.elim (example_4_2 hPoint)
+  · exact False.elim (example_4_2 hPoint.symm)
+  · rfl
+
+/-- Distinct proof-relevant witness tags select distinct `K∞` points. -/
+theorem Example42DirectWitness.point_ne_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v) :
+    w.point ≠ v.point := by
+  intro hPoint
+  exact h (Example42DirectWitness.point_injective hPoint)
+
+/-- Distinct proof-relevant witness tags admit no 1-cell between their chosen
+`K∞` points. -/
+theorem Example42DirectWitness.no_path_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v) :
+    ¬ Nonempty (KInfinityPath w.point v.point) := by
+  intro hp
+  rcases hp with ⟨p⟩
+  exact h (Example42DirectWitness.point_injective p.down)
+
+/-- Distinct proof-relevant witness tags inherit the existing 2-cell
+separation. -/
+theorem Example42DirectWitness.no_2cell_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v)
+    {p q : KInfinityPath w.point v.point} :
+    ¬ Nonempty (KInfinityPath2 p q) := by
+  intro h2
+  exact Example42DirectWitness.no_path_of_ne h ⟨p⟩
+
+/-- Distinct proof-relevant witness tags inherit the existing 3-cell
+separation. -/
+theorem Example42DirectWitness.no_3cell_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v)
+    {p q : KInfinityPath w.point v.point}
+    {α β : KInfinityPath2 p q} :
+    ¬ Nonempty (KInfinityPath3 α β) := by
+  intro h3
+  exact Example42DirectWitness.no_2cell_of_ne h ⟨α⟩
+
+/-- Distinct proof-relevant witness tags inherit the existing 4-cell
+separation. -/
+theorem Example42DirectWitness.no_4cell_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v)
+    {p q : KInfinityPath w.point v.point}
+    {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β} :
+    ¬ Nonempty (KInfinityPath4 η θ) := by
+  intro h4
+  exact Example42DirectWitness.no_3cell_of_ne h ⟨η⟩
+
+/-- Distinct proof-relevant witness tags inherit the existing 5-cell
+separation. -/
+theorem Example42DirectWitness.no_5cell_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v)
+    {p q : KInfinityPath w.point v.point}
+    {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β}
+    {ω ξ : KInfinityPath4 η θ} :
+    ¬ Nonempty (KInfinityPath5 ω ξ) := by
+  intro h5
+  exact Example42DirectWitness.no_4cell_of_ne h ⟨ω⟩
+
+/-- Distinct proof-relevant witness tags also inherit the recursively completed
+all-dimensional separation. -/
+theorem Example42DirectWitness.no_recursive_higher_cell_of_ne
+    {w v : Example42DirectWitness} (h : w ≠ v)
+    (n : Nat) :
+    ¬ Nonempty
+      {x : kInfinityTower.Cell (n + 5) //
+        kInfinityTowerSourceObj x = w.point ∧
+          kInfinityTowerTargetObj x = v.point} := by
+  intro hx
+  rcases hx with ⟨⟨x, hs, ht⟩⟩
+  have hPoint : w.point = v.point := by
+    calc
+      w.point = kInfinityTowerSourceObj x := hs.symm
+      _ = kInfinityTowerTargetObj x := kInfinityTower_source_eq_target x
+      _ = v.point := ht
+  exact h (Example42DirectWitness.point_injective hPoint)
+
+/-- Canonical proof-relevant packaging of one of the paper's two direct
+witnesses. The chosen stage-0 and `K∞` points are read directly from the witness
+tag, rather than inserted manually after forgetting to `NTerm1`. -/
+structure Example42DirectWitnessInterpretation where
+  witness : Example42DirectWitness
+  point_level0 : projectToLevel 0 witness.point = some witness.stage0Point
+  continuousWitness :
+    interpretContinuous kInfinityTwoSidedReflexiveCHPO.toReflexiveCHPO 2
+        betaEtaPaperSource betaEtaPaperSource_closedAtDepth =
+      interpretContinuous kInfinityTwoSidedReflexiveCHPO.toReflexiveCHPO 2
+        betaEtaPaperTarget betaEtaPaperTarget_closedAtDepth
+
+/-- The distinguished stage-0 point carried by a proof-relevant witness
+interpretation. -/
+def Example42DirectWitnessInterpretation.stage0Point
+    (I : Example42DirectWitnessInterpretation) : SpherePoint :=
+  I.witness.stage0Point
+
+/-- The corresponding chosen `K∞` point carried by a proof-relevant witness
+interpretation. -/
+noncomputable def Example42DirectWitnessInterpretation.point
+    (I : Example42DirectWitnessInterpretation) : KInfinityCHPO.Obj :=
+  I.witness.point
+
+@[simp] theorem Example42DirectWitnessInterpretation.point_level0'
+    (I : Example42DirectWitnessInterpretation) :
+    projectToLevel 0 I.point = some I.stage0Point :=
+  I.point_level0
+
+/-- Canonical proof-relevant interpretation of one of the paper's two direct
+witness tags. -/
+noncomputable def Example42DirectWitness.interpretation
+    (w : Example42DirectWitness) : Example42DirectWitnessInterpretation where
+  witness := w
+  point_level0 := w.point_level0
+  continuousWitness := w.continuousWitness
+
+@[simp] theorem Example42DirectWitness.interpretation_stage0Point
+    (w : Example42DirectWitness) :
+    (w.interpretation).stage0Point = w.stage0Point := rfl
+
+@[simp] theorem Example42DirectWitness.interpretation_point
+    (w : Example42DirectWitness) :
+    (w.interpretation).point = w.point := rfl
+
 /-- Chosen-data packaging of one of the paper's explicit Example 4.2
 contraction witnesses together with the `K∞` point currently used to represent
 it in the paper-facing non-equivalence interface. -/
@@ -387,23 +593,29 @@ structure Example42WitnessInterpretation where
       interpretContinuous kInfinityTwoSidedReflexiveCHPO.toReflexiveCHPO 2
         betaEtaPaperTarget betaEtaPaperTarget_closedAtDepth
 
+/-- Forget a proof-relevant direct witness interpretation back to the older
+paper-facing chosen-data package. -/
+noncomputable def Example42DirectWitnessInterpretation.toWitnessInterpretation
+    (I : Example42DirectWitnessInterpretation) : Example42WitnessInterpretation where
+  witness := I.witness.toNTerm1
+  stage0Point := I.stage0Point
+  point := I.point
+  point_level0 := I.point_level0
+  continuousWitness := I.continuousWitness
+
+@[simp] theorem Example42DirectWitnessInterpretation.toWitnessInterpretation_point
+    (I : Example42DirectWitnessInterpretation) :
+    I.toWitnessInterpretation.point = I.point := rfl
+
 /-- The β-side paper witness together with its chosen `K∞` representative. -/
 noncomputable def betaEtaPaper_beta1_interpretation :
-    Example42WitnessInterpretation where
-  witness := Example42DirectWitness.toNTerm1 .beta
-  stage0Point := Example42DirectWitness.stage0Point .beta
-  point := Example42DirectWitness.point .beta
-  point_level0 := Example42DirectWitness.point_level0 .beta
-  continuousWitness := betaEtaPaper_beta1_continuousWitness kInfinityTwoSidedReflexiveCHPO
+    Example42WitnessInterpretation :=
+  (Example42DirectWitness.interpretation .beta).toWitnessInterpretation
 
 /-- The η-side paper witness together with its chosen `K∞` representative. -/
 noncomputable def betaEtaPaper_eta1_interpretation :
-    Example42WitnessInterpretation where
-  witness := Example42DirectWitness.toNTerm1 .eta
-  stage0Point := Example42DirectWitness.stage0Point .eta
-  point := Example42DirectWitness.point .eta
-  point_level0 := Example42DirectWitness.point_level0 .eta
-  continuousWitness := betaEtaPaper_eta1_continuousWitness kInfinityTwoSidedReflexiveCHPO
+    Example42WitnessInterpretation :=
+  (Example42DirectWitness.interpretation .eta).toWitnessInterpretation
 
 /-- The chosen `K∞` representatives attached to the paper's explicit β₁ and η₁
 witnesses are exactly the previously separated Example 4.2 points. -/
@@ -418,7 +630,10 @@ separated by the existing `K∞` Example 4.2 theorem. -/
 theorem betaEtaPaper_witness_interpretations_distinct :
     betaEtaPaper_beta1_interpretation.point ≠
       betaEtaPaper_eta1_interpretation.point := by
-  simpa using example_4_2
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    Example42DirectWitness.point_ne_of_ne
+      (w := .beta) (v := .eta) (by decide)
 
 /-- And likewise there is no canonical `K∞` 1-cell between the chosen
 representatives of the explicit β₁ and η₁ witnesses. -/
@@ -427,7 +642,10 @@ theorem betaEtaPaper_witness_interpretations_no_path :
       (KInfinityPath
         betaEtaPaper_beta1_interpretation.point
         betaEtaPaper_eta1_interpretation.point) := by
-  simpa using example_4_2_not_connected
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    Example42DirectWitness.no_path_of_ne
+      (w := .beta) (v := .eta) (by decide)
 
 /-- The packaged β₁ / η₁ witness interpretations also inherit the existing
 2-cell separation. -/
@@ -436,9 +654,10 @@ theorem betaEtaPaper_witness_interpretations_no_2cell
       betaEtaPaper_beta1_interpretation.point
       betaEtaPaper_eta1_interpretation.point} :
     ¬ Nonempty (KInfinityPath2 p q) := by
-  intro h
-  rcases h with ⟨α⟩
-  simpa using example_4_2_no_path2 α
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    (Example42DirectWitness.no_2cell_of_ne
+      (w := .beta) (v := .eta) (by decide) (p := p) (q := q))
 
 /-- The packaged β₁ / η₁ witness interpretations also inherit the existing
 3-cell separation. -/
@@ -448,9 +667,10 @@ theorem betaEtaPaper_witness_interpretations_no_3cell
       betaEtaPaper_eta1_interpretation.point}
     {α β : KInfinityPath2 p q} :
     ¬ Nonempty (KInfinityPath3 α β) := by
-  intro h
-  rcases h with ⟨η⟩
-  simpa using example_4_2_no_path3 η
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    (Example42DirectWitness.no_3cell_of_ne
+      (w := .beta) (v := .eta) (by decide) (p := p) (q := q) (α := α) (β := β))
 
 /-- The packaged β₁ / η₁ witness interpretations also inherit the existing
 4-cell separation. -/
@@ -460,9 +680,11 @@ theorem betaEtaPaper_witness_interpretations_no_4cell
       betaEtaPaper_eta1_interpretation.point}
     {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β} :
     ¬ Nonempty (KInfinityPath4 η θ) := by
-  intro h
-  rcases h with ⟨ω⟩
-  simpa using example_4_2_no_path4 ω
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    (Example42DirectWitness.no_4cell_of_ne
+      (w := .beta) (v := .eta) (by decide)
+      (p := p) (q := q) (α := α) (β := β) (η := η) (θ := θ))
 
 /-- The packaged β₁ / η₁ witness interpretations also inherit the existing
 5-cell separation. -/
@@ -473,9 +695,11 @@ theorem betaEtaPaper_witness_interpretations_no_5cell
     {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β}
     {ω ξ : KInfinityPath4 η θ} :
     ¬ Nonempty (KInfinityPath5 ω ξ) := by
-  intro h
-  rcases h with ⟨μ⟩
-  simpa using example_4_2_no_path5 μ
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    (Example42DirectWitness.no_5cell_of_ne
+      (w := .beta) (v := .eta) (by decide)
+      (p := p) (q := q) (α := α) (β := β) (η := η) (θ := θ) (ω := ω) (ξ := ξ))
 
 /-- The recursively completed all-dimensional separation also transfers to the
 packaged β₁ / η₁ witness interpretations. -/
@@ -485,7 +709,10 @@ theorem betaEtaPaper_witness_interpretations_no_recursive_higher_cell
       {x : kInfinityTower.Cell (n + 5) //
         kInfinityTowerSourceObj x = betaEtaPaper_beta1_interpretation.point ∧
           kInfinityTowerTargetObj x = betaEtaPaper_eta1_interpretation.point} := by
-  simpa using example_4_2_no_recursive_higher_cell_nonempty n
+  simpa [betaEtaPaper_beta1_interpretation, betaEtaPaper_eta1_interpretation,
+    Example42DirectWitnessInterpretation.point] using
+    Example42DirectWitness.no_recursive_higher_cell_of_ne
+      (w := .beta) (v := .eta) (by decide) n
 
 /-! ## Existing `K∞` Separation Example -/
 

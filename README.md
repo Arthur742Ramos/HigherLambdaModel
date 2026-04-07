@@ -199,10 +199,17 @@ now semantic rather than domain-theoretic.
   also makes the proof-relevance issue explicit through
   `Example42DirectWitness` and `betaEtaPaper_beta1_eq_eta1`, showing that the
   ordinary `NTerm1.redex` layer already identifies the direct β₁ and η₁
-  witnesses because `BetaEtaStep` is proposition-valued. So what still remains
-  is not the chosen-data identification itself, but a proof-relevant semantic
-  derivation that these representatives are the canonical images of the paper
-  witnesses rather than an explicit packaging choice),
+  witnesses because `BetaEtaStep` is proposition-valued. The file now also
+  upgrades that wrapper into a canonical proof-relevant direct-witness bridge:
+  `Example42DirectWitness.continuousWitness`,
+  `Example42DirectWitness.point_injective`,
+  `Example42DirectWitnessInterpretation`, and
+  `Example42DirectWitnessInterpretation.toWitnessInterpretation` show that the
+  paper-facing chosen-data packages are forgetful images of a proof-relevant
+  direct witness interpretation, not merely ad hoc pairings. So the remaining
+  Example 4.2 gap is now narrower again: extend that canonical bridge beyond
+  the bespoke two-tag `Example42DirectWitness` layer to a genuinely general
+  proof-relevant witness semantics for the paper's contraction language),
 - a direct semantic interpretation of the full primitive `Homotopy3Deriv`
   language rather than only the current structural fragment (the structural
   fragment now reaches reflexivity, equality, symmetry, transitivity,

@@ -4608,20 +4608,23 @@ def kInfinityTowerTargetObj :
   | 0, x => x.down
   | _ + 1, x => kInfinityTowerTargetObj (kInfinityTower.target x)
 
-private theorem example_4_2_no_tower_cell5
-    {x : kInfinityTower.Cell 5}
-    (hs : kInfinityTowerSourceObj x = interp1Beta)
-    (ht : kInfinityTowerTargetObj x = interp1Eta) :
-    False := by
-  rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
-  cases M with
-  | up M =>
-      cases N with
-      | up N =>
-          simp [kInfinityTowerSourceObj, kInfinityTowerTargetObj] at hs ht
-          cases hs
-          cases ht
-          exact example_4_2_no_path5 μ.down
+/-- Every packed cell in the recursively completed `K∞` tower of dimension `≥ 5`
+already has equal 0-source and 0-target, because above dimension `5` the tower
+is built by iterated identities. -/
+theorem kInfinityTower_source_eq_target
+    {n : Nat} (x : kInfinityTower.Cell (n + 5)) :
+    kInfinityTowerSourceObj x = kInfinityTowerTargetObj x := by
+  induction n with
+  | zero =>
+      rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
+      exact p.down.down
+  | succ n ih =>
+      rcases x with ⟨x, y, hxy⟩
+      change kInfinityTowerSourceObj x = kInfinityTowerTargetObj y
+      have hxy' : x = y := hxy.down
+      calc
+        kInfinityTowerSourceObj x = kInfinityTowerTargetObj x := ih x
+        _ = kInfinityTowerTargetObj y := congrArg kInfinityTowerTargetObj hxy'
 
 /-- In the recursively completed all-dimensional `K∞` tower, no cell of
 dimension `≥ 5` can have the chosen β-side point as its 0-source and the chosen
@@ -4633,21 +4636,12 @@ theorem example_4_2_no_recursive_higher_cell
     (hs : kInfinityTowerSourceObj x = interp1Beta)
     (ht : kInfinityTowerTargetObj x = interp1Eta) :
     False := by
-  induction n with
-  | zero =>
-      simpa using example_4_2_no_tower_cell5 hs ht
-  | succ n ih =>
-      rcases x with ⟨x, y, hxy⟩
-      have hs' : kInfinityTowerSourceObj x = interp1Beta := by
-        simpa [kInfinityTowerSourceObj] using hs
-      have ht' : kInfinityTowerTargetObj x = interp1Eta := by
-        have hxy' : x = y := hxy.down
-        calc
-          kInfinityTowerTargetObj x = kInfinityTowerTargetObj y := by
-            exact congrArg kInfinityTowerTargetObj hxy'
-          _ = interp1Eta := by
-            simpa [kInfinityTowerTargetObj] using ht
-      exact ih hs' ht'
+  have hEq : interp1Beta = interp1Eta := by
+    calc
+      interp1Beta = kInfinityTowerSourceObj x := hs.symm
+      _ = kInfinityTowerTargetObj x := kInfinityTower_source_eq_target x
+      _ = interp1Eta := ht
+  exact example_4_2 hEq
 
 /-- Equivalently, the recursively completed all-dimensional `K∞` tower has no
 packed higher cell of dimension `≥ 5` whose 0-source/0-target boundary is the
