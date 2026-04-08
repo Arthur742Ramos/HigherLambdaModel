@@ -86,6 +86,27 @@ def whiskerRight_symm {M N P : Term}
       (Homotopy2.symm (whiskerRight α s)) :=
   HigherTerms.Homotopy3.ofDeriv (HigherTerms.Homotopy3Deriv.whiskerRightSymm α s)
 
+/-- Vertical composition is congruent in its left argument. -/
+def trans_congr_left {M N : Term}
+    {p q r : ReductionSeq M N} {α β : Homotopy2 p q}
+    (Κ : HigherTerms.Homotopy3 α β) (θ : Homotopy2 q r) :
+    HigherTerms.Homotopy3 (Homotopy2.trans α θ) (Homotopy2.trans β θ) :=
+  HigherTerms.Homotopy3.transCongrLeft Κ θ
+
+/-- Vertical composition is congruent in its right argument. -/
+def trans_congr_right {M N : Term}
+    {p q r : ReductionSeq M N} (η : Homotopy2 p q)
+    {α β : Homotopy2 q r} (Κ : HigherTerms.Homotopy3 α β) :
+    HigherTerms.Homotopy3 (Homotopy2.trans η α) (Homotopy2.trans η β) :=
+  HigherTerms.Homotopy3.transCongrRight η Κ
+
+/-- Left whiskering is congruent on 3-cells. -/
+def whiskerLeft_congr {M N P : Term}
+    (r : ReductionSeq M N) {p q : ReductionSeq N P}
+    {α β : Homotopy2 p q} (Κ : HigherTerms.Homotopy3 α β) :
+    HigherTerms.Homotopy3 (whiskerLeft r α) (whiskerLeft r β) :=
+  HigherTerms.Homotopy3.whiskerLeftCongr r Κ
+
 /-! ## Interchange Law -/
 
 /-- Interchange is witnessed by a 3-cell. -/
@@ -210,6 +231,13 @@ def homotopy5_refl {M N : Term} {p q : ReductionSeq M N}
     HigherTerms.HigherDeriv ω ω :=
   HigherTerms.HigherDeriv.refl ω
 
+/-- Every 5-cell admits its reflexive 6-cell in the recursive higher tower. -/
+def homotopy6_refl {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} {η θ : HigherTerms.Homotopy3 α β}
+    {ω ξ : HigherTerms.HigherDeriv η θ} (μ : HigherTerms.HigherDeriv ω ξ) :
+    HigherTerms.HigherDeriv μ μ :=
+  HigherTerms.HigherDeriv.refl μ
+
 /-! ## The Weak ω-Groupoid Structure -/
 
 /-- The generic omega-groupoid core specialized to λ-terms. -/
@@ -228,6 +256,7 @@ def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
   Hom3 := HigherTerms.Homotopy3
   Hom4 := fun {_} {_} {_} {_} {_} {_} η θ => HigherTerms.HigherDeriv η θ
   Hom5 := fun {_} {_} {_} {_} {_} {_} {_} {_} ω ω' => HigherTerms.HigherDeriv ω ω'
+  Hom6 := fun {_} {_} {_} {_} {_} {_} {_} {_} {_} {_} μ μ' => HigherTerms.HigherDeriv μ μ'
   symm2 := fun α => Homotopy2.symm α
   trans2 := fun α β => Homotopy2.trans α β
   whiskerLeft := fun {M} {N} {P} r {p} {q} α =>
@@ -247,6 +276,7 @@ def lambdaOmegaGroupoid : LambdaOmegaGroupoid := {
   hom3_refl := fun α => coherence_refl α
   hom4_refl := fun η => homotopy4_refl η
   hom5_refl := fun ω => homotopy5_refl ω
+  hom6_refl := fun μ => homotopy6_refl μ
   pentagon_coh := pentagon
   triangle_coh := triangle
   interchange_coh := interchange
@@ -300,8 +330,14 @@ abbrev Tower5 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _
   Σ (M N : T.Cell0) (p q : T.Cell1 M N) (α β : T.Cell2 p q)
     (η θ : T.Cell3 α β) (ω ξ : T.Cell4 η θ), T.Cell5 ω ξ
 
+/-- The packed 6-cells carried by a reflexive globular tower. -/
+abbrev Tower6 (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower) : Sort _ :=
+  Σ (M N : T.Cell0) (p q : T.Cell1 M N) (α β : T.Cell2 p q)
+    (η θ : T.Cell3 α β) (ω ξ : T.Cell4 η θ)
+    (μ ν : T.Cell5 ω ξ), T.Cell6 μ ν
+
 /-- Complete a reflexive globular tower to all dimensions by keeping cells
-through dimension `5` explicit and taking every higher cell to be an iterated
+through dimension `6` explicit and taking every higher cell to be an iterated
 identity between cells one dimension lower. This is the repository's current
 generic replacement for an explicit all-dimensional omega-groupoid package. -/
 def recursiveIdentityCell
@@ -328,7 +364,14 @@ def recursiveIdentityCell
       (η θ : PLift (T.Cell3 α.down β.down))
       (ω ξ : PLift (T.Cell4 η.down θ.down)),
       PLift (T.Cell5 ω.down ξ.down)
-  | n + 6 => Σ (x y : recursiveIdentityCell T (n + 5)), PLift (x = y)
+  | 6 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down))
+      (α β : PLift (T.Cell2 p.down q.down))
+      (η θ : PLift (T.Cell3 α.down β.down))
+      (ω ξ : PLift (T.Cell4 η.down θ.down))
+      (μ ν : PLift (T.Cell5 ω.down ξ.down)),
+      PLift (T.Cell6 μ.down ν.down)
+  | n + 7 => Σ (x y : recursiveIdentityCell T (n + 6)), PLift (x = y)
 
 /-- Source map for the recursively identity-completed tower. -/
 def recursiveIdentitySource
@@ -339,7 +382,9 @@ def recursiveIdentitySource
   | 2, ⟨A, B, p, q, α, _, _⟩ => ⟨A, B, p, q, α⟩
   | 3, ⟨A, B, p, q, α, β, η, _, _⟩ => ⟨A, B, p, q, α, β, η⟩
   | 4, ⟨A, B, p, q, α, β, η, θ, ω, _, _⟩ => ⟨A, B, p, q, α, β, η, θ, ω⟩
-  | _ + 5, ⟨x, _, _⟩ => x
+  | 5, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, _, _⟩ =>
+      ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩
+  | _ + 6, ⟨x, _, _⟩ => x
 
 /-- Target map for the recursively identity-completed tower. -/
 def recursiveIdentityTarget
@@ -350,7 +395,9 @@ def recursiveIdentityTarget
   | 2, ⟨A, B, p, q, _, β, _⟩ => ⟨A, B, p, q, β⟩
   | 3, ⟨A, B, p, q, α, β, _, θ, _⟩ => ⟨A, B, p, q, α, β, θ⟩
   | 4, ⟨A, B, p, q, α, β, η, θ, _, ξ, _⟩ => ⟨A, B, p, q, α, β, η, θ, ξ⟩
-  | _ + 5, ⟨_, y, _⟩ => y
+  | 5, ⟨A, B, p, q, α, β, η, θ, ω, ξ, _, ν, _⟩ =>
+      ⟨A, B, p, q, α, β, η, θ, ω, ξ, ν⟩
+  | _ + 6, ⟨_, y, _⟩ => y
 
 /-- The recursively identity-completed tower is globular on source boundaries. -/
 theorem recursiveIdentityGlobularSrc
@@ -362,7 +409,8 @@ theorem recursiveIdentityGlobularSrc
   | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
   | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
   | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
-  | n + 4, ⟨x, y, h⟩ => by
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ => rfl
+  | n + 5, ⟨x, y, h⟩ => by
       cases h with
       | up h =>
           cases h
@@ -378,14 +426,15 @@ theorem recursiveIdentityGlobularTgt
   | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
   | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
   | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
-  | n + 4, ⟨x, y, h⟩ => by
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ => rfl
+  | n + 5, ⟨x, y, h⟩ => by
       cases h with
       | up h =>
           cases h
           rfl
 
 /-- The all-dimensional globular tower induced by a reflexive globular tower via
-recursive identity completion above dimension `5`. -/
+recursive identity completion above dimension `6`. -/
 def recursiveIdentityTower
     (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
     HigherLambdaModel.Simplicial.GlobularTower where
@@ -407,20 +456,20 @@ def towerTarget0 (G : HigherLambdaModel.Simplicial.GlobularTower) :
   | 0, x => x
   | _ + 1, x => towerTarget0 G (G.target x)
 
-/-- If the explicit 5-cells of a reflexive tower already have equal 0-source and
-0-target, then the same holds for every higher packed cell in its recursive
-identity completion. -/
-theorem recursiveIdentityTower_source0_eq_target0_of_level5
+/-- If the explicit 6-cells of a reflexive tower already have equal 0-source and
+0-target, then the same holds for every higher packed cell above dimension `6`
+in its recursive identity completion. -/
+theorem recursiveIdentityTower_source0_eq_target0_of_level6
     (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
-    (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
       towerSource0 (recursiveIdentityTower T) x =
         towerTarget0 (recursiveIdentityTower T) x)
-    {n : Nat} (x : (recursiveIdentityTower T).Cell (n + 5)) :
+    {n : Nat} (x : (recursiveIdentityTower T).Cell (n + 6)) :
     towerSource0 (recursiveIdentityTower T) x =
       towerTarget0 (recursiveIdentityTower T) x := by
   induction n with
   | zero =>
-      exact h5 x
+      exact h6 x
   | succ n ih =>
       rcases x with ⟨x, y, hxy⟩
       change towerSource0 (recursiveIdentityTower T) x =
@@ -432,12 +481,58 @@ theorem recursiveIdentityTower_source0_eq_target0_of_level5
         _ = towerTarget0 (recursiveIdentityTower T) y :=
           congrArg (towerTarget0 (recursiveIdentityTower T)) hxy'
 
-/-- If the explicit 5-cells already collapse 0-source and 0-target, then no
+/-- If the explicit 5-cells and 6-cells of a reflexive tower already collapse
+0-source and 0-target, then the same holds for every packed cell above
+dimension `5` in its recursive identity completion. -/
+theorem recursiveIdentityTower_source0_eq_target0_of_level5
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    {n : Nat} (x : (recursiveIdentityTower T).Cell (n + 5)) :
+    towerSource0 (recursiveIdentityTower T) x =
+      towerTarget0 (recursiveIdentityTower T) x := by
+  cases n with
+  | zero =>
+      exact h5 x
+  | succ n =>
+      exact recursiveIdentityTower_source0_eq_target0_of_level6
+        (T := T) h6 x
+
+/-- If the explicit 6-cells already collapse 0-source and 0-target, then no
+packed cell in the recursive identity completion can realize distinct
+0-boundaries above dimension `6`. -/
+theorem recursiveIdentityTower_no_cell_of_ne_of_level6
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    {n : Nat} {x : (recursiveIdentityTower T).Cell (n + 6)}
+    {a b : (recursiveIdentityTower T).Cell 0}
+    (hs : towerSource0 (recursiveIdentityTower T) x = a)
+    (ht : towerTarget0 (recursiveIdentityTower T) x = b)
+    (hne : a ≠ b) :
+    False := by
+  apply hne
+  calc
+    a = towerSource0 (recursiveIdentityTower T) x := hs.symm
+    _ = towerTarget0 (recursiveIdentityTower T) x :=
+      recursiveIdentityTower_source0_eq_target0_of_level6
+        (T := T) h6 x
+    _ = b := ht
+
+/-- If the explicit 5-cells and 6-cells already collapse 0-source and 0-target, then no
 packed cell in the recursive identity completion can realize distinct
 0-boundaries above dimension `5`. -/
 theorem recursiveIdentityTower_no_cell_of_ne_of_level5
     (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
     (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
       towerSource0 (recursiveIdentityTower T) x =
         towerTarget0 (recursiveIdentityTower T) x)
     {n : Nat} {x : (recursiveIdentityTower T).Cell (n + 5)}
@@ -451,14 +546,35 @@ theorem recursiveIdentityTower_no_cell_of_ne_of_level5
     a = towerSource0 (recursiveIdentityTower T) x := hs.symm
     _ = towerTarget0 (recursiveIdentityTower T) x :=
       recursiveIdentityTower_source0_eq_target0_of_level5
-        (T := T) h5 x
+        (T := T) h5 h6 x
     _ = b := ht
 
-/-- The same boundary-collapse hypothesis rules out nonempty families of packed
+/-- The explicit 6-cell boundary-collapse hypothesis rules out nonempty families
+of packed higher cells with distinct chosen 0-boundaries above dimension `6`. -/
+theorem recursiveIdentityTower_no_cell_nonempty_of_ne_of_level6
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    (n : Nat) (a b : (recursiveIdentityTower T).Cell 0)
+    (hne : a ≠ b) :
+    ¬ Nonempty
+      {x : (recursiveIdentityTower T).Cell (n + 6) //
+        towerSource0 (recursiveIdentityTower T) x = a ∧
+          towerTarget0 (recursiveIdentityTower T) x = b} := by
+  intro h
+  rcases h with ⟨⟨x, hs, ht⟩⟩
+  exact recursiveIdentityTower_no_cell_of_ne_of_level6
+    (T := T) h6 hs ht hne
+
+/-- The same boundary-collapse hypotheses rule out nonempty families of packed
 higher cells with distinct chosen 0-boundaries above dimension `5`. -/
 theorem recursiveIdentityTower_no_cell_nonempty_of_ne_of_level5
     (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z})
     (h5 : ∀ x : (recursiveIdentityTower T).Cell 5,
+      towerSource0 (recursiveIdentityTower T) x =
+        towerTarget0 (recursiveIdentityTower T) x)
+    (h6 : ∀ x : (recursiveIdentityTower T).Cell 6,
       towerSource0 (recursiveIdentityTower T) x =
         towerTarget0 (recursiveIdentityTower T) x)
     (n : Nat) (a b : (recursiveIdentityTower T).Cell 0)
@@ -470,20 +586,130 @@ theorem recursiveIdentityTower_no_cell_nonempty_of_ne_of_level5
   intro h
   rcases h with ⟨⟨x, hs, ht⟩⟩
   exact recursiveIdentityTower_no_cell_of_ne_of_level5
-    (T := T) h5 hs ht hne
+    (T := T) h5 h6 hs ht hne
 
 /-- The all-dimensional globular tower induced by an omega-groupoid by first
-forgetting to its reflexive 5-cell core and then completing recursively by
-identity types above dimension `5`. -/
+forgetting to its reflexive 6-cell core and then completing recursively by
+identity types above dimension `6`. -/
 def omegaGroupoidTower (G : HigherLambdaModel.Simplicial.OmegaGroupoid) :
     HigherLambdaModel.Simplicial.GlobularTower :=
   recursiveIdentityTower G.toReflexiveGlobularTower
+
+/-- Complete a reflexive globular tower to all dimensions by keeping cells
+through dimension `6` explicit and then continuing constructively with
+`HigherDeriv` above that level. -/
+def recursiveHigherCell
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    Nat → Type (max u v w z)
+  | 0 => ULift.{max u v w z, u} T.Cell0
+  | 1 => Σ (M N : ULift.{max u v w z, u} T.Cell0),
+      PLift (T.Cell1 M.down N.down)
+  | 2 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down)),
+      PLift (T.Cell2 p.down q.down)
+  | 3 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down))
+      (α β : PLift (T.Cell2 p.down q.down)),
+      PLift (T.Cell3 α.down β.down)
+  | 4 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down))
+      (α β : PLift (T.Cell2 p.down q.down))
+      (η θ : PLift (T.Cell3 α.down β.down)),
+      PLift (T.Cell4 η.down θ.down)
+  | 5 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down))
+      (α β : PLift (T.Cell2 p.down q.down))
+      (η θ : PLift (T.Cell3 α.down β.down))
+      (ω ξ : PLift (T.Cell4 η.down θ.down)),
+      PLift (T.Cell5 ω.down ξ.down)
+  | 6 => Σ (M N : ULift.{max u v w z, u} T.Cell0)
+      (p q : PLift (T.Cell1 M.down N.down))
+      (α β : PLift (T.Cell2 p.down q.down))
+      (η θ : PLift (T.Cell3 α.down β.down))
+      (ω ξ : PLift (T.Cell4 η.down θ.down))
+      (μ ν : PLift (T.Cell5 ω.down ξ.down)),
+      PLift (T.Cell6 μ.down ν.down)
+  | n + 7 => Σ (x y : recursiveHigherCell T (n + 6)), HigherDeriv x y
+
+/-- Source map for the recursively constructively completed tower. -/
+def recursiveHigherSource
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    {n : Nat} → recursiveHigherCell T (n + 1) → recursiveHigherCell T n
+  | 0, ⟨A, _, _⟩ => A
+  | 1, ⟨A, B, p, _, _⟩ => ⟨A, B, p⟩
+  | 2, ⟨A, B, p, q, α, _, _⟩ => ⟨A, B, p, q, α⟩
+  | 3, ⟨A, B, p, q, α, β, η, _, _⟩ => ⟨A, B, p, q, α, β, η⟩
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, _, _⟩ => ⟨A, B, p, q, α, β, η, θ, ω⟩
+  | 5, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, _, _⟩ =>
+      ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩
+  | _ + 6, ⟨x, _, _⟩ => x
+
+/-- Target map for the recursively constructively completed tower. -/
+def recursiveHigherTarget
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    {n : Nat} → recursiveHigherCell T (n + 1) → recursiveHigherCell T n
+  | 0, ⟨_, B, _⟩ => B
+  | 1, ⟨A, B, _, q, _⟩ => ⟨A, B, q⟩
+  | 2, ⟨A, B, p, q, _, β, _⟩ => ⟨A, B, p, q, β⟩
+  | 3, ⟨A, B, p, q, α, β, _, θ, _⟩ => ⟨A, B, p, q, α, β, θ⟩
+  | 4, ⟨A, B, p, q, α, β, η, θ, _, ξ, _⟩ => ⟨A, B, p, q, α, β, η, θ, ξ⟩
+  | 5, ⟨A, B, p, q, α, β, η, θ, ω, ξ, _, ν, _⟩ =>
+      ⟨A, B, p, q, α, β, η, θ, ω, ξ, ν⟩
+  | _ + 6, ⟨_, y, _⟩ => y
+
+/-- The recursively constructively completed tower is globular on source boundaries. -/
+theorem recursiveHigherGlobularSrc
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    {n : Nat} → (x : recursiveHigherCell T (n + 2)) →
+      recursiveHigherSource T (recursiveHigherSource T x) =
+        recursiveHigherSource T (recursiveHigherTarget T x)
+  | 0, ⟨A, B, p, q, α⟩ => rfl
+  | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
+  | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
+  | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ => rfl
+  | _ + 5, ⟨x, y, h⟩ => by
+      cases HigherDeriv.toEq h
+      rfl
+
+/-- The recursively constructively completed tower is globular on target boundaries. -/
+theorem recursiveHigherGlobularTgt
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    {n : Nat} → (x : recursiveHigherCell T (n + 2)) →
+      recursiveHigherTarget T (recursiveHigherSource T x) =
+        recursiveHigherTarget T (recursiveHigherTarget T x)
+  | 0, ⟨A, B, p, q, α⟩ => rfl
+  | 1, ⟨A, B, p, q, α, β, η⟩ => rfl
+  | 2, ⟨A, B, p, q, α, β, η, θ, ω⟩ => rfl
+  | 3, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ⟩ => rfl
+  | 4, ⟨A, B, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ => rfl
+  | _ + 5, ⟨x, y, h⟩ => by
+      cases HigherDeriv.toEq h
+      rfl
+
+/-- The all-dimensional globular tower induced by a reflexive globular tower via
+constructive `HigherDeriv` completion above dimension `6`. -/
+def recursiveHigherTower
+    (T : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    HigherLambdaModel.Simplicial.GlobularTower where
+  Cell := recursiveHigherCell T
+  source := recursiveHigherSource T
+  target := recursiveHigherTarget T
+  globular_src := recursiveHigherGlobularSrc T
+  globular_tgt := recursiveHigherGlobularTgt T
+
+/-- The all-dimensional constructive tower induced by an omega-groupoid by first
+forgetting to its reflexive 6-cell core and then completing recursively by
+`HigherDeriv` above dimension `6`. -/
+def omegaGroupoidHigherTower (G : HigherLambdaModel.Simplicial.OmegaGroupoid) :
+    HigherLambdaModel.Simplicial.GlobularTower :=
+  recursiveHigherTower G.toReflexiveGlobularTower
 
 /-- An admissible higher λ-model consists of an all-dimensional conversion
 tower together with a low-dimensional omega-groupoid core, expressed through
 the shared simplicial API. The low-dimensional equivalences identify the tower
 with the canonical reflexive tower induced by the omega-groupoid, while the
-next two dimensions are required only to admit a realization map into the full
+next three dimensions are required only to admit a realization map into the full
 tower. -/
 structure AdmissibleHigherLambdaModel where
   tower : HigherLambdaModel.Simplicial.GlobularTower
@@ -494,6 +720,7 @@ structure AdmissibleHigherLambdaModel where
   cell3Equiv : SortEquiv (tower.Cell 3) (Tower3 (omegaGroupoid.toReflexiveGlobularTower))
   realize4 : Tower4 (omegaGroupoid.toReflexiveGlobularTower) → tower.Cell 4
   realize5 : Tower5 (omegaGroupoid.toReflexiveGlobularTower) → tower.Cell 5
+  realize6 : Tower6 (omegaGroupoid.toReflexiveGlobularTower) → tower.Cell 6
 
 /-- The generic coherence theorem packages the canonical reflexive tower
 realized by an admissible higher λ-model. -/
@@ -510,6 +737,7 @@ structure HigherConversionCoherence (A : AdmissibleHigherLambdaModel) where
   cell3Equiv : SortEquiv (A.tower.Cell 3) (Tower3 (realizedTower A))
   realize4 : Tower4 (realizedTower A) → A.tower.Cell 4
   realize5 : Tower5 (realizedTower A) → A.tower.Cell 5
+  realize6 : Tower6 (realizedTower A) → A.tower.Cell 6
 
 /-- Data-level form of the generic coherence theorem. -/
 def higherConversionCoherenceData (A : AdmissibleHigherLambdaModel) :
@@ -520,6 +748,7 @@ def higherConversionCoherenceData (A : AdmissibleHigherLambdaModel) :
   cell3Equiv := A.cell3Equiv
   realize4 := A.realize4
   realize5 := A.realize5
+  realize6 := A.realize6
 
 /-- In every admissible higher λ-model, the full higher-conversion algebra
 realizes the intended omega-groupoid core through the canonical simplicial API.

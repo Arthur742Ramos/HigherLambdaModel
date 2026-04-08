@@ -49,6 +49,15 @@ abbrev ReflexiveLambdaTower := TruncationCore.ReflexiveLambdaTower
 abbrev reflexiveLambdaTower : ReflexiveLambdaTower :=
   TruncationCore.reflexiveLambdaTower
 
+/-- The shared all-dimensional constructive omega-groupoid tower on λ-terms. -/
+abbrev lambdaOmegaConstructiveTower :=
+  TruncationCore.lambdaOmegaConstructiveTower
+
+/-- The all-dimensional realization of the constructive shared omega-groupoid
+tower into the explicit recursive higher λ-conversion tower. -/
+abbrev lambdaOmegaConstructiveRealize :=
+  TruncationCore.lambdaOmegaConstructiveRealize
+
 /-! ## Paths Versus Classical βη-Conversion -/
 
 /-- Proposition-level classical equality obtained by truncating explicit paths. -/

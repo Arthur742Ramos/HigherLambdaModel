@@ -350,6 +350,18 @@ inductive Homotopy3Deriv :
   | trans {M N : Term} {p q : ReductionSeq M N}
       {α β γ : Homotopy2 p q} :
       Homotopy3Deriv α β → Homotopy3Deriv β γ → Homotopy3Deriv α γ
+  | transCongrLeft {M N : Term} {p q r : ReductionSeq M N}
+      {η₁ η₂ : Homotopy2 p q} :
+      Homotopy3Deriv η₁ η₂ → (θ : Homotopy2 q r) →
+      Homotopy3Deriv (Homotopy2.trans η₁ θ) (Homotopy2.trans η₂ θ)
+  | transCongrRight {M N : Term} {p q r : ReductionSeq M N}
+      (η : Homotopy2 p q) {θ₁ θ₂ : Homotopy2 q r} :
+      Homotopy3Deriv θ₁ θ₂ →
+      Homotopy3Deriv (Homotopy2.trans η θ₁) (Homotopy2.trans η θ₂)
+  | whiskerLeftCongr {L M N : Term} (r : ReductionSeq L M)
+      {p q : ReductionSeq M N} {η θ : Homotopy2 p q} :
+      Homotopy3Deriv η θ →
+      Homotopy3Deriv (whiskerLeft r η) (whiskerLeft r θ)
   | whiskerLeftRefl {M N P : Term} (r : ReductionSeq M N) (p : ReductionSeq N P) :
       Homotopy3Deriv (whiskerLeft r (Homotopy2.refl p))
         (Homotopy2.refl (ReductionSeq.concat r p))
@@ -443,19 +455,34 @@ def trans {M N : Term} {p q : ReductionSeq M N}
     Homotopy3 α γ :=
   { deriv := Homotopy3Deriv.trans η₁.deriv η₂.deriv }
 
+/-- Vertical composition is congruent in its left argument at the explicit
+3-cell level. -/
+def transCongrLeft {M N : Term} {p q r : ReductionSeq M N}
+    {η₁ η₂ : Homotopy2 p q} (Κ : Homotopy3 η₁ η₂) (θ : Homotopy2 q r) :
+    Homotopy3 (Homotopy2.trans η₁ θ) (Homotopy2.trans η₂ θ) :=
+  { deriv := Homotopy3Deriv.transCongrLeft Κ.deriv θ }
+
+/-- Vertical composition is congruent in its right argument at the explicit
+3-cell level. -/
+def transCongrRight {M N : Term} {p q r : ReductionSeq M N}
+    (η : Homotopy2 p q) {θ₁ θ₂ : Homotopy2 q r} (Κ : Homotopy3 θ₁ θ₂) :
+    Homotopy3 (Homotopy2.trans η θ₁) (Homotopy2.trans η θ₂) :=
+  { deriv := Homotopy3Deriv.transCongrRight η Κ.deriv }
+
+/-- Left whiskering is congruent on explicit 3-cells. -/
+def whiskerLeftCongr {L M N : Term} (r : ReductionSeq L M)
+    {p q : ReductionSeq M N} {η θ : Homotopy2 p q} (Κ : Homotopy3 η θ) :
+    Homotopy3 (whiskerLeft r η) (whiskerLeft r θ) :=
+  { deriv := Homotopy3Deriv.whiskerLeftCongr r Κ.deriv }
+
 end Homotopy3
 
-/-- The fragment of syntactic 3-cells currently supported by the semantic
+/-- The syntactic 3-cell fragment currently supported by the semantic
 3-cell interpretation.
 
-This keeps only the constructors already matched by explicit simplicial
-operations in `ExtensionalKan`: reflexivity, literal equality of 2-cells,
-symmetry, vertical composition, the reflexive left and right whiskering
-witnesses, the left- and right-whiskering transitivity, symmetry, and
-inverse-symmetry witnesses, and the interchange witness coming from the chosen
-definition of horizontal composition. The remaining primitive constructors of
-`Homotopy3Deriv` stay in the full syntax but are not yet included in this
-restricted fragment. -/
+This covers the currently validated endpoint-language fragment, including both
+interchange constructors together with triangle, pentagon, and congruence under
+vertical composition and left whiskering. -/
 inductive StructuralHomotopy3 :
     {M N : Term} → {p q : ReductionSeq M N} →
     (α β : Homotopy2 p q) → Type where
@@ -469,6 +496,18 @@ inductive StructuralHomotopy3 :
       {α β γ : Homotopy2 p q} :
       StructuralHomotopy3 α β → StructuralHomotopy3 β γ →
       StructuralHomotopy3 α γ
+  | transCongrLeft {M N : Term} {p q r : ReductionSeq M N}
+      {η₁ η₂ : Homotopy2 p q} :
+      StructuralHomotopy3 η₁ η₂ → (θ : Homotopy2 q r) →
+      StructuralHomotopy3 (Homotopy2.trans η₁ θ) (Homotopy2.trans η₂ θ)
+  | transCongrRight {M N : Term} {p q r : ReductionSeq M N}
+      (η : Homotopy2 p q) {θ₁ θ₂ : Homotopy2 q r} :
+      StructuralHomotopy3 θ₁ θ₂ →
+      StructuralHomotopy3 (Homotopy2.trans η θ₁) (Homotopy2.trans η θ₂)
+  | whiskerLeftCongr {L M N : Term} (r : ReductionSeq L M)
+      {p q : ReductionSeq M N} {η θ : Homotopy2 p q} :
+      StructuralHomotopy3 η θ →
+      StructuralHomotopy3 (whiskerLeft r η) (whiskerLeft r θ)
   | whiskerLeftRefl {L M N : Term} (r : ReductionSeq L M) (p : ReductionSeq M N) :
       StructuralHomotopy3 (whiskerLeft r (Homotopy2.refl p))
         (Homotopy2.refl (ReductionSeq.concat r p))
@@ -505,6 +544,27 @@ inductive StructuralHomotopy3 :
       (α : Homotopy2 p p') (β : Homotopy2 q q') :
       StructuralHomotopy3 (hcomp α β)
         (Homotopy2.trans (whiskerRight α q) (whiskerLeft p' β))
+  | interchange' {M N P : Term}
+      {p p' : ReductionSeq M N} {q q' : ReductionSeq N P}
+      (α : Homotopy2 p p') (β : Homotopy2 q q') :
+      StructuralHomotopy3 (hcomp α β)
+        (Homotopy2.trans (whiskerLeft p β) (whiskerRight α q'))
+  | pentagon {M N P Q R : Term}
+      (p : ReductionSeq M N) (q : ReductionSeq N P)
+      (r : ReductionSeq P Q) (s : ReductionSeq Q R) :
+      StructuralHomotopy3
+        (Homotopy2.trans (associator (ReductionSeq.concat p q) r s)
+          (associator p q (ReductionSeq.concat r s)))
+        (Homotopy2.trans
+          (Homotopy2.trans (whiskerRight (associator p q r) s)
+            (associator p (ReductionSeq.concat q r) s))
+          (whiskerLeft p (associator q r s)))
+  | triangle {M N P : Term}
+      (p : ReductionSeq M N) (q : ReductionSeq N P) :
+      StructuralHomotopy3
+        (Homotopy2.trans (associator p (ReductionSeq.refl N) q)
+          (whiskerLeft p (leftUnitor q)))
+        (whiskerRight (rightUnitor p) q)
 
 namespace StructuralHomotopy3
 
@@ -516,6 +576,12 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
   | .ofEq h => Homotopy3.ofEq h
   | .symm η => Homotopy3.symm η.toHomotopy3
   | .trans η θ => Homotopy3.trans η.toHomotopy3 θ.toHomotopy3
+  | .transCongrLeft η θ =>
+      Homotopy3.transCongrLeft η.toHomotopy3 θ
+  | .transCongrRight η θ =>
+      Homotopy3.transCongrRight η θ.toHomotopy3
+  | .whiskerLeftCongr r η =>
+      Homotopy3.whiskerLeftCongr r η.toHomotopy3
   | .whiskerLeftRefl r p =>
       Homotopy3.ofDeriv (Homotopy3Deriv.whiskerLeftRefl r p)
   | .whiskerRightRefl p s =>
@@ -534,8 +600,52 @@ def toHomotopy3 {M N : Term} {p q : ReductionSeq M N}
       Homotopy3.ofDeriv (Homotopy3Deriv.invWhiskerRight α s)
   | .interchange α β =>
       Homotopy3.ofDeriv (Homotopy3Deriv.interchange α β)
+  | .interchange' α β =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.interchange' α β)
+  | .pentagon p q r s =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.pentagon p q r s)
+  | .triangle p q =>
+      Homotopy3.ofDeriv (Homotopy3Deriv.triangle p q)
 
 end StructuralHomotopy3
+
+namespace Homotopy3Deriv
+
+/-- Every primitive syntactic 3-derivation now lies in the structurally
+supported 3-cell fragment. -/
+def toStructuralHomotopy3 {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} : Homotopy3Deriv α β → StructuralHomotopy3 α β
+  | .refl α => .refl α
+  | .ofEq h => .ofEq h
+  | .symm η => .symm η.toStructuralHomotopy3
+  | .trans η θ => .trans η.toStructuralHomotopy3 θ.toStructuralHomotopy3
+  | .transCongrLeft η θ => .transCongrLeft η.toStructuralHomotopy3 θ
+  | .transCongrRight η θ => .transCongrRight η θ.toStructuralHomotopy3
+  | .whiskerLeftCongr r η => .whiskerLeftCongr r η.toStructuralHomotopy3
+  | .whiskerLeftRefl r p => .whiskerLeftRefl r p
+  | .whiskerRightRefl p s => .whiskerRightRefl p s
+  | .whiskerLeftTrans r α β => .whiskerLeftTrans r α β
+  | .whiskerRightTrans α β r => .whiskerRightTrans α β r
+  | .whiskerLeftSymm r α => .whiskerLeftSymm r α
+  | .whiskerRightSymm α s => .whiskerRightSymm α s
+  | .interchange α β => .interchange α β
+  | .interchange' α β => .interchange' α β
+  | .pentagon p q r s => .pentagon p q r s
+  | .triangle p q => .triangle p q
+  | .invWhiskerLeft r α => .invWhiskerLeft r α
+  | .invWhiskerRight α s => .invWhiskerRight α s
+
+end Homotopy3Deriv
+
+namespace Homotopy3
+
+/-- Every syntactic 3-cell can be reflected into the structural fragment used by
+the generic semantic interpreter. -/
+def toStructuralHomotopy3 {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} (η : Homotopy3 α β) : StructuralHomotopy3 α β :=
+  η.deriv.toStructuralHomotopy3
+
+end Homotopy3
 
 /-! ## Groupoid Structure -/
 

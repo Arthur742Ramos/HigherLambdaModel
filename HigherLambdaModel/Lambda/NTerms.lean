@@ -532,6 +532,47 @@ noncomputable def StructuralHomotopy3_subset_HoTFT3
       (ExtensionalKan.homotopy2_in_HoTFT2 β) :=
   ExtensionalKan.structuralHomotopy3_in_HoTFT3 η
 
+/-- Every primitive syntactic 3-derivation between parallel explicit 2-cells
+induces a proof-relevant semantic HoTFT 3-conversion. -/
+noncomputable def Homotopy3Deriv_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.Homotopy3Deriv α β) :
+    HoTFT3 (ExtensionalKan.homotopy2_in_HoTFT2 α)
+      (ExtensionalKan.homotopy2_in_HoTFT2 β) :=
+  StructuralHomotopy3_subset_HoTFT3 η.toStructuralHomotopy3
+
+/-- Every explicit syntactic 3-cell between parallel explicit 2-cells induces a
+proof-relevant semantic HoTFT 3-conversion. -/
+noncomputable def Homotopy3_subset_HoTFT3
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.Homotopy3 α β) :
+    HoTFT3 (ExtensionalKan.homotopy2_in_HoTFT2 α)
+      (ExtensionalKan.homotopy2_in_HoTFT2 β) :=
+  StructuralHomotopy3_subset_HoTFT3 η.toStructuralHomotopy3
+
+/-- In a strict extensional Kan model, every primitive syntactic 3-derivation
+admits a proof-relevant semantic 3-cell over the interpreted explicit
+2-cells. -/
+noncomputable def Homotopy3Deriv_subset_strict_Theory3
+    (K : StrictExtensionalKanComplex)
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.Homotopy3Deriv α β) :
+    Theory3 K.toExtensionalKanComplex
+      (ExtensionalKan.homotopy2_in_Theory2 K.toExtensionalKanComplex α)
+      (ExtensionalKan.homotopy2_in_Theory2 K.toExtensionalKanComplex β) :=
+  ExtensionalKan.homotopy3Deriv_in_strict_Theory3 K η
+
+/-- Structure-level strict-model wrapper for
+`Homotopy3Deriv_subset_strict_Theory3`. -/
+noncomputable def Homotopy3_subset_strict_Theory3
+    (K : StrictExtensionalKanComplex)
+    {M N : Term} {p q : ReductionSeq M N} {α β : Homotopy2 p q}
+    (η : HigherLambdaModel.Lambda.HigherTerms.Homotopy3 α β) :
+    Theory3 K.toExtensionalKanComplex
+      (ExtensionalKan.homotopy2_in_Theory2 K.toExtensionalKanComplex α)
+      (ExtensionalKan.homotopy2_in_Theory2 K.toExtensionalKanComplex β) :=
+  ExtensionalKan.homotopy3_in_strict_Theory3 K η
+
 /-- Every explicit syntactic 2-cell admits a reflexive semantic HoTFT 4-cell
 over the reflexive semantic HoTFT 3-cell on its interpreted HoTFT 2-cell. -/
 noncomputable def Homotopy2_refl_subset_HoTFT4

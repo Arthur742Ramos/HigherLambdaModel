@@ -768,6 +768,27 @@ noncomputable def stage_scottDomain (n : Nat) : HomotopyScottDomain where
   algebraic := stage_algebraic n
   boundedComplete := stage_boundedComplete n
 
+/-- Every stage endomap admits a chosen finite-step basis, obtained by packaging
+the already formalized algebraicity of the next stage in the tower. -/
+noncomputable def stage_finiteStepBasis
+    (n : Nat) (f : ContinuousMap (stage_scottDomain n) (stage_scottDomain n)) :
+    FiniteStepBasis (stage_scottDomain n) (stage_scottDomain n) f where
+  basis := fun g =>
+    compactBelow (Exponential.chpo (stage_scottDomain n) (stage_scottDomain n)) f g
+  basis_iff := by
+    intro g
+    rfl
+  directed := by
+    simpa [stage_scottDomain, K] using (stage_algebraic (n + 1) f).1
+  exact := by
+    simpa [stage_scottDomain, K] using (stage_algebraic (n + 1) f).2
+
+/-- Proposition 3.14 specialized to every concrete stage in the `K` tower. -/
+noncomputable def stage_selfExponentialScottDomain (n : Nat) :
+    HomotopyScottDomain :=
+  selfExponentialScottDomainOfFiniteStepBasis (stage_scottDomain n)
+    (fun f => ⟨stage_finiteStepBasis n f⟩)
+
 private theorem fPlus_castLevel
     {a b : Nat} (h : a = b) (y : (K a).Obj) :
     (fPlus b).toFun (castLevel h y) =
@@ -4346,6 +4367,13 @@ private def kInfinityRealize5 :
   | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩ =>
       ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩, ⟨ω⟩, ⟨ξ⟩, ⟨μ⟩⟩
 
+private def kInfinityRealize6 :
+    HigherLambdaModel.Lambda.Coherence.Tower6 KInfinityReflexiveTower →
+      kInfinityTower.Cell 6
+  | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ =>
+      ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩,
+        ⟨ω⟩, ⟨ξ⟩, ⟨μ⟩, ⟨ν⟩, ⟨tau⟩⟩
+
 /-- The concrete `K∞` model satisfies the generic admissibility hypotheses. -/
 def kInfinityAdmissibleHigherLambdaModel :
     HigherLambdaModel.Lambda.Coherence.AdmissibleHigherLambdaModel where
@@ -4357,6 +4385,7 @@ def kInfinityAdmissibleHigherLambdaModel :
   cell3Equiv := kInfinityCell3Equiv
   realize4 := kInfinityRealize4
   realize5 := kInfinityRealize5
+  realize6 := kInfinityRealize6
 
 /-- The generic coherence theorem specialized to the concrete `K∞` model. -/
 def kInfinityHigherConversionCoherence :
@@ -4415,6 +4444,13 @@ abbrev KInfinityPath5
     (ω ξ : KInfinityPath4 η θ) : Type :=
   kInfinityOmegaGroupoid.Hom5 ω ξ
 
+/-- Six-cells between parallel `K∞` 5-cells. -/
+abbrev KInfinityPath6
+    {A B : KInfinityCHPO.Obj} {p q : KInfinityPath A B}
+    {α β : KInfinityPath2 p q} {η θ : KInfinityPath3 α β}
+    {ω ξ : KInfinityPath4 η θ} (μ ν : KInfinityPath5 ω ξ) : Type :=
+  kInfinityOmegaGroupoid.Hom6 μ ν
+
 /-- Lift an ordinary equality of `K∞` points to a 1-cell in the canonical
 omega-groupoid. -/
 def kInfinityPathOfEq {A B : KInfinityCHPO.Obj} (h : A = B) : KInfinityPath A B :=
@@ -4443,6 +4479,14 @@ def kInfinityPentagon5
   HigherLambdaModel.Simplicial.OmegaGroupoid.pentagon5
     kInfinityOmegaGroupoid p q r s
 
+/-- The generic pentagon 6-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityPentagon6
+    {A B C D E : KInfinityCHPO.Obj}
+    (p : KInfinityPath A B) (q : KInfinityPath B C)
+    (r : KInfinityPath C D) (s : KInfinityPath D E) :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.pentagon6
+    kInfinityOmegaGroupoid p q r s
+
 /-- The generic interchange 4-cell specialized to the `K∞` omega-groupoid. -/
 def kInfinityHexagon4
     {A B C : KInfinityCHPO.Obj}
@@ -4457,6 +4501,14 @@ def kInfinityHexagon5
     {p p' : KInfinityPath A B} {q q' : KInfinityPath B C}
     (α : KInfinityPath2 p p') (β : KInfinityPath2 q q') :=
   HigherLambdaModel.Simplicial.OmegaGroupoid.hexagon5
+    kInfinityOmegaGroupoid α β
+
+/-- The generic interchange 6-cell specialized to the `K∞` omega-groupoid. -/
+def kInfinityHexagon6
+    {A B C : KInfinityCHPO.Obj}
+    {p p' : KInfinityPath A B} {q q' : KInfinityPath B C}
+    (α : KInfinityPath2 p p') (β : KInfinityPath2 q q') :=
+  HigherLambdaModel.Simplicial.OmegaGroupoid.hexagon6
     kInfinityOmegaGroupoid α β
 
 /-! ## Proposition 4.4 -/
@@ -4613,23 +4665,34 @@ private theorem kInfinityTower_level5_source_eq_target
   rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩
   exact congrArg ULift.up p.down.down
 
+private theorem kInfinityTower_level6_source_eq_target
+    (x : kInfinityTower.Cell 6) :
+    HigherLambdaModel.Lambda.Coherence.towerSource0 kInfinityTower x =
+      HigherLambdaModel.Lambda.Coherence.towerTarget0 kInfinityTower x := by
+  rcases x with ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩
+  exact congrArg ULift.up p.down.down
+
 /-- Every packed cell in the recursively completed `K∞` tower of dimension `≥ 5`
-already has equal 0-source and 0-target, because above dimension `5` the tower
-is built by iterated identities. -/
+already has equal 0-source and 0-target, because the explicit 5-cells and
+6-cells already collapse and every dimension above `6` is built by iterated
+identities. -/
 theorem kInfinityTower_source_eq_target
     {n : Nat} (x : kInfinityTower.Cell (n + 5)) :
     kInfinityTowerSourceObj x = kInfinityTowerTargetObj x := by
   have h0 :=
     HigherLambdaModel.Lambda.Coherence.recursiveIdentityTower_source0_eq_target0_of_level5
       (T := KInfinityReflexiveTower)
-      kInfinityTower_level5_source_eq_target x
+      kInfinityTower_level5_source_eq_target
+      kInfinityTower_level6_source_eq_target
+      x
   exact congrArg ULift.down h0
 
 /-- In the recursively completed all-dimensional `K∞` tower, no cell of
 dimension `≥ 5` can have the chosen β-side point as its 0-source and the chosen
-η-side point as its 0-target. Above dimension `5`, every higher cell is an
-iterated identity between lower cells, so the explicit 5-cell separation forces
-all higher boundary instances to be empty as well. -/
+η-side point as its 0-target. The explicit 5-cells and 6-cells already collapse
+their 0-boundaries, and every dimension above `6` is an iterated identity
+between lower cells, so the explicit separation forces all higher boundary
+instances to be empty as well. -/
 theorem example_4_2_no_recursive_higher_cell
     {n : Nat} {x : kInfinityTower.Cell (n + 5)}
     (hs : kInfinityTowerSourceObj x = interp1Beta)
@@ -4660,6 +4723,7 @@ theorem example_4_2_no_recursive_higher_cell
     HigherLambdaModel.Lambda.Coherence.recursiveIdentityTower_no_cell_of_ne_of_level5
       (T := KInfinityReflexiveTower)
       kInfinityTower_level5_source_eq_target
+      kInfinityTower_level6_source_eq_target
       hs'
       ht'
       hne'

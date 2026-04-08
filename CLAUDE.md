@@ -104,6 +104,7 @@ Task(subagent_type="Plan", prompt="Design the implementation for proving interpr
 | `ReductionSeq.inv` | Follows from Church-Rosser |
 | `eta_diamond` | Eta has no critical pairs |
 | `beta_eta_commute` | Standard commutation lemma |
+| `CoherentExtensionalKanComplex.wlwrPath3` | WLWR interchange coherence (wr(wl(α)(η),δ) ~ assoc;wl(wr(η,δ));symm(assoc)); follows from Mac Lane coherence in a bicategory but axiomatized for extensional Kan complexes; automatically satisfied by all strict models |
 
 ### Potential Future Work
 1. **Eliminate axioms**: Create term isomorphism with Metatheory to remove `church_rosser` axiom

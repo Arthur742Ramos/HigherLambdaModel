@@ -42,10 +42,10 @@ tracked in [`docs/closure_backlog.md`](./docs/closure_backlog.md).
 
 Current snapshot, excluding `.lake`:
 
-- `31` Lean files
-- `13,492` lines of Lean
-- `309` named `theorem` / `lemma` declarations
-- `1` remaining local `axiom` (the bare semantic pentagon back-loop contraction in `ExtensionalKan.lean`) and no `sorry` / `admit` declarations
+- `35` Lean files
+- `29,761` lines of Lean
+- `361` named `theorem` / `lemma` declarations
+- no local `axiom`, `sorry`, or `admit` declarations
 - all closure backlog issues `0` through `8` completed
 
 ## Key Results Formalized
@@ -72,7 +72,10 @@ HigherLambdaModel/
 |   |-- Term.lean              # De Bruijn lambda terms, shifting, substitution
 |   |-- Reduction.lean         # β/η reduction, conversion, and explicit paths
 |   |-- HigherTerms.lean       # Constructive higher-cell tower
-|   |-- ExtensionalKan.lean    # Kan-complex semantics and HoTFT layers
+|   |-- ExtensionalKanCore.lean   # Core Kan-complex semantics and interpreter layer
+|   |-- ExtensionalKanHigher.lean # Higher semantic HoTFT/coherence layer
+|   |-- ExtensionalKanStrict.lean # Strict filler-uniqueness/coherence specializations
+|   |-- ExtensionalKan.lean    # Umbrella re-export for the split Kan development
 |   |-- NTerms.lean            # n-terms, n-conversions, and TH_λ= ⊆ HoTFT
 |   |-- Coherence.lean         # Canonical omega-groupoid structure on λ-terms
 |   |-- TruncationCore.lean    # Generic coherence packaging and realized towers
@@ -179,40 +182,54 @@ checkpoints:
   inherit the full existing no 1/2/3/4/5/recursive-higher-cell separation
   suite.
 
-The remaining paper-level gaps are now:
+Moreover, the generic recursive semantic `HoTFT3` interpreter now also covers
+the alternative interchange constructor `interchange'` together with the
+primitive triangle and pentagon constructors inside `StructuralHomotopy3`. The
+recursive wrapper therefore reaches the full primitive `Homotopy3Deriv`
+3-cell language.
 
-- a direct semantic interpretation of the full primitive `Homotopy3Deriv`
-  language rather than only the current structural fragment (the structural
-  fragment now reaches reflexivity, equality, symmetry, transitivity,
-  reflexive left/right whiskering, left/right-whisker transitivity,
-  left/right-whisker symmetry, inverse left/right-whisker symmetry, and
-  interchange; outside that structural fragment, standalone primitive semantic
-  theorems already cover triangle, pentagon, and the second interchange form.
-  Interpreted syntactic right whiskers now also bridge back to the legacy
-  structural shell, so the live `ExtensionalKan.lean` file now also proves the
-  self-comparison contraction `triangleSelfReflPath3`; for a bare generic
-  `KanComplex`, the remaining pentagon frontier is the smaller local front-face
-  axiom `pentagonInnerRightFrontReflPath3`, while the new strict
-  filler-uniqueness layer (`StrictKanComplex`, `StrictExtensionalKanComplex`,
-  `Theory3.strictWhiskerLeftWhiskerRight`, `Theory3.strictPentagon`) now
-  discharges both the WLWR front-loop obstruction and the pentagon axiom-free;
-  the explicit-path strict wrappers
-  `homotopy2_strictWhiskerLeftWhiskerRight_in_Theory3` and
-  `reductionSeq_strictPentagon_in_Theory3` expose those proofs without forcing
-  a return to the raw semantic level. The recursive associator bookkeeping is
-  now packaged on both the semantic and
-  HoTFT sides by `reductionSeq_comp_associator_in_Theory3_of_heads` and
-  `reductionSeq_comp_associator_in_HoTFT3_of_heads`. In strict models, the
-  local forward and inverse step-head bridges are now also proven directly via
-  `reductionSeq_comp_associator_stepHead_strict_in_Theory3`,
-  `reductionSeq_comp_associator_stepInvHead_strict_in_Theory3`, and the
-  resulting recursive strict theorem
-  `reductionSeq_comp_associator_strict_in_Theory3`. So the live `Homotopy3`
-  gap is now the unsupported coherence fragment outside `StructuralHomotopy3`,
-  concretely the final direct endpoint-language bridge from full primitive
-  syntax back to the structural `HoTFT3` interface),
-- and a stronger all-dimensional constructive omega-groupoid story beyond the
-  current explicit 5-cell core plus recursive identity tower.
+The remaining paper-level caveat is now separated cleanly from the original
+model interface rather than hidden inside it:
+
+- the bare simplicial API isolates the reduced front/back pentagon seed
+  contraction inside `ExtensionalKanHigher.lean`, but the full primitive
+  syntactic pentagon semantics (`homotopy2_pentagon_in_Theory3` /
+  `homotopy2_pentagon_in_HoTFT3`) still works over the original
+  `ExtensionalKanComplex` interface;
+- the stronger semantic associator coherence is isolated in the separate
+  `CoherentExtensionalKanComplex` extension rather than being built into every
+  extensional model; this extension now packages both `pentagonPath3` and
+  `wlwrPath3`, exposing the coherent semantic theorems
+  `Theory3.coherentWhiskerLeftWhiskerRight`,
+  `reductionSeq_comp_associator_in_Theory3`, and
+  `homotopy2_associator_coherent_bridge_in_Theory3`;
+- the smaller paper-facing interface
+  `FrontSeedCoherentExtensionalKanComplex` now packages just `wlwrPath3`
+  together with the reduced front pentagon seed, and already recovers the
+  recursive associator theorem, the direct semantic pentagon on interpreted
+  reduction sequences, and the explicit pentagon source/target/shell bridge
+  package;
+- the explicit 3-cell fragment has now been strengthened with trans congruence
+  on both sides and left-whisker congruence, and the right-whisker semantic
+  bridge is now available in both directions via
+  `Theory3.whiskerRightCongrOfTriangleComparisonPath3` and
+  `Theory3.triangleComparisonPath3OfWhiskerRightPath3`;
+- the strict filler-uniqueness layer (`StrictKanComplex`,
+  `StrictExtensionalKanComplex`, `Theory3.strictWhiskerLeftWhiskerRight`,
+  `Theory3.strictPentagon`) derives that coherent extension axiom-free, and the
+  bridge `StrictExtensionalKanComplex.toCoherentExtensionalKanComplex` exposes
+  it without forcing a return to the raw semantic level; the public strict
+  recursive associator theorem now factors through that coherent bridge.
+
+The main remaining proof targets are now sharply separated:
+
+1. derive the reduced front-seed coherence boundary from the original bare
+   `ExtensionalKanComplex` API itself, most likely by proving a generic
+   right-whisker lift (`whiskerRightPath3` / `Theory3.whiskerRightCongr`) or an
+   equivalent source-front normalization theorem;
+2. prove one of the two equivalent reduced pentagon seeds directly in bare
+   `KanComplex` / `ExtensionalKanComplex`, which would recover the full semantic
+   pentagon without passing through the stronger coherent interface.
 
 ## Theory Summary
 
@@ -234,9 +251,10 @@ theorem TH_lambda_eq_subset_HoTFT (M N : Term) (h : M =_TH N) :
 
 The generic coherence layer additionally packages the explicit higher
 conversion tower through the shared simplicial interface, proves that
-0-truncation recovers ordinary `TH_λ=`, and now compares that explicit tower
-with the shared recursive-identity omega tower used by both the constructive
-λ-term model and the concrete `K∞` model.
+0-truncation recovers ordinary `TH_λ=`, compares that explicit tower with the
+shared recursive-identity omega tower used by the generic/K∞ lane, and now also
+realizes the shared constructive omega tower on λ-terms in every dimension via
+recursive `HigherDeriv` completion above the explicit 6-cell core.
 
 ## References
 

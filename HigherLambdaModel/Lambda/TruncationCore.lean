@@ -120,6 +120,19 @@ private def liftLambdaCell4 {M N : Term} {p q : ReductionSeq M N}
     HigherTerms.Cell 4 :=
   ⟨liftLambdaCell3 η, liftLambdaCell3 θ, higherDerivMap liftLambdaCell3 ω⟩
 
+private def liftLambdaCell5 {M N : Term} {p q : ReductionSeq M N}
+    {α β : Homotopy2 p q} {η θ : HigherTerms.Homotopy3 α β}
+    {ω ξ : HigherTerms.HigherDeriv η θ} (μ : HigherTerms.HigherDeriv ω ξ) :
+    HigherTerms.Cell 5 :=
+  ⟨liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+      (α := α) (β := β) (η := η) (θ := θ) ω,
+    liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+      (α := α) (β := β) (η := η) (θ := θ) ξ,
+    higherDerivMap
+      (liftLambdaCell4 (M := M) (N := N) (p := p) (q := q)
+        (α := α) (β := β) (η := η) (θ := θ))
+      μ⟩
+
 private def lambdaRealize4 :
     HigherLambdaModel.Lambda.Coherence.Tower4
       HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower →
@@ -142,6 +155,20 @@ private def lambdaRealize5 :
             (α := α) (β := β) (η := η) (θ := θ))
           μ⟩
 
+private def lambdaRealize6 :
+    HigherLambdaModel.Lambda.Coherence.Tower6
+      HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower →
+    HigherTerms.Cell 6
+  | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ =>
+      ⟨liftLambdaCell5 (M := M) (N := N) (p := p) (q := q)
+          (α := α) (β := β) (η := η) (θ := θ) (ω := ω) (ξ := ξ) μ,
+        liftLambdaCell5 (M := M) (N := N) (p := p) (q := q)
+          (α := α) (β := β) (η := η) (θ := θ) (ω := ω) (ξ := ξ) ν,
+        higherDerivMap
+          (liftLambdaCell5 (M := M) (N := N) (p := p) (q := q)
+            (α := α) (β := β) (η := η) (θ := θ) (ω := ω) (ξ := ξ))
+          tau⟩
+
 /-- The explicit higher λ-conversion tower is admissible for the generic
 coherence theorem. -/
 def lambdaAdmissibleHigherLambdaModel :
@@ -154,6 +181,7 @@ def lambdaAdmissibleHigherLambdaModel :
   cell3Equiv := HigherLambdaModel.Lambda.Coherence.SortEquiv.refl _
   realize4 := lambdaRealize4
   realize5 := lambdaRealize5
+  realize6 := lambdaRealize6
 
 private abbrev lambdaOmegaReflexiveTower : ReflexiveLambdaTower :=
   HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower
@@ -163,6 +191,17 @@ lambda omega-groupoid. -/
 def lambdaOmegaTower : HigherLambdaModel.Simplicial.GlobularTower :=
   HigherLambdaModel.Lambda.Coherence.omegaGroupoidTower
     HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+
+/-- The shared all-dimensional constructive omega tower induced directly from the
+canonical lambda omega-groupoid by recursive `HigherDeriv` completion above the
+explicit 6-cell core. -/
+def lambdaOmegaConstructiveTower : HigherLambdaModel.Simplicial.GlobularTower :=
+  HigherLambdaModel.Lambda.Coherence.omegaGroupoidHigherTower
+    HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+
+private abbrev lambdaOmegaConstructiveCell : Nat → Sort _ :=
+  HigherLambdaModel.Lambda.Coherence.recursiveHigherCell
+    HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid.toReflexiveGlobularTower
 
 private def lambdaOmegaCell0Equiv :
     HigherLambdaModel.Lambda.Coherence.SortEquiv
@@ -273,6 +312,36 @@ private def lambdaOmegaRealize5 :
   | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩ =>
       ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩, ⟨ω⟩, ⟨ξ⟩, ⟨μ⟩⟩
 
+private def lambdaOmegaRealize6 :
+    HigherLambdaModel.Lambda.Coherence.Tower6 lambdaOmegaReflexiveTower →
+      lambdaOmegaTower.Cell 6
+  | ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ =>
+      ⟨⟨M⟩, ⟨N⟩, ⟨p⟩, ⟨q⟩, ⟨α⟩, ⟨β⟩, ⟨η⟩, ⟨θ⟩,
+        ⟨ω⟩, ⟨ξ⟩, ⟨μ⟩, ⟨ν⟩, ⟨tau⟩⟩
+
+/-- The constructive omega-groupoid tower on λ-terms realizes into the explicit
+recursive higher-conversion tower in every dimension. -/
+def lambdaOmegaConstructiveRealize :
+    (n : Nat) → lambdaOmegaConstructiveCell n → HigherTerms.Cell n
+  | 0, x => x.down
+  | 1, ⟨M, N, p⟩ => ⟨M.down, N.down, p.down⟩
+  | 2, ⟨M, N, p, q, α⟩ => ⟨M.down, N.down, p.down, q.down, α.down⟩
+  | 3, ⟨M, N, p, q, α, β, η⟩ =>
+      ⟨M.down, N.down, p.down, q.down, α.down, β.down, η.down⟩
+  | 4, ⟨M, N, p, q, α, β, η, θ, ω⟩ =>
+      lambdaRealize4 ⟨M.down, N.down, p.down, q.down, α.down, β.down, η.down, θ.down, ω.down⟩
+  | 5, ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ⟩ =>
+      lambdaRealize5
+        ⟨M.down, N.down, p.down, q.down, α.down, β.down, η.down, θ.down, ω.down, ξ.down, μ.down⟩
+  | 6, ⟨M, N, p, q, α, β, η, θ, ω, ξ, μ, ν, tau⟩ =>
+      lambdaRealize6
+        ⟨M.down, N.down, p.down, q.down, α.down, β.down, η.down, θ.down,
+          ω.down, ξ.down, μ.down, ν.down, tau.down⟩
+  | n + 7, ⟨x, y, h⟩ =>
+      ⟨lambdaOmegaConstructiveRealize (n + 6) x,
+        lambdaOmegaConstructiveRealize (n + 6) y,
+        higherDerivMap (lambdaOmegaConstructiveRealize (n + 6)) h⟩
+
 /-- The shared omega-groupoid tower on λ-terms is also admissible for the
 generic coherence theorem. This reuses the all-dimensional identity-completion
 constructor rather than the explicit recursive `HigherTerms.Cell` tower. -/
@@ -286,6 +355,7 @@ def lambdaOmegaAdmissibleHigherLambdaModel :
   cell3Equiv := lambdaOmegaCell3Equiv
   realize4 := lambdaOmegaRealize4
   realize5 := lambdaOmegaRealize5
+  realize6 := lambdaOmegaRealize6
 
 /-- The generic coherence theorem specialized to the shared omega-groupoid tower
 on λ-terms. -/

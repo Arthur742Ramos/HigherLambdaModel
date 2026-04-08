@@ -5,10 +5,10 @@ This file collects generic low-dimensional interfaces for the higher groupoid
 data used across the repository.
 
 The current codebase only has a fully explicit syntactic realization through
-3-cells, with the next two layers obtained reflexively from the recursive
+3-cells, with the next three layers obtained reflexively from the recursive
 higher-derivation tower. The structures below are therefore intentionally
 phrased as a low-dimensional core: source and target are encoded by the
-dependent typing of `Hom`, `Hom2`, `Hom3`, `Hom4`, and `Hom5`, while the
+dependent typing of `Hom`, `Hom2`, `Hom3`, `Hom4`, `Hom5`, and `Hom6`, while the
 coherence fields package the operations and witnesses already used by the
 lambda-calculus layer.
 -/
@@ -37,7 +37,7 @@ structure OmegaGroupoidData where
   Hom2 : {M N : Obj} → Hom M N → Hom M N → Sort w
   refl2 : {M N : Obj} → (p : Hom M N) → Hom2 p p
 
-/-- A weak omega-groupoid core packaged through 5-cells.
+/-- A weak omega-groupoid core packaged through 6-cells.
 
 The interface is intentionally generic: it does not prescribe how higher cells
 are implemented, only which operations and coherence witnesses are available. -/
@@ -47,6 +47,8 @@ structure OmegaGroupoid extends OmegaGroupoidData where
     Hom3 α β → Hom3 α β → Sort z
   Hom5 : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} → {η θ : Hom3 α β} →
     Hom4 η θ → Hom4 η θ → Sort z
+  Hom6 : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} → {η θ : Hom3 α β} →
+    {ω ξ : Hom4 η θ} → Hom5 ω ξ → Hom5 ω ξ → Sort z
   symm2 : {M N : Obj} → {p q : Hom M N} → Hom2 p q → Hom2 q p
   trans2 : {M N : Obj} → {p q r : Hom M N} → Hom2 p q → Hom2 q r → Hom2 p r
   whiskerLeft : {M N P : Obj} → (r : Hom M N) → {p q : Hom N P} →
@@ -66,6 +68,8 @@ structure OmegaGroupoid extends OmegaGroupoidData where
     (η : Hom3 α β) → Hom4 η η
   hom5_refl : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} → {η θ : Hom3 α β} →
     (ω : Hom4 η θ) → Hom5 ω ω
+  hom6_refl : {M N : Obj} → {p q : Hom M N} → {α β : Hom2 p q} → {η θ : Hom3 α β} →
+    {ω ξ : Hom4 η θ} → (μ : Hom5 ω ξ) → Hom6 μ μ
   pentagon_coh : {M N P Q R : Obj} → (p : Hom M N) → (q : Hom N P) →
     (r : Hom P Q) → (s : Hom Q R) →
     Hom3
@@ -93,6 +97,8 @@ structure ReflexiveGlobularTower where
     Cell3 α β → Cell3 α β → Sort z
   Cell5 : {M N : Cell0} → {p q : Cell1 M N} → {α β : Cell2 p q} →
     {η θ : Cell3 α β} → Cell4 η θ → Cell4 η θ → Sort z
+  Cell6 : {M N : Cell0} → {p q : Cell1 M N} → {α β : Cell2 p q} →
+    {η θ : Cell3 α β} → {ω ξ : Cell4 η θ} → Cell5 ω ξ → Cell5 ω ξ → Sort z
   cell2_refl : ∀ {M N : Cell0} (p : Cell1 M N), Cell2 p p
   cell3_refl : ∀ {M N : Cell0} {p q : Cell1 M N}
       (α : Cell2 p q), Cell3 α α
@@ -100,6 +106,8 @@ structure ReflexiveGlobularTower where
       (η : Cell3 α β), Cell4 η η
   cell5_refl : ∀ {M N : Cell0} {p q : Cell1 M N} {α β : Cell2 p q}
       {η θ : Cell3 α β} (ω : Cell4 η θ), Cell5 ω ω
+  cell6_refl : ∀ {M N : Cell0} {p q : Cell1 M N} {α β : Cell2 p q}
+      {η θ : Cell3 α β} {ω ξ : Cell4 η θ} (μ : Cell5 ω ξ), Cell6 μ μ
 
 /-- The identity-type weak omega-groupoid on any carrier. This supplies the
 canonical coherence data used to package concrete models whose higher cells are
@@ -115,6 +123,7 @@ def equalityOmegaGroupoid (α : Type u) : OmegaGroupoid where
   Hom3 := fun α β => PLift (α = β)
   Hom4 := fun η θ => PLift (η = θ)
   Hom5 := fun ω ξ => PLift (ω = ξ)
+  Hom6 := fun μ ν => PLift (μ = ν)
   symm2 := fun h => ⟨h.down.symm⟩
   trans2 := fun h₁ h₂ => ⟨h₁.down.trans h₂.down⟩
   whiskerLeft := by
@@ -197,6 +206,7 @@ def equalityOmegaGroupoid (α : Type u) : OmegaGroupoid where
   hom3_refl := fun α => ⟨rfl⟩
   hom4_refl := fun η => ⟨rfl⟩
   hom5_refl := fun ω => ⟨rfl⟩
+  hom6_refl := fun μ => ⟨rfl⟩
   pentagon_coh := by
     intro M N P Q R p q r s
     exact ⟨Subsingleton.elim _ _⟩
@@ -209,7 +219,7 @@ def equalityOmegaGroupoid (α : Type u) : OmegaGroupoid where
 
 namespace OmegaGroupoid
 
-/-- Every omega-groupoid determines a reflexive globular tower through 5-cells. -/
+/-- Every omega-groupoid determines a reflexive globular tower through 6-cells. -/
 def toReflexiveGlobularTower (G : OmegaGroupoid) : ReflexiveGlobularTower where
   Cell0 := G.Obj
   Cell1 := G.Hom
@@ -217,10 +227,12 @@ def toReflexiveGlobularTower (G : OmegaGroupoid) : ReflexiveGlobularTower where
   Cell3 := G.Hom3
   Cell4 := G.Hom4
   Cell5 := G.Hom5
+  Cell6 := G.Hom6
   cell2_refl := G.refl2
   cell3_refl := G.hom3_refl
   cell4_refl := G.hom4_refl
   cell5_refl := G.hom5_refl
+  cell6_refl := G.hom6_refl
 
 /-- The pentagon coherence 3-cell carries a reflexive 4-cell. -/
 def pentagon4 (G : OmegaGroupoid) {M N P Q R : G.Obj}
@@ -233,6 +245,12 @@ def pentagon5 (G : OmegaGroupoid) {M N P Q R : G.Obj}
     (p : G.Hom M N) (q : G.Hom N P) (r : G.Hom P Q) (s : G.Hom Q R) :
     G.Hom5 (G.pentagon4 p q r s) (G.pentagon4 p q r s) :=
   G.hom5_refl (G.pentagon4 p q r s)
+
+/-- The reflexive pentagon 5-cell carries a reflexive 6-cell. -/
+def pentagon6 (G : OmegaGroupoid) {M N P Q R : G.Obj}
+    (p : G.Hom M N) (q : G.Hom N P) (r : G.Hom P Q) (s : G.Hom Q R) :
+    G.Hom6 (G.pentagon5 p q r s) (G.pentagon5 p q r s) :=
+  G.hom6_refl (G.pentagon5 p q r s)
 
 /-- The interchange hexagon 3-cell carries a reflexive 4-cell. -/
 def hexagon4 (G : OmegaGroupoid) {M N P : G.Obj}
@@ -247,6 +265,13 @@ def hexagon5 (G : OmegaGroupoid) {M N P : G.Obj}
     (α : G.Hom2 p p') (β : G.Hom2 q q') :
     G.Hom5 (G.hexagon4 α β) (G.hexagon4 α β) :=
   G.hom5_refl (G.hexagon4 α β)
+
+/-- The reflexive interchange hexagon 5-cell carries a reflexive 6-cell. -/
+def hexagon6 (G : OmegaGroupoid) {M N P : G.Obj}
+    {p p' : G.Hom M N} {q q' : G.Hom N P}
+    (α : G.Hom2 p p') (β : G.Hom2 q q') :
+    G.Hom6 (G.hexagon5 α β) (G.hexagon5 α β) :=
+  G.hom6_refl (G.hexagon5 α β)
 
 end OmegaGroupoid
 

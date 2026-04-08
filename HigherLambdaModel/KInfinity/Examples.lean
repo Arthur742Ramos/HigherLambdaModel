@@ -1288,7 +1288,9 @@ theorem beta_eta_points_no_5cell_in_KInfinity
 
 /-- The stronger all-dimensional version of Example 4.2 for the recursively
 completed `K∞` tower: from dimension `5` onward, there is no packed higher cell
-whose 0-source/0-target boundary is the chosen β/η pair. -/
+whose 0-source/0-target boundary is the chosen β/η pair, because the explicit
+5-cells and 6-cells already collapse and every dimension above `6` is obtained
+by recursive identity completion. -/
 theorem beta_eta_points_no_recursive_higher_cell_in_KInfinity
     (n : Nat) :
     ¬ Nonempty
