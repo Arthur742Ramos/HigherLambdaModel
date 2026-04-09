@@ -7,9 +7,9 @@ The broken iCloud-backed Desktop checkout is no longer the working baseline.
 Active work now happens in `/Users/arthur/LocalRepos/HigherLambdaModel`, where
 Git and Lean both work normally.
 
-All backlog issues `0` through `8` are now complete. Remaining paper-level
-`partial` and `missing` claims are tracked in `docs/theorem_index.md` rather
-than in this execution queue.
+All backlog issues `0` through `8` are now complete. Any remaining post-paper
+extension targets are tracked in `docs/theorem_index.md` rather than in this
+execution queue.
 
 ## Definition of done
 
@@ -185,6 +185,7 @@ Completed work:
 - Added the low-level triangle boundary/tetrahedron stack (`triangleFrontBridgeTetrahedron`, `triangleLeftBoundaryTetrahedron`, `whiskerRightTriangleBoundaryTetrahedron`, `assocTriangleFillerTetrahedron`, `triangleRightBoundaryTetrahedron`, `triangleBoundaryTetrahedron`, `trianglePath3Tetrahedron`, `trianglePath3`), together with the `Theory3` / `HoTFT3` lifts and the explicit-path / `NTerms` wrappers. This closes the standalone semantic triangle lane, and the later recursive wrapper bridge lifts triangle into `StructuralHomotopy3` as well. The remaining generic primitive frontier is now pentagon.
 - Added the recursive pentagon bridge inside `StructuralHomotopy3`, together with the equality-generated left-whisker normalization helpers (`reductionSeq_whiskerLeftOfEq_toOfEq_in_Theory3`, `homotopy2_whiskerLeftOfEq_toOfEq_in_Theory3` and HoTFT counterparts) and the direct generic pentagon proof (`homotopy2_pentagon_in_Theory3` / `_in_HoTFT3`). This closes the remaining generic primitive 3-cell frontier at the recursive wrapper level while leaving the residual bare-Kan pentagon seed isolated as a strictly stronger semantic-coherence question.
 - Added the reflection maps `Homotopy3Deriv.toStructuralHomotopy3` / `Homotopy3.toStructuralHomotopy3` together with the generic `NTerms` exports `Homotopy3Deriv_subset_HoTFT3` and `Homotopy3_subset_HoTFT3`. This closes the user-facing explicit 3-cell export lane: theorem-index row 32 is now complete over the original `ExtensionalKanComplex` interface, while the stronger semantic associator pentagon is now isolated separately in `CoherentExtensionalKanComplex` rather than hidden in the base model.
+- Strengthened the bare refl-tail associator-shell API over `ExtensionalKanComplex` again: the smaller nested WLWR comparison now yields the direct raw/semantic bridge `reductionSeq_comp_associator_refl_rightHeadComparison_in_Theory3`, the target-side shell forms `reductionSeq_comp_associator_refl_targetHeadShell_in_Theory3_of_nestedWhiskerComparison` and `reductionSeq_comp_associator_refl_targetRightShell_in_Theory3_of_nestedWhiskerComparison`, and the exact split-loop package `reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison`. This removes the old extra left-unitor side condition from the bare refl-target story; the live remaining obstruction is now the degenerate pentagon/middle fragment for `β = refl`, i.e. the refl-specialized step-middle contraction needed to finish the full bare recursive associator theorem and then extract a reduced pentagon seed directly on the base interfaces.
 
 ## Issue 5: Generic coherence theorem
 

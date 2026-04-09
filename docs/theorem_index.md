@@ -53,50 +53,33 @@ Status legend:
 | Proposition 4.4: `K∞` is a non-trivial homotopy λ-model | §4, Prop. 4.4 | `HigherLambdaModel/KInfinity/Properties.lean` | `KInfinityKanComplex`, `proposition_4_4`, `kInfinityReflexiveCHPO`, `proposition_4_4_model`, `NonTrivialHomotopyLambdaModel` | `done` | The repository now packages the concrete `K∞` construction as a full `NonTrivialHomotopyLambdaModel`: the non-trivial Kan-complex witness is combined with the completed reflexive c.h.p.o. witness from Remark 4.2 / Definition 4.4. |
 | Example 4.2: interpreted β- and η-contractions are non-equivalent in `K∞` | §4, Ex. 4.2 | `HigherLambdaModel/KInfinity/Properties.lean`, `HigherLambdaModel/KInfinity/Examples.lean`, `HigherLambdaModel/KInfinity/ContinuousSemantics.lean`, `HigherLambdaModel/Lambda/Reduction.lean`, `HigherLambdaModel/Lambda/NTerms.lean` | `s1Left`, `s1Right`, `interp1Eta`, `interp1Beta`, `example_4_2`, `example_4_2_no_path`, `example_4_2_no_path2`, `example_4_2_no_path3`, `example_4_2_no_path4`, `example_4_2_no_path5`, `kInfinityTowerSourceObj`, `kInfinityTowerTargetObj`, `kInfinityTower_source_eq_target`, `example_4_2_no_recursive_higher_cell`, `example_4_2_no_recursive_higher_cell_nonempty`, `Proposition44Example42Witness`, `proposition_4_4_example_4_2`, `beta_eta_points_disconnected_in_KInfinity`, `beta_eta_points_no_2cell_in_KInfinity`, `beta_eta_points_no_3cell_in_KInfinity`, `beta_eta_points_no_4cell_in_KInfinity`, `beta_eta_points_no_5cell_in_KInfinity`, `beta_eta_points_no_recursive_higher_cell_in_KInfinity`, `TwoSidedReflexiveCHPO`, `interpretContinuous`, `interpretContinuous_subst`, `interpretContinuous_subst0`, `beta_sound_continuous`, `betaStep_sound_continuous`, `eta_sound_continuous`, `etaStep_sound_continuous`, `betaEtaStep_sound_continuous`, `BetaStepWitness`, `EtaStepWitness`, `BetaEtaStepWitness`, `betaStepWitness_sound_continuous`, `etaStepWitness_sound_continuous`, `betaEtaStepWitness_sound_continuous`, `betaEtaStepWitness_continuousWitness`, `NTerm1Witness`, `NTerm1Witness.toNTerm1`, `NTerm1Witness.toReductionSeq`, `nterm1_sound_continuous`, `nterm1_continuousWitness`, `nterm1Witness_sound_continuous`, `nterm1Witness_continuousWitness`, `kInfinityTwoSidedReflexiveCHPO`, `interpretContinuous_lam_reflect_apply`, `betaEtaPaperSource`, `betaEtaPaperTarget`, `betaEtaPaper_betaWitness`, `betaEtaPaper_etaWitness`, `betaEtaPaper_beta`, `betaEtaPaper_eta`, `betaEtaPaper_beta1Witness`, `betaEtaPaper_eta1Witness`, `betaEtaPaper_beta1`, `betaEtaPaper_eta1`, `Example42DirectWitness`, `Example42DirectWitness.toStepWitness`, `Example42DirectWitness.toStepWitness_injective`, `Example42DirectWitness.toNTerm1Witness`, `Example42DirectWitness.toNTerm1Witness_injective`, `Example42DirectWitness.toNTerm1`, `Example42DirectWitness.toNTerm1_eq`, `Example42DirectWitness.toNTerm1_not_injective`, `Example42DirectWitness.continuousWitness`, `Example42DirectWitness.point`, `Example42DirectWitness.point_injective`, `Example42DirectWitness.no_path_of_ne`, `Example42DirectWitness.no_2cell_of_ne`, `Example42DirectWitness.no_3cell_of_ne`, `Example42DirectWitness.no_4cell_of_ne`, `Example42DirectWitness.no_5cell_of_ne`, `Example42DirectWitness.no_recursive_higher_cell_of_ne`, `Example42DirectWitnessInterpretation`, `Example42DirectWitnessInterpretation.toNTerm1WitnessInterpretation`, `Example42DirectWitnessInterpretation.toWitnessInterpretation`, `Example42NTerm1WitnessInterpretation`, `Example42NTerm1WitnessInterpretation.toWitnessInterpretation`, `example42NTerm1WitnessTag`, `example42NTerm1Witness_stage0Point`, `example42NTerm1Witness_point`, `example42NTerm1Witness_interpretation`, `example42NTerm1WitnessTag_beta`, `example42NTerm1WitnessTag_eta`, `betaEtaPaper_beta1_eq_eta1`, `betaEtaPaperFunction_interpretContinuous`, `betaEtaPaperSource_interpretContinuous`, `betaEtaPaper_beta1_sound_continuous`, `betaEtaPaper_eta1_sound_continuous`, `betaEtaPaper_beta1_continuousWitness`, `betaEtaPaper_eta1_continuousWitness`, `Example42WitnessInterpretation`, `betaEtaPaper_beta1_interpretation`, `betaEtaPaper_eta1_interpretation`, `betaEtaPaper_beta1Witness_interpretation`, `betaEtaPaper_eta1Witness_interpretation`, `betaEtaPaper_beta1Witness_interpretation_point`, `betaEtaPaper_eta1Witness_interpretation_point`, `betaEtaPaper_witness_interpretations_distinct`, `betaEtaPaper_witness_interpretations_no_path`, `betaEtaPaper_witness_interpretations_no_2cell`, `betaEtaPaper_witness_interpretations_no_3cell`, `betaEtaPaper_witness_interpretations_no_4cell`, `betaEtaPaper_witness_interpretations_no_5cell`, `betaEtaPaper_witness_interpretations_no_recursive_higher_cell`, `betaEtaPaper_nterm1Witness_interpretations_distinct`, `betaEtaPaper_nterm1Witness_interpretations_no_path`, `betaEtaPaper_nterm1Witness_interpretations_no_2cell`, `betaEtaPaper_nterm1Witness_interpretations_no_3cell`, `betaEtaPaper_nterm1Witness_interpretations_no_4cell`, `betaEtaPaper_nterm1Witness_interpretations_no_5cell`, `betaEtaPaper_nterm1Witness_interpretations_no_recursive_higher_cell` | `done` | Lean now proves the interpreted β₁ / η₁ witness separation of Example 4.2 at the current chosen-point level inside the `K∞` development. Besides the continuous λ-term interpreter, substitution, and arbitrary one-step βη soundness, the repository provides proof-relevant one-step and explicit 1-term witness languages with generic continuous semantics, and it now assigns the chosen β/η points to arbitrary `NTerm1Witness betaEtaPaperSource betaEtaPaperTarget` via `example42NTerm1Witness_interpretation`, derived from the Prop-level classification `example42NTerm1WitnessTag` rather than the bespoke `Example42DirectWitness` selector. The resulting paper-facing witness packages `betaEtaPaper_beta1Witness_interpretation` and `betaEtaPaper_eta1Witness_interpretation` are canonical within that proof-relevant explicit 1-term layer and already inherit the full no 1/2/3/4/5/recursive-higher-cell separation suite. |
 
-## Remaining Paper-Level Gaps
+## Post-Paper Extension Targets
 
-1. Extend the semantic 3-cell interpretation from the current structural
-   fragment to the full primitive syntactic 3-cell language. The structural
-   fragment is now closed under reflexive left/right whiskering and
-   interchange, and the direct primitive coverage now also reaches both
-   directions of whisker symmetry together with the second interchange form.
-   The live file additionally proves `triangleSelfReflPath3`, and the old
-   back-comparison pentagon axiom is now reduced to the smaller front/back seed
-   contraction analysis in bare `KanComplex`s. The base interface is now back to
-   the original `ExtensionalKanComplex`, while the stronger semantic associator
-   coherence is isolated in `CoherentExtensionalKanComplex`; that extension now
-   packages both `pentagonPath3` and `wlwrPath3`, yielding
-   `Theory3.coherentWhiskerLeftWhiskerRight`,
-   `reductionSeq_comp_associator_in_Theory3`, and
-   `homotopy2_associator_coherent_bridge_in_Theory3`. The smaller
-   `FrontSeedCoherentExtensionalKanComplex` boundary already packages enough
-   data to recover the recursive associator theorem, the direct semantic
-   pentagon on interpreted reduction sequences, and the explicit pentagon
-   source/target/shell bridge package. The file still proves the
-   reduced front contraction, the back-comparison loop, and the corresponding
-   coherence axiom-free inside `StrictKanComplex`, and exposes the strict-model
-   wrappers `Theory3.strictWhiskerLeftWhiskerRight`,
-   `homotopy2_strictWhiskerLeftWhiskerRight_in_Theory3`,
-   `Theory3.strictPentagon`, `reductionSeq_strictPentagon_in_Theory3`,
-   `reductionSeq_associator_source_step_strict_in_Theory3`,
-   `reductionSeq_associator_middle_step_strict_in_Theory3`,
-   `reductionSeq_comp_associator_stepHead_strict_in_Theory3`,
-   `reductionSeq_associator_source_stepInv_strict_in_Theory3`,
-   `reductionSeq_associator_middle_stepInv_strict_in_Theory3`,
-   `reductionSeq_comp_associator_stepInvHead_strict_in_Theory3`, and
-   `reductionSeq_comp_associator_strict_in_Theory3`; the public strict
-   recursive associator theorem now factors through
-   `StrictExtensionalKanComplex.toCoherentExtensionalKanComplex` rather than
-   duplicating the coherent route at the theorem boundary, for
-   `StrictExtensionalKanComplex`. The explicit 3-cell API is now closed under
-   left/right trans congruence and left-whisker congruence, and the
-   right-whisker bridge is available in both directions via
-   `Theory3.whiskerRightCongrOfTriangleComparisonPath3` and
-   `Theory3.triangleComparisonPath3OfWhiskerRightPath3`. The remaining
-   paper-relevant semantic gap is therefore concentrated in two bare-interface
-   targets: deriving the WLWR/right-whisker lift directly over
-   `ExtensionalKanComplex`, and proving one of the equivalent reduced pentagon
-   seeds directly in bare `KanComplex`.
+All indexed theorem rows above are now formalized and marked `done`. The only
+remaining work items are stronger extension targets beyond the original paper
+claim matrix:
+
+1. Internalize the optional semantic associator-coherence package directly over
+   the bare `ExtensionalKanComplex` / `KanComplex` interfaces. The repository
+   already packages this stronger layer separately via
+   `CoherentExtensionalKanComplex` and
+   `FrontSeedCoherentExtensionalKanComplex`, and derives it axiom-free in the
+   strict setting via `StrictKanComplex` / `StrictExtensionalKanComplex`. The
+   remaining extension target is to eliminate those extra coherence interfaces
+   by deriving the WLWR/right-whisker lift and one equivalent reduced pentagon
+   seed directly in the base interfaces. The current bare-interface frontier in
+   `HigherLambdaModel/Lambda/ExtensionalKanHigher.lean` is now concentrated on
+   the refl-specialized middle contraction: the target-side shell API has been
+   strengthened through
+   `reductionSeq_comp_associator_refl_rightHeadComparison_in_Theory3`,
+   `reductionSeq_comp_associator_refl_targetHeadShell_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_refl_targetRightShell_in_Theory3_of_nestedWhiskerComparison`,
+   and
+   `reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison`.
+   What still remains is the degenerate pentagon fragment for `β = refl`,
+   equivalently the special refl-tail middle contraction needed to finish the
+   full bare recursive associator bridge and then extract the reduced pentagon
+   seed.
 2. Replace the present low-dimensional ω-groupoid package with a direct
    all-dimensional constructive formalization, and use it to add genuinely new
-   expansion results beyond the original papers.
+   results beyond the original papers.
