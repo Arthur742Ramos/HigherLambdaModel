@@ -6207,6 +6207,357 @@ noncomputable def
     (Theory3.trans K h1
       (Theory3.trans K h2 h3))
 
+/-- The canonical loop shape `symm T ; symm right ; right ; T` contracts by pure
+associativity and cancellation. This is the final algebraic step behind the
+refl-specialized split-loop frontier. -/
+private noncomputable def Theory3.transSymmDoubleLoopCancel
+    (K : ExtensionalKanComplex) {L M : Term}
+    {α β γ : Theory1 K L M}
+    (T : Theory2 K α β) (right : Theory2 K γ α) :
+    Theory3 K
+      (Theory2.trans K (Theory2.symm K T)
+        (Theory2.trans K (Theory2.symm K right)
+          (Theory2.trans K right T)))
+      (Theory2.refl K β) := by
+  have hInner0 :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K right)
+          (Theory2.trans K right T))
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K right) right)
+          T) := by
+    exact Theory3.symm K (Theory3.transAssoc K (Theory2.symm K right) right T)
+  have hInner1 :
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.trans K (Theory2.symm K right) right)
+          T)
+        (Theory2.trans K (Theory2.refl K α) T) := by
+    exact Theory3.transCongrLeft K (Theory3.transLeftCancel K right) T
+  have hInner2 :
+      Theory3 K
+        (Theory2.trans K (Theory2.refl K α) T)
+        T := by
+    exact Theory3.transReflLeft K T
+  have hInner :
+      Theory3 K
+        (Theory2.trans K (Theory2.symm K right)
+          (Theory2.trans K right T))
+        T := by
+    exact Theory3.trans K hInner0 (Theory3.trans K hInner1 hInner2)
+  exact Theory3.trans K
+    (Theory3.transCongrRight K (Theory2.symm K T) hInner)
+    (Theory3.transLeftCancel K T)
+
+/-- After splicing the refl source and target halves, the remaining explicit loop
+already contracts on the bare interface without any additional coherence
+axioms. -/
+noncomputable def
+    reductionSeq_comp_associator_refl_splitLoopContract_in_Theory3_of_nestedWhiskerComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNested :
+      let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+      let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K r
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K α β δ)
+          (Theory2.trans K
+            (Theory2.whiskerLeft K α (Theory2.whiskerRight K η δ))
+            (Theory2.symm K (Theory2.associator K α γ δ))))
+        (Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ)) :
+    let δ := reductionSeq_in_Theory1 K r
+    let c₀ := reductionSeq_comp_in_Theory2 K
+      (ReductionSeq.concat (ReductionSeq.refl M) q) r
+    let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+    let target := Theory2.whiskerLeft K α
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+          (Theory2.trans K e
+            (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_source_in_Theory2 K (ReductionSeq.refl M) q r))
+        target)
+      (Theory2.refl K
+        (Theory1.comp K α
+          (reductionSeq_in_Theory1 K (ReductionSeq.concat q r)))) := by
+  let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+  let γ := reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)
+  let δ := reductionSeq_in_Theory1 K r
+  let right := Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ
+  let c₀ := reductionSeq_comp_in_Theory2 K
+    (ReductionSeq.concat (ReductionSeq.refl M) q) r
+  let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+  let T := Theory2.trans K
+    (Theory2.associator K α γ δ)
+    (Theory2.whiskerLeft K α c₀)
+  let target := Theory2.whiskerLeft K α
+    (Theory2.trans K
+      (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+      (Theory2.trans K
+        (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+        (Theory2.trans K e
+          (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+  exact Theory3.trans K
+    (reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison
+      K α q r hNested)
+    (by
+      simpa [η, γ, δ, right, c₀, e, T] using
+        (Theory3.transSymmDoubleLoopCancel K T right))
+
+/-- The normalized refl split loop compares directly with the semantic left
+whisker of the base refl associator shell. Both are loops at the same
+right-associated endpoint, and both now contract on the bare interface. -/
+noncomputable def
+    reductionSeq_comp_associator_refl_splitLoop_to_theoryWhiskerLeft_in_Theory3_of_nestedWhiskerComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNested :
+      let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+      let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K r
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K α β δ)
+          (Theory2.trans K
+            (Theory2.whiskerLeft K α (Theory2.whiskerRight K η δ))
+            (Theory2.symm K (Theory2.associator K α γ δ))))
+        (Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ)) :
+    let δ := reductionSeq_in_Theory1 K r
+    let c₀ := reductionSeq_comp_in_Theory2 K
+      (ReductionSeq.concat (ReductionSeq.refl M) q) r
+    let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+    let target := Theory2.whiskerLeft K α
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+          (Theory2.trans K e
+            (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_source_in_Theory2 K (ReductionSeq.refl M) q r))
+        target)
+      (Theory2.whiskerLeft K α
+        (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.refl M) q r)) := by
+  have hWhisk :
+      Theory3 K
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.refl M) q r))
+        (Theory2.refl K
+          (Theory1.comp K α
+            (reductionSeq_in_Theory1 K (ReductionSeq.concat q r)))) := by
+    let hEq :
+        congrArg (fun δ => Theory1.comp K α δ)
+          (congrArg (fun t => reductionSeq_in_Theory1 K t)
+            (ReductionSeq.concat_assoc (ReductionSeq.refl M) q r)) = rfl := by
+      exact Subsingleton.elim _ _
+    exact Theory3.trans K
+      (Theory3.whiskerLeftCongrOfEq K α
+        (congrArg (fun t => reductionSeq_in_Theory1 K t)
+          (ReductionSeq.concat_assoc (ReductionSeq.refl M) q r))
+        (reductionSeq_comp_associator_refl_in_Theory3 K q r))
+      (Theory3.ofEq K (by
+        cases hEq
+        rfl))
+  exact Theory3.trans K
+    (reductionSeq_comp_associator_refl_splitLoopContract_in_Theory3_of_nestedWhiskerComparison
+      K α q r hNested)
+    (Theory3.symm K hWhisk)
+
+/-- Canceling the common source-side whisker from the split-loop comparison
+isolates the normalized target leg against the semantic middle-and-target tail
+of the whiskered reflexive associator shell. -/
+noncomputable def
+    reductionSeq_comp_associator_refl_target_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNested :
+      let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+      let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K r
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K α β δ)
+          (Theory2.trans K
+            (Theory2.whiskerLeft K α (Theory2.whiskerRight K η δ))
+            (Theory2.symm K (Theory2.associator K α γ δ))))
+        (Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ)) :
+    let δ := reductionSeq_in_Theory1 K r
+    let c₀ := reductionSeq_comp_in_Theory2 K
+      (ReductionSeq.concat (ReductionSeq.refl M) q) r
+    let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+    let target := Theory2.whiskerLeft K α
+      (Theory2.trans K
+        (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+        (Theory2.trans K
+          (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+          (Theory2.trans K e
+            (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+    Theory3 K
+      target
+      (Theory2.trans K
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r))
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r))) := by
+  let source := Theory2.whiskerLeft K α
+    (reductionSeq_associator_source_in_Theory2 K (ReductionSeq.refl M) q r)
+  let middle := Theory2.whiskerLeft K α
+    (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r)
+  let tail := Theory2.whiskerLeft K α
+    (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r)
+  let shell := Theory2.whiskerLeft K α
+    (reductionSeq_associator_shell_in_Theory2 K (ReductionSeq.refl M) q r)
+  let δ := reductionSeq_in_Theory1 K r
+  let c₀ := reductionSeq_comp_in_Theory2 K
+    (ReductionSeq.concat (ReductionSeq.refl M) q) r
+  let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+  let target := Theory2.whiskerLeft K α
+    (Theory2.trans K
+      (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+      (Theory2.trans K
+        (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+        (Theory2.trans K e
+          (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+  have hWhiskExpand0 :
+      Theory3 K shell
+        (Theory2.trans K source
+          (Theory2.whiskerLeft K α
+            (Theory2.trans K
+              (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r)
+              (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r)))) := by
+    simpa [shell, source, reductionSeq_associator_shell_in_Theory2] using
+      (Theory3.whiskerLeftTrans K α
+        (reductionSeq_associator_source_in_Theory2 K (ReductionSeq.refl M) q r)
+        (Theory2.trans K
+          (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r)
+          (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r)))
+  have hWhiskExpand1 :
+      Theory3 K
+        (Theory2.whiskerLeft K α
+          (Theory2.trans K
+            (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r)
+            (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r)))
+        (Theory2.trans K middle tail) := by
+    simpa [middle, tail] using
+      (Theory3.whiskerLeftTrans K α
+        (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r)
+        (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r))
+  have hWhiskExpand :
+      Theory3 K shell
+        (Theory2.trans K source (Theory2.trans K middle tail)) := by
+    exact Theory3.trans K hWhiskExpand0
+      (Theory3.transCongrRight K source hWhiskExpand1)
+  have hCompare :
+      Theory3 K
+        (Theory2.trans K source target)
+        (Theory2.trans K source (Theory2.trans K middle tail)) := by
+    exact Theory3.trans K
+      (reductionSeq_comp_associator_refl_splitLoop_to_theoryWhiskerLeft_in_Theory3_of_nestedWhiskerComparison
+        K α q r hNested)
+      hWhiskExpand
+  exact Theory3.transLeftCancelCongr K source hCompare
+
+/-- The normalized right-hand refl shell can now be read directly as the
+semantic whiskered tail `whiskerLeft α assocRest ; whiskerLeft α targetRest`,
+without routing through the semantic left-unitor head. -/
+noncomputable def
+    reductionSeq_comp_associator_refl_rightShell_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNested :
+      let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+      let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K r
+      Theory3 K
+        (Theory2.trans K
+          (Theory2.associator K α β δ)
+          (Theory2.trans K
+            (Theory2.whiskerLeft K α (Theory2.whiskerRight K η δ))
+            (Theory2.symm K (Theory2.associator K α γ δ))))
+        (Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ)) :
+    let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+    let δ := reductionSeq_in_Theory1 K r
+    let Aβ := Theory2.associator K α β δ
+    let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+    let c₀ := reductionSeq_comp_in_Theory2 K
+      (ReductionSeq.concat (ReductionSeq.refl M) q) r
+    let right := Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ
+    let T := Theory2.trans K
+      (Theory2.associator K α
+        (reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)) δ)
+      (Theory2.whiskerLeft K α c₀)
+    Theory3 K
+      (Theory2.trans K (Theory2.symm K Aβ)
+        (Theory2.trans K right T))
+      (Theory2.trans K
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_in_Theory2 K (ReductionSeq.refl M) q r))
+        (Theory2.whiskerLeft K α
+          (reductionSeq_associator_target_in_Theory2 K (ReductionSeq.refl M) q r))) := by
+  let β := Theory1.comp K (Theory1.refl K M) (reductionSeq_in_Theory1 K q)
+  let δ := reductionSeq_in_Theory1 K r
+  let Aβ := Theory2.associator K α β δ
+  let η := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) q
+  let c₀ := reductionSeq_comp_in_Theory2 K
+    (ReductionSeq.concat (ReductionSeq.refl M) q) r
+  let e := reductionSeq_comp_in_Theory2 K (ReductionSeq.refl M) (ReductionSeq.concat q r)
+  let right := Theory2.whiskerRight K (Theory2.whiskerLeft K α η) δ
+  let target := Theory2.whiskerLeft K α
+    (Theory2.trans K
+      (Theory2.associator K (Theory1.refl K M) (reductionSeq_in_Theory1 K q) δ)
+      (Theory2.trans K
+        (Theory2.whiskerLeft K (Theory1.refl K M) c₀)
+        (Theory2.trans K e
+          (reductionSeq_leftUnitor_shell_in_Theory2 K (ReductionSeq.concat q r)))))
+  let T := Theory2.trans K
+    (Theory2.associator K α
+      (reductionSeq_in_Theory1 K (ReductionSeq.concat (ReductionSeq.refl M) q)) δ)
+    (Theory2.whiskerLeft K α c₀)
+  have hRightShell :
+      Theory3 K
+        (Theory2.trans K Aβ target)
+        (Theory2.trans K right T) := by
+    simpa [β, δ, Aβ, η, c₀, e, right, T, target] using
+      (reductionSeq_comp_associator_refl_targetRightShell_in_Theory3_of_nestedWhiskerComparison
+        K α q r hNested)
+  have hExpand :
+      Theory3 K
+        target
+        (Theory2.trans K (Theory2.symm K Aβ)
+          (Theory2.trans K right T)) := by
+    have hExpand0 :
+        Theory3 K
+          (Theory2.trans K Aβ
+            (Theory2.trans K (Theory2.symm K Aβ)
+              (Theory2.trans K right T)))
+          (Theory2.trans K right T) := by
+      exact Theory3.trans K
+        (Theory3.symm K
+          (Theory3.transAssoc K Aβ (Theory2.symm K Aβ)
+            (Theory2.trans K right T)))
+        (Theory3.trans K
+          (Theory3.transCongrLeft K
+            (Theory3.transRightCancel K Aβ)
+            (Theory2.trans K right T))
+          (Theory3.transReflLeft K (Theory2.trans K right T)))
+    exact Theory3.transLeftCancelCongr K Aβ <|
+      Theory3.trans K hRightShell (Theory3.symm K hExpand0)
+  exact Theory3.trans K (Theory3.symm K hExpand)
+    (reductionSeq_comp_associator_refl_target_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison
+      K α q r hNested)
+
 /-- Refl-specialized forward base theorem, wired from the smaller nested-whisker
 comparison
 `assoc ; whiskerLeft (whiskerRight leftUnitor δ) ; symm assoc ~ right`. -/

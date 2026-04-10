@@ -74,12 +74,19 @@ claim matrix:
    `reductionSeq_comp_associator_refl_rightHeadComparison_in_Theory3`,
    `reductionSeq_comp_associator_refl_targetHeadShell_in_Theory3_of_nestedWhiskerComparison`,
    `reductionSeq_comp_associator_refl_targetRightShell_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_refl_splitLoopContract_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_refl_splitLoop_to_theoryWhiskerLeft_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_refl_target_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison`,
    and
-   `reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison`.
+   `reductionSeq_comp_associator_refl_rightShell_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison`.
+   The split loop now contracts outright on the bare interface, and the
+   normalized right-hand shell already lands on the semantic whiskered tail.
    What still remains is the degenerate pentagon fragment for `β = refl`,
-   equivalently the special refl-tail middle contraction needed to finish the
-   full bare recursive associator bridge and then extract the reduced pentagon
-   seed.
+   equivalently the special refl-tail identification between the raw middle
+   expression and this normalized right-shell presentation, which is the last
+   missing step before the full bare recursive associator bridge and the reduced
+   pentagon seed.
 2. Replace the present low-dimensional ω-groupoid package with a direct
    all-dimensional constructive formalization, and use it to add genuinely new
    results beyond the original papers.
