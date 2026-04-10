@@ -4844,159 +4844,6 @@ noncomputable def homotopy2_associator_bridge_in_Theory3_of_compAssociator
     homotopy2_in_Theory2_ofEq K (ReductionSeq.concat_assoc p q r)
   exact hInterp ▸ Theory3.symm K (hAssocComp p q r)
 
-/-- Refl-specialized forward base theorem: a reduced WLWR right-half comparison
-on a single leading forward step already yields the full associator shell
-comparison for that one-step path. -/
-noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_rightComparison
-    (K : CoherentExtensionalKanComplex) {L M N P : Term}
-    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
-    (hRight :
-      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
-      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.refl M) q
-      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
-      Theory3 K.toExtensionalKanComplex
-        (fun ρ =>
-          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.trianglePath2
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
-              (α ρ) (η ρ) (δ ρ)).toTriangle
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-              (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-                (α ρ) (η ρ))
-              (δ ρ)).toTriangle)
-        (fun ρ =>
-          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.symmPath2
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.associatorPath2
-              (α ρ) (γ ρ) (δ ρ)))) :
-    Theory3 K.toExtensionalKanComplex
-      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
-      (Theory2.ofEq K.toExtensionalKanComplex
-        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
-          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
-  let K0 := K.toExtensionalKanComplex
-  let α := betaEtaStep_in_Theory1 K0 L M s
-  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
-  let δ := reductionSeq_in_Theory1 K0 r
-  have hMidFront :
-      let γ := reductionSeq_in_Theory1 K0
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      Theory3 K0
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
-              (α ρ) (η ρ) (δ ρ)).toTriangle
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-                (α ρ) (η ρ))
-              (δ ρ)).toTriangle)
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.pentagonWhiskerFrontPath2
-            (α ρ) (γ ρ) (δ ρ)) := by
-    simpa [α, η, δ] using
-      (Theory3.whiskerLeftWhiskerRightPentagonWhiskerFrontComparisonFromTriangleComparison
-        K0 α η δ hRight)
-  have hTri :
-      let β := Theory1.comp K0
-        (reductionSeq_in_Theory1 K0 (ReductionSeq.refl M))
-        (reductionSeq_in_Theory1 K0 q)
-      let γ := reductionSeq_in_Theory1 K0
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      Theory3 K0
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
-            (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
-              (α ρ) (β ρ) (δ ρ)).toTriangle
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-                (α ρ) (η ρ))
-              (δ ρ)).toTriangle)
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.transPath2
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-              (α ρ)
-              (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-                (η ρ) (δ ρ)))
-            (K0.toReflexiveKanComplex.toKanComplex.symmPath2
-              (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
-                (α ρ) (γ ρ) (δ ρ)))) := by
-    simpa using
-      (reductionSeq_comp_triangle_target_step_in_Theory3 K0 s
-        (ReductionSeq.refl M) q r hMidFront)
-  have hHead :
-      Theory3 K0
-        (reductionSeq_associator_shell_in_Theory2 K0
-          (ReductionSeq.step s (ReductionSeq.refl M)) q r)
-        (Theory2.whiskerLeft K0
-          (betaEtaStep_in_Theory1 K0 L M s)
-          (reductionSeq_associator_shell_in_Theory2 K0
-            (ReductionSeq.refl M) q r)) :=
-    reductionSeq_comp_associator_stepHead_from_triangle_in_Theory3 K s
-      (ReductionSeq.refl M) q r hTri
-  exact reductionSeq_comp_associator_step_finish_in_Theory3 K0 s
-    (ReductionSeq.refl M) q r
-    (reductionSeq_comp_associator_refl_in_Theory3 K0 q r)
-    hHead
-
-/-- Refl-specialized forward base theorem, wired from the normalized frontier
-`mid ; symm assoc ~ right`. -/
-noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_normalizedRightComparison
-    (K : CoherentExtensionalKanComplex) {L M N P : Term}
-    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
-    (hNorm :
-      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
-      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.refl M) q
-      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
-      Theory3 K.toExtensionalKanComplex
-        (fun ρ =>
-          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.transPath2
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
-              (α ρ) (η ρ) (δ ρ))
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.symmPath2
-              (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.associatorPath2
-                (α ρ) (γ ρ) (δ ρ))))
-        (fun ρ =>
-          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-              (α ρ) (η ρ))
-            (δ ρ))) :
-    Theory3 K.toExtensionalKanComplex
-      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
-      (Theory2.ofEq K.toExtensionalKanComplex
-        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
-          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
-  let K0 := K.toExtensionalKanComplex
-  let α := betaEtaStep_in_Theory1 K0 L M s
-  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
-  let δ := reductionSeq_in_Theory1 K0 r
-  have hRight :
-      let γ := reductionSeq_in_Theory1 K0
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      Theory3 K0
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
-              (α ρ) (η ρ) (δ ρ)).toTriangle
-            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
-              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
-                (α ρ) (η ρ))
-              (δ ρ)).toTriangle)
-        (fun ρ =>
-          K0.toReflexiveKanComplex.toKanComplex.symmPath2
-            (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
-              (α ρ) (γ ρ) (δ ρ))) := by
-    simpa [α, η, δ] using
-      (Theory3.whiskerLeftWhiskerRightMidRightPath3FromNormalizedComparison
-        K0 α η δ hNorm)
-  exact reductionSeq_comp_associator_step_refl_in_Theory3_of_rightComparison
-    K s q r hRight
-
 /-- The smaller nested-whisker comparison
 `assoc ; whiskerLeft (whiskerRight η δ) ; symm assoc ~ right` already implies the
 normalized WLWR comparison `mid ; symm assoc ~ right`. -/
@@ -6557,58 +6404,6 @@ noncomputable def
   exact Theory3.trans K (Theory3.symm K hExpand)
     (reductionSeq_comp_associator_refl_target_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison
       K α q r hNested)
-
-/-- Refl-specialized forward base theorem, wired from the smaller nested-whisker
-comparison
-`assoc ; whiskerLeft (whiskerRight leftUnitor δ) ; symm assoc ~ right`. -/
-noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_nestedWhiskerComparison
-    (K : CoherentExtensionalKanComplex) {L M N P : Term}
-    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
-    (hNested :
-      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
-      let β := Theory1.comp K.toExtensionalKanComplex
-        (Theory1.refl K.toExtensionalKanComplex M)
-        (reductionSeq_in_Theory1 K.toExtensionalKanComplex q)
-      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.refl M) q
-      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
-        (ReductionSeq.concat (ReductionSeq.refl M) q)
-      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
-      Theory3 K.toExtensionalKanComplex
-        (Theory2.trans K.toExtensionalKanComplex
-          (Theory2.associator K.toExtensionalKanComplex α β δ)
-          (Theory2.trans K.toExtensionalKanComplex
-            (Theory2.whiskerLeft K.toExtensionalKanComplex α
-              (Theory2.whiskerRight K.toExtensionalKanComplex η δ))
-            (Theory2.symm K.toExtensionalKanComplex
-              (Theory2.associator K.toExtensionalKanComplex α γ δ))))
-        (Theory2.whiskerRight K.toExtensionalKanComplex
-          (Theory2.whiskerLeft K.toExtensionalKanComplex α η) δ)) :
-    Theory3 K.toExtensionalKanComplex
-      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
-        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
-      (Theory2.ofEq K.toExtensionalKanComplex
-        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
-          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
-  let K0 := K.toExtensionalKanComplex
-  let α := betaEtaStep_in_Theory1 K0 L M s
-  let β := Theory1.comp K0 (Theory1.refl K0 M) (reductionSeq_in_Theory1 K0 q)
-  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
-  let γ := reductionSeq_in_Theory1 K0 (ReductionSeq.concat (ReductionSeq.refl M) q)
-  let δ := reductionSeq_in_Theory1 K0 r
-  have hNorm :
-      Theory3 K0
-        (Theory2.trans K0
-          (fun ρ =>
-            K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
-              (α ρ) (η ρ) (δ ρ))
-          (Theory2.symm K0 (Theory2.associator K0 α γ δ)))
-        (Theory2.whiskerRight K0 (Theory2.whiskerLeft K0 α η) δ) := by
-    simpa [α, β, η, γ, δ] using
-      (reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
-        K0 α η δ hNested)
-  exact reductionSeq_comp_associator_step_refl_in_Theory3_of_normalizedRightComparison
-    K s q r hNorm
 
 /-- Refl-specialized inverse base theorem: a reduced WLWR right-half comparison
 on a single leading inverse step already yields the full associator shell
@@ -12377,6 +12172,212 @@ noncomputable def Theory3.coherentWhiskerLeftWhiskerRight
             (Theory2.associator K.toExtensionalKanComplex α γ δ)))) :=
   fun ρ => K.wlwrPath3 (α ρ) (η ρ) (δ ρ)
 
+/-- Refl-specialized forward base theorem: a reduced WLWR right-half comparison
+on a single leading forward step already yields the full associator shell
+comparison for that one-step path. -/
+noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_rightComparison
+    (K : CoherentExtensionalKanComplex) {L M N P : Term}
+    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hRight :
+      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
+      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
+      Theory3 K.toExtensionalKanComplex
+        (fun ρ =>
+          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
+              (α ρ) (η ρ) (δ ρ)).toTriangle
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α ρ) (η ρ))
+              (δ ρ)).toTriangle)
+        (fun ρ =>
+          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.symmPath2
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α ρ) (γ ρ) (δ ρ)))) :
+    Theory3 K.toExtensionalKanComplex
+      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
+      (Theory2.ofEq K.toExtensionalKanComplex
+        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
+          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
+  let K0 := K.toExtensionalKanComplex
+  let α := betaEtaStep_in_Theory1 K0 L M s
+  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
+  let δ := reductionSeq_in_Theory1 K0 r
+  have hMidFront :
+      let γ := reductionSeq_in_Theory1 K0
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      Theory3 K0
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
+              (α ρ) (η ρ) (δ ρ)).toTriangle
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α ρ) (η ρ))
+              (δ ρ)).toTriangle)
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.pentagonWhiskerFrontPath2
+            (α ρ) (γ ρ) (δ ρ)) := by
+    simpa [α, η, δ] using
+      (Theory3.whiskerLeftWhiskerRightPentagonWhiskerFrontComparisonFromTriangleComparison
+        K0 α η δ hRight)
+  have hTri :
+      let β := Theory1.comp K0
+        (reductionSeq_in_Theory1 K0 (ReductionSeq.refl M))
+        (reductionSeq_in_Theory1 K0 q)
+      let γ := reductionSeq_in_Theory1 K0
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      Theory3 K0
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α ρ) (β ρ) (δ ρ)).toTriangle
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α ρ) (η ρ))
+              (δ ρ)).toTriangle)
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.transPath2
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (α ρ)
+              (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+                (η ρ) (δ ρ)))
+            (K0.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α ρ) (γ ρ) (δ ρ)))) := by
+    simpa using
+      (reductionSeq_comp_triangle_target_step_in_Theory3 K0 s
+        (ReductionSeq.refl M) q r hMidFront)
+  have hHead :
+      Theory3 K0
+        (reductionSeq_associator_shell_in_Theory2 K0
+          (ReductionSeq.step s (ReductionSeq.refl M)) q r)
+        (Theory2.whiskerLeft K0
+          (betaEtaStep_in_Theory1 K0 L M s)
+          (reductionSeq_associator_shell_in_Theory2 K0
+            (ReductionSeq.refl M) q r)) :=
+    reductionSeq_comp_associator_stepHead_from_triangle_in_Theory3 K s
+      (ReductionSeq.refl M) q r hTri
+  exact reductionSeq_comp_associator_step_finish_in_Theory3 K0 s
+    (ReductionSeq.refl M) q r
+    (reductionSeq_comp_associator_refl_in_Theory3 K0 q r)
+    hHead
+
+/-- Refl-specialized forward base theorem, wired from the normalized frontier
+`mid ; symm assoc ~ right`. -/
+noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_normalizedRightComparison
+    (K : CoherentExtensionalKanComplex) {L M N P : Term}
+    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNorm :
+      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
+      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
+      Theory3 K.toExtensionalKanComplex
+        (fun ρ =>
+          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.transPath2
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
+              (α ρ) (η ρ) (δ ρ))
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.symmPath2
+              (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.associatorPath2
+                (α ρ) (γ ρ) (δ ρ))))
+        (fun ρ =>
+          K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+            (K.toExtensionalKanComplex.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+              (α ρ) (η ρ))
+            (δ ρ))) :
+    Theory3 K.toExtensionalKanComplex
+      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
+      (Theory2.ofEq K.toExtensionalKanComplex
+        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
+          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
+  let K0 := K.toExtensionalKanComplex
+  let α := betaEtaStep_in_Theory1 K0 L M s
+  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
+  let δ := reductionSeq_in_Theory1 K0 r
+  have hRight :
+      let γ := reductionSeq_in_Theory1 K0
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      Theory3 K0
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
+              (α ρ) (η ρ) (δ ρ)).toTriangle
+            (K0.toReflexiveKanComplex.toKanComplex.whiskerRightPath2
+              (K0.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+                (α ρ) (η ρ))
+              (δ ρ)).toTriangle)
+        (fun ρ =>
+          K0.toReflexiveKanComplex.toKanComplex.symmPath2
+            (K0.toReflexiveKanComplex.toKanComplex.associatorPath2
+              (α ρ) (γ ρ) (δ ρ))) := by
+    simpa [α, η, δ] using
+      (Theory3.whiskerLeftWhiskerRightMidRightPath3FromNormalizedComparison
+        K0 α η δ hNorm)
+  exact reductionSeq_comp_associator_step_refl_in_Theory3_of_rightComparison
+    K s q r hRight
+
+/-- Refl-specialized forward base theorem, wired from the smaller nested-whisker
+comparison
+`assoc ; whiskerLeft (whiskerRight leftUnitor δ) ; symm assoc ~ right`. -/
+  noncomputable def reductionSeq_comp_associator_step_refl_in_Theory3_of_nestedWhiskerComparison
+    (K : CoherentExtensionalKanComplex) {L M N P : Term}
+    (s : BetaEtaStep L M) (q : ReductionSeq M N) (r : ReductionSeq N P)
+    (hNested :
+      let α := betaEtaStep_in_Theory1 K.toExtensionalKanComplex L M s
+      let β := Theory1.comp K.toExtensionalKanComplex
+        (Theory1.refl K.toExtensionalKanComplex M)
+        (reductionSeq_in_Theory1 K.toExtensionalKanComplex q)
+      let η := reductionSeq_comp_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.refl M) q
+      let γ := reductionSeq_in_Theory1 K.toExtensionalKanComplex
+        (ReductionSeq.concat (ReductionSeq.refl M) q)
+      let δ := reductionSeq_in_Theory1 K.toExtensionalKanComplex r
+      Theory3 K.toExtensionalKanComplex
+        (Theory2.trans K.toExtensionalKanComplex
+          (Theory2.associator K.toExtensionalKanComplex α β δ)
+          (Theory2.trans K.toExtensionalKanComplex
+            (Theory2.whiskerLeft K.toExtensionalKanComplex α
+              (Theory2.whiskerRight K.toExtensionalKanComplex η δ))
+            (Theory2.symm K.toExtensionalKanComplex
+              (Theory2.associator K.toExtensionalKanComplex α γ δ))))
+        (Theory2.whiskerRight K.toExtensionalKanComplex
+          (Theory2.whiskerLeft K.toExtensionalKanComplex α η) δ)) :
+    Theory3 K.toExtensionalKanComplex
+      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
+        (ReductionSeq.step s (ReductionSeq.refl M)) q r)
+      (Theory2.ofEq K.toExtensionalKanComplex
+        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
+          (ReductionSeq.concat_assoc (ReductionSeq.step s (ReductionSeq.refl M)) q r))) := by
+  let K0 := K.toExtensionalKanComplex
+  let α := betaEtaStep_in_Theory1 K0 L M s
+  let β := Theory1.comp K0 (Theory1.refl K0 M) (reductionSeq_in_Theory1 K0 q)
+  let η := reductionSeq_comp_in_Theory2 K0 (ReductionSeq.refl M) q
+  let γ := reductionSeq_in_Theory1 K0 (ReductionSeq.concat (ReductionSeq.refl M) q)
+  let δ := reductionSeq_in_Theory1 K0 r
+  have hNorm :
+      Theory3 K0
+        (Theory2.trans K0
+          (fun ρ =>
+            K0.toReflexiveKanComplex.toKanComplex.whiskerLeftWhiskerRightMidPath2
+              (α ρ) (η ρ) (δ ρ))
+          (Theory2.symm K0 (Theory2.associator K0 α γ δ)))
+        (Theory2.whiskerRight K0 (Theory2.whiskerLeft K0 α η) δ) := by
+    simpa [α, β, η, γ, δ] using
+      (reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
+        K0 α η δ hNested)
+  exact reductionSeq_comp_associator_step_refl_in_Theory3_of_normalizedRightComparison
+    K s q r hNorm
+
+
 /-- Unconditional forward-step base theorem for the refl tail:
 given a `CoherentExtensionalKanComplex`, the structural associator shell
 for a one-step path `(step s (refl M))` against `q` and `r` compares against
@@ -12417,34 +12418,6 @@ noncomputable def reductionSeq_comp_associator_stepInv_refl_in_Theory3
   let δ := reductionSeq_in_Theory1 K0 r
   reductionSeq_comp_associator_stepInv_refl_in_Theory3_of_nestedWhiskerComparison K s q r
     (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight K α η δ))
-
-/-- Main unconditional recursive associator comparison for coherent extensional
-Kan models.  Synthesizes `stepNorm` for every leading step from the WLWR
-interchange field `wlwrPath3`, then applies
-`reductionSeq_comp_associator_in_Theory3_of_normalizedRightComparisons`. -/
-noncomputable def reductionSeq_comp_associator_in_Theory3
-    (K : CoherentExtensionalKanComplex)
-    {L M N P : Term} (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
-    Theory3 K.toExtensionalKanComplex
-      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex p q r)
-      (Theory2.ofEq K.toExtensionalKanComplex
-        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
-          (ReductionSeq.concat_assoc p q r))) :=
-  let K0 := K.toExtensionalKanComplex
-  reductionSeq_comp_associator_in_Theory3_of_normalizedRightComparisons K
-    (fun {_ _ _ _ _} s rest q r =>
-      let α := betaEtaStep_in_Theory1 K0 _ _ s
-      let η := reductionSeq_comp_in_Theory2 K0 rest q
-      let δ := reductionSeq_in_Theory1 K0 r
-      reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
-        K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight K α η δ)))
-    (fun {_ _ _ _ _} s rest q r =>
-      let α := betaEtaStepInv_in_Theory1 K0 _ _ s
-      let η := reductionSeq_comp_in_Theory2 K0 rest q
-      let δ := reductionSeq_in_Theory1 K0 r
-      reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
-        K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight K α η δ)))
-    p q r
 
 /-- The recursive associator comparison already follows from the reduced
 back-triangle pentagon seed plus WLWR coherence, via the induced coherent
@@ -12487,10 +12460,25 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_ofPentagonBackComparis
       (Theory2.ofEq K
         (congrArg (fun u => reductionSeq_in_Theory1 K u)
           (ReductionSeq.concat_assoc p q r))) := by
-  simpa [ExtensionalKanComplex.toCoherentExtensionalKanComplexOfPentagonBackComparisonRefl] using
-    (reductionSeq_comp_associator_in_Theory3
-      (K.toCoherentExtensionalKanComplexOfPentagonBackComparisonRefl
-        pentagonBackComparisonRefl wlwrPath3) p q r)
+  let Kc :=
+    K.toCoherentExtensionalKanComplexOfPentagonBackComparisonRefl
+      pentagonBackComparisonRefl wlwrPath3
+  let K0 := Kc.toExtensionalKanComplex
+  simpa [Kc, ExtensionalKanComplex.toCoherentExtensionalKanComplexOfPentagonBackComparisonRefl] using
+    (reductionSeq_comp_associator_in_Theory3_of_normalizedRightComparisons Kc
+      (fun {_ _ _ _ _} s rest q r =>
+        let α := betaEtaStep_in_Theory1 K0 _ _ s
+        let η := reductionSeq_comp_in_Theory2 K0 rest q
+        let δ := reductionSeq_in_Theory1 K0 r
+        reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
+          K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight Kc α η δ)))
+      (fun {_ _ _ _ _} s rest q r =>
+        let α := betaEtaStepInv_in_Theory1 K0 _ _ s
+        let η := reductionSeq_comp_in_Theory2 K0 rest q
+        let δ := reductionSeq_in_Theory1 K0 r
+        reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
+          K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight Kc α η δ)))
+      p q r)
 
 /-- Equivalently, the recursive associator comparison already follows from the
 smaller front-face pentagon seed plus WLWR coherence. -/
@@ -12529,10 +12517,25 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_ofPentagonInnerRightFr
       (Theory2.ofEq K
         (congrArg (fun u => reductionSeq_in_Theory1 K u)
           (ReductionSeq.concat_assoc p q r))) := by
-  simpa [ExtensionalKanComplex.toCoherentExtensionalKanComplexOfPentagonInnerRightFrontRefl] using
-    (reductionSeq_comp_associator_in_Theory3
-      (K.toCoherentExtensionalKanComplexOfPentagonInnerRightFrontRefl
-        pentagonInnerRightFrontRefl wlwrPath3) p q r)
+  let Kc :=
+    K.toCoherentExtensionalKanComplexOfPentagonInnerRightFrontRefl
+      pentagonInnerRightFrontRefl wlwrPath3
+  let K0 := Kc.toExtensionalKanComplex
+  simpa [Kc, ExtensionalKanComplex.toCoherentExtensionalKanComplexOfPentagonInnerRightFrontRefl] using
+    (reductionSeq_comp_associator_in_Theory3_of_normalizedRightComparisons Kc
+      (fun {_ _ _ _ _} s rest q r =>
+        let α := betaEtaStep_in_Theory1 K0 _ _ s
+        let η := reductionSeq_comp_in_Theory2 K0 rest q
+        let δ := reductionSeq_in_Theory1 K0 r
+        reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
+          K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight Kc α η δ)))
+      (fun {_ _ _ _ _} s rest q r =>
+        let α := betaEtaStepInv_in_Theory1 K0 _ _ s
+        let η := reductionSeq_comp_in_Theory2 K0 rest q
+        let δ := reductionSeq_in_Theory1 K0 r
+        reductionSeq_comp_associator_refl_normalizedRightComparison_of_nestedWhiskerComparison
+          K0 α η δ (Theory3.symm K0 (Theory3.coherentWhiskerLeftWhiskerRight Kc α η δ)))
+      p q r)
 
 /-- The recursive associator comparison for the reduced front-seed coherence
 boundary. -/
@@ -12546,6 +12549,20 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_assoc
           (ReductionSeq.concat_assoc p q r))) :=
   reductionSeq_comp_associator_in_Theory3_ofPentagonInnerRightFrontRefl
     K.toExtensionalKanComplex K.pentagonInnerRightFrontReflPath3 K.wlwrPath3 p q r
+
+/-- Main unconditional recursive associator comparison for coherent extensional
+Kan models. Rather than routing through the older normalized-right recursive
+proof directly, we pass through the reduced front-seed coherence package already
+induced by every coherent model. -/
+noncomputable def reductionSeq_comp_associator_in_Theory3
+    (K : CoherentExtensionalKanComplex)
+    {L M N P : Term} (p : ReductionSeq L M) (q : ReductionSeq M N) (r : ReductionSeq N P) :
+    Theory3 K.toExtensionalKanComplex
+      (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex p q r)
+      (Theory2.ofEq K.toExtensionalKanComplex
+        (congrArg (fun u => reductionSeq_in_Theory1 K.toExtensionalKanComplex u)
+          (ReductionSeq.concat_assoc p q r))) :=
+  K.toFrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_associator_in_Theory3 p q r
 
 /-- In a coherent extensional Kan model, the interpreted equality-generated
 associator 2-cell agrees with the structural associator shell. This is the

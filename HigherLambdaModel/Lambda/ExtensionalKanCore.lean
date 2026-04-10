@@ -7676,6 +7676,327 @@ def KanComplex.whiskerRightSymmPath3 (K : KanComplex) {a b c : K.Obj}
     (K.trianglePath2SymmPath3
       (K.whiskerRightTriangle α r) (K.compTriangle q r))
 
+/-- Symmetry is congruent on semantic 3-cells. -/
+def KanComplex.symmCongrPath3 (K : KanComplex) {a b : K.Obj}
+    {p q : K.PathSpace a b} {η θ : K.Path2 p q} (Κ : K.Path3 η θ) :
+    K.Path3 (K.symmPath2 η) (K.symmPath2 θ) := by
+  let hInsert :
+      K.Path3
+        (K.symmPath2 η)
+        (K.transPath2 (K.symmPath2 η) (K.transPath2 θ (K.symmPath2 θ))) := by
+    exact K.transPath3
+      (K.symmPath3 (K.transReflRightPath3 (K.symmPath2 η)))
+      (K.transCongrRightPath3
+        (K.symmPath2 η)
+        (K.symmPath3 (K.transRightCancelPath3 θ)))
+  let hAssoc :
+      K.Path3
+        (K.transPath2 (K.symmPath2 η) (K.transPath2 θ (K.symmPath2 θ)))
+        (K.transPath2 (K.transPath2 (K.symmPath2 η) θ) (K.symmPath2 θ)) :=
+    K.symmPath3 (K.transAssocPath3 (K.symmPath2 η) θ (K.symmPath2 θ))
+  let hCancel :
+      K.Path3
+        (K.transPath2 (K.symmPath2 η) θ)
+        (K.reflPath2 q) := by
+    exact K.transPath3
+      (K.symmPath3 (K.transCongrRightPath3 (K.symmPath2 η) Κ))
+      (K.transLeftCancelPath3 η)
+  let hMid :
+      K.Path3
+        (K.transPath2 (K.transPath2 (K.symmPath2 η) θ) (K.symmPath2 θ))
+        (K.transPath2 (K.reflPath2 q) (K.symmPath2 θ)) :=
+    K.transCongrLeftPath3 hCancel (K.symmPath2 θ)
+  exact K.transPath3 hInsert
+    (K.transPath3 hAssoc
+      (K.transPath3 hMid (K.transReflLeftPath3 (K.symmPath2 θ))))
+
+/-- Boundary-aware tetrahedron keeping the front face `refl (refl b)` and the
+middle face `refl p`, while changing the back face from `symm η` to `symm θ`
+along a semantic 3-cell `η ~ θ`. -/
+private def KanComplex.symmCongrBridgeTetrahedron (K : KanComplex)
+    {a b : K.Obj} {p q : K.PathSpace a b}
+    {η θ : K.Path2 p q} (Κ : K.Path3 η θ) :
+    K.Tetrahedron
+      (K.reflPath2 (K.reflPath b)).toTriangle
+      (K.reflPath2 p).toTriangle
+      (K.symmPath2 η).toTriangle
+      (K.symmPath2 θ).toTriangle := by
+  let ε := K.reflTriangleTetrahedron ((K.reflPath2 (K.reflPath b)).toTriangle)
+  let ρ := K.reflTriangleTetrahedron ((K.reflPath2 p).toTriangle)
+  let ω₁ := K.symmTetrahedron η
+  let ω₂ := K.tetrahedronReplaceFace1 (K.symmCongrPath3 Κ) (K.symmTetrahedron η)
+  let Λ : Horn K.toSimplicialSet 3 1 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h2 : i = 2 then ρ.simplex
+        else if h3 : i = 3 then ω₁.simplex
+        else ω₂.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 2 ∧ j = 3) ∨ (i = 2 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h02 | hrest
+        · rcases h02 with ⟨rfl, rfl⟩
+          simpa using ρ.face0.trans ε.face1.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₁.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using ω₂.face0.trans ε.face3.symm
+            · rcases hrest with h23 | hrest
+              · rcases h23 with ⟨rfl, rfl⟩
+                simpa using ω₁.face2.trans ρ.face2.symm
+              · rcases hrest with h24 | h34
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using ω₂.face2.trans ρ.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using ω₂.face3.trans ω₁.face3.symm }
+  refine
+    { simplex := K.face 3 1 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 1 (K.fill Λ))
+          = K.face 2 0 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 0) (by omega) (by omega))
+      _ = K.face 2 0 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 (K.reflPath b)).toTriangle.simplex := ε.face0
+  · have h2 : K.face 3 2 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 2 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ρ.simplex := by rw [h2]
+      _ = (K.reflPath2 p).toTriangle.simplex := ρ.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 1 ω₁.simplex := by rw [h3]
+      _ = (K.symmPath2 η).toTriangle.simplex := ω₁.face1
+  · have h4 : K.face 3 4 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 1 (K.fill Λ))
+          = K.face 2 1 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 3) (by omega) (by omega))
+      _ = K.face 2 1 ω₂.simplex := by rw [h4]
+      _ = (K.symmPath2 θ).toTriangle.simplex := ω₂.face1
+
+/-- Replace the back face of the right-whisker filler tetrahedron for `η` by
+`symm θ`, keeping the source-degenerate and composition faces fixed. -/
+private def KanComplex.whiskerRightTriangleCongrAuxTetrahedron (K : KanComplex)
+    {a b c : K.Obj} {p q : K.PathSpace a b}
+    (η θ : K.Path2 p q) (r : K.PathSpace b c) (Κ : K.Path3 η θ) :
+    K.Tetrahedron
+      (K.sourceDegenerateTriangle r)
+      (K.compTriangle p r)
+      (K.whiskerRightTriangle η r)
+      (K.symmPath2 θ).toTriangle := by
+  let u := K.sourceDegenerateTriangle r
+  let τ := K.compTriangle p r
+  let ρ := K.sourceDegenerateTriangleDegenerateTetrahedron r
+  let ω₁ := K.compTriangleDegenerateTetrahedron p r
+  let ω₂ := K.whiskerRightTriangleFillerTetrahedron η r
+  let κ := K.symmCongrBridgeTetrahedron Κ
+  let Λ : Horn K.toSimplicialSet 3 3 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ρ.simplex
+        else if h1 : i = 1 then ω₁.simplex
+        else if h2 : i = 2 then ω₂.simplex
+        else κ.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 2) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 2) ∨ (i = 1 ∧ j = 4) ∨ (i = 2 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ω₁.face0.trans ρ.face0.symm
+        · rcases hrest with h02 | hrest
+          · rcases h02 with ⟨rfl, rfl⟩
+            simpa using ω₂.face0.trans ρ.face1.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using κ.face0.trans ρ.face3.symm
+            · rcases hrest with h12 | hrest
+              · rcases h12 with ⟨rfl, rfl⟩
+                simpa using ω₂.face1.trans ω₁.face1.symm
+              · rcases hrest with h14 | h24
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using κ.face1.trans ω₁.face3.symm
+                · rcases h24 with ⟨rfl, rfl⟩
+                  simpa using κ.face2.trans ω₂.face3.symm }
+  refine
+    { simplex := K.face 3 3 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ρ.simplex := by rw [h0]
+      _ = u.simplex := ρ.face2
+  · have h1 : K.face 3 1 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h1]
+      _ = τ.simplex := ω₁.face2
+  · have h2 : K.face 3 2 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 2) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 3 (K.fill Λ))
+          = K.face 2 2 (K.face 3 2 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h2]
+      _ = (K.whiskerRightTriangle η r).simplex := ω₂.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = κ.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 3 (K.fill Λ))
+          = K.face 2 3 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 3) (j := 3) (by omega) (by omega))
+      _ = K.face 2 3 κ.simplex := by rw [h4]
+      _ = (K.symmPath2 θ).toTriangle.simplex := κ.face3
+
+/-- Boundary-aware tetrahedron whose visible outer faces are the two
+right-whiskered filler triangles of parallel 2-cells and whose middle face is
+the reflexive 2-cell on the composite source path. -/
+private def KanComplex.whiskerRightTriangleCongrBoundaryTetrahedron (K : KanComplex)
+    {a b c : K.Obj} {p q : K.PathSpace a b}
+    (η θ : K.Path2 p q) (r : K.PathSpace b c) (Κ : K.Path3 η θ) :
+    K.Tetrahedron
+      (K.reflPath2 r).toTriangle
+      (K.reflPath2 (K.compPath p r)).toTriangle
+      (K.whiskerRightTriangle θ r)
+      (K.whiskerRightTriangle η r) := by
+  let u := K.sourceDegenerateTriangle r
+  let τ := K.compTriangle p r
+  let ε := K.reflTriangleTetrahedron u
+  let ρ := K.reflTriangleTetrahedron τ
+  let ω₁ := K.whiskerRightTriangleFillerTetrahedron θ r
+  let ω₂ := K.whiskerRightTriangleCongrAuxTetrahedron η θ r Κ
+  let Λ : Horn K.toSimplicialSet 3 2 :=
+    { missing_le := by omega
+      facet := fun i _ =>
+        if h0 : i = 0 then ε.simplex
+        else if h1 : i = 1 then ρ.simplex
+        else if h3 : i = 3 then ω₁.simplex
+        else ω₂.simplex
+      compatibility := by
+        intro i j hi hj hmi hmj hij
+        have hij_cases :
+            (i = 0 ∧ j = 1) ∨ (i = 0 ∧ j = 3) ∨ (i = 0 ∧ j = 4) ∨
+              (i = 1 ∧ j = 3) ∨ (i = 1 ∧ j = 4) ∨ (i = 3 ∧ j = 4) := by
+          omega
+        rcases hij_cases with h01 | hrest
+        · rcases h01 with ⟨rfl, rfl⟩
+          simpa using ρ.face0.trans ε.face0.symm
+        · rcases hrest with h03 | hrest
+          · rcases h03 with ⟨rfl, rfl⟩
+            simpa using ω₁.face0.trans ε.face2.symm
+          · rcases hrest with h04 | hrest
+            · rcases h04 with ⟨rfl, rfl⟩
+              simpa using ω₂.face0.trans ε.face3.symm
+            · rcases hrest with h13 | hrest
+              · rcases h13 with ⟨rfl, rfl⟩
+                simpa using ω₁.face1.trans ρ.face2.symm
+              · rcases hrest with h14 | h34
+                · rcases h14 with ⟨rfl, rfl⟩
+                  simpa using ω₂.face1.trans ρ.face3.symm
+                · rcases h34 with ⟨rfl, rfl⟩
+                  simpa using ω₂.face3.trans ω₁.face3.symm }
+  refine
+    { simplex := K.face 3 2 (K.fill Λ)
+      face0 := ?_
+      face1 := ?_
+      face2 := ?_
+      face3 := ?_ }
+  · have h0 : K.face 3 0 (K.fill Λ) = ε.simplex :=
+      K.fill_spec Λ (i := 0) (by omega) (by omega)
+    calc
+      K.face 2 0 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 0 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 0) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ε.simplex := by rw [h0]
+      _ = (K.reflPath2 r).toTriangle.simplex := ε.face1
+  · have h1 : K.face 3 1 (K.fill Λ) = ρ.simplex :=
+      K.fill_spec Λ (i := 1) (by omega) (by omega)
+    calc
+      K.face 2 1 (K.face 3 2 (K.fill Λ))
+          = K.face 2 1 (K.face 3 1 (K.fill Λ)) := by
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 1) (j := 1) (by omega) (by omega))
+      _ = K.face 2 1 ρ.simplex := by rw [h1]
+      _ = (K.reflPath2 (K.compPath p r)).toTriangle.simplex := ρ.face1
+  · have h3 : K.face 3 3 (K.fill Λ) = ω₁.simplex :=
+      K.fill_spec Λ (i := 3) (by omega) (by omega)
+    calc
+      K.face 2 2 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 3 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 2) (by omega) (by omega))
+      _ = K.face 2 2 ω₁.simplex := by rw [h3]
+      _ = (K.whiskerRightTriangle θ r).simplex := ω₁.face2
+  · have h4 : K.face 3 4 (K.fill Λ) = ω₂.simplex :=
+      K.fill_spec Λ (i := 4) (by omega) (by omega)
+    calc
+      K.face 2 3 (K.face 3 2 (K.fill Λ))
+          = K.face 2 2 (K.face 3 4 (K.fill Λ)) := by
+              symm
+              simpa using (K.face_face 2 (K.fill Λ)
+                (i := 2) (j := 3) (by omega) (by omega))
+      _ = K.face 2 2 ω₂.simplex := by rw [h4]
+      _ = (K.whiskerRightTriangle η r).simplex := ω₂.face2
+
+/-- A semantic 3-cell between parallel 2-cells contracts the comparison between
+their right-whiskered filler triangles. -/
+def KanComplex.whiskerRightTriangleComparisonPath3 (K : KanComplex)
+    {a b c : K.Obj} {p q : K.PathSpace a b}
+    (η θ : K.Path2 p q) (r : K.PathSpace b c) (Κ : K.Path3 η θ) :
+    K.Path3
+      (K.trianglePath2 (K.whiskerRightTriangle η r) (K.whiskerRightTriangle θ r))
+      (K.reflPath2 (K.compPath p r)) :=
+  K.tetrahedronPath3
+    (K.triangleComparisonTetrahedron
+      (K.whiskerRightTriangle η r)
+      (K.whiskerRightTriangle θ r))
+    (K.whiskerRightTriangleCongrBoundaryTetrahedron η θ r Κ)
+
 /-- Boundary-aware tetrahedron comparing right whiskering of parallel 2-cells with
 the residual triangle comparison between their right-whiskered fillers. -/
 private def KanComplex.whiskerRightComparisonTetrahedron (K : KanComplex)
@@ -7708,6 +8029,14 @@ def KanComplex.whiskerRightPath3OfTriangleComparisonPath3 (K : KanComplex)
     triangleComparison
     (K.whiskerRightComparisonTetrahedron η θ r)
     ((K.reflPath3 (K.whiskerRightPath2 θ r)).toTetrahedron)
+
+/-- Right whiskering is congruent on semantic 3-cells. -/
+def KanComplex.whiskerRightCongr (K : KanComplex)
+    {a b c : K.Obj} {p q : K.PathSpace a b}
+    {η θ : K.Path2 p q} (Κ : K.Path3 η θ) (r : K.PathSpace b c) :
+    K.Path3 (K.whiskerRightPath2 η r) (K.whiskerRightPath2 θ r) :=
+  K.whiskerRightPath3OfTriangleComparisonPath3 η θ r
+    (K.whiskerRightTriangleComparisonPath3 η θ r Κ)
 
 /-- Conversely, a semantic 3-cell between right-whiskered 2-cells contracts the
 comparison between their right-whiskered filler triangles. -/
@@ -8324,6 +8653,28 @@ noncomputable def TheoryTriangle.reflTetrahedron
       τ
       τ :=
   fun ρ => K.reflTriangleTetrahedron (τ ρ)
+
+/-- The semantic 2-cell comparing two semantic triangles with the same
+boundary. -/
+noncomputable def TheoryTriangle.comparisonPath2
+    (K : ExtensionalKanComplex) {M₀ M₁ M₂ : Term}
+    {α01 : Theory1 K M₀ M₁} {α02 : Theory1 K M₀ M₂} {α12 : Theory1 K M₁ M₂}
+    (τ₁ τ₂ : TheoryTriangle K α01 α02 α12) :
+    Theory2 K α02 α02 :=
+  fun ρ => K.trianglePath2 (τ₁ ρ) (τ₂ ρ)
+
+/-- Boundary-aware semantic tetrahedron whose middle face is the triangle
+comparison between two semantic triangles with common boundary. -/
+noncomputable def TheoryTriangle.comparisonTetrahedron
+    (K : ExtensionalKanComplex) {M₀ M₁ M₂ : Term}
+    {α01 : Theory1 K M₀ M₁} {α02 : Theory1 K M₀ M₂} {α12 : Theory1 K M₁ M₂}
+    (τ₁ τ₂ : TheoryTriangle K α01 α02 α12) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K α12))
+      (Theory2.toTriangle K (TheoryTriangle.comparisonPath2 K τ₁ τ₂))
+      τ₂
+      τ₁ :=
+  fun ρ => K.triangleComparisonTetrahedron (τ₁ ρ) (τ₂ ρ)
 
 /-- A proof-relevant semantic 3-conversion between parallel semantic
 2-conversions in a fixed extensional Kan complex, represented by actual
@@ -9035,6 +9386,33 @@ noncomputable def Theory3.whiskerLeftWhiskerRightPentagonWhiskerFrontComparisonF
       K.toReflexiveKanComplex.toKanComplex
       (α ρ) (η ρ) (δ ρ) (hRight ρ)
 
+/-- Pointwise lift of
+`KanComplex.associatorStepMidPath3FromPentagonWhiskerFront`, using the
+canonical midpoint/front comparison supplied by
+`KanComplex.associatorStepMidToPentagonWhiskerFrontPath3`. -/
+noncomputable def Theory3.associatorStepMidPath3FromPentagonWhiskerFront
+    (K : ExtensionalKanComplex) {L M N P : Term}
+    (α : Theory1 K L M) (β : Theory1 K M N)
+    {γ δ : Theory1 K N P} (η : Theory2 K γ δ) :
+    Theory3 K
+      (fun ρ =>
+        K.toReflexiveKanComplex.toKanComplex.associatorStepMidPath2
+          (α ρ) (β ρ) (η ρ))
+      (fun ρ =>
+        K.toReflexiveKanComplex.toKanComplex.transPath2
+          (K.toReflexiveKanComplex.toKanComplex.whiskerLeftPath2
+            (K.toReflexiveKanComplex.toKanComplex.compPath
+              (α ρ) (β ρ))
+            (η ρ))
+          (K.toReflexiveKanComplex.toKanComplex.associatorPath2
+            (α ρ) (β ρ) (δ ρ))) :=
+  fun ρ =>
+    let K0 := K.toReflexiveKanComplex.toKanComplex
+    K0.associatorStepMidPath3FromPentagonWhiskerFront
+      (α ρ) (β ρ) (η ρ) <|
+        K0.associatorStepMidToPentagonWhiskerFrontPath3
+          (α ρ) (β ρ) (η ρ)
+
 /-- Left whiskering commutes with symmetry up to semantic 3-cells. -/
 noncomputable def Theory3.whiskerLeftSymm
     (K : ExtensionalKanComplex) {L M N : Term}
@@ -9106,6 +9484,16 @@ noncomputable def Theory3.whiskerRightOfEq
   cases h
   exact Theory3.whiskerRightRefl K α γ
 
+/-- Right whiskering is congruent on semantic 3-cells. -/
+noncomputable def Theory3.whiskerRightCongr
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {α β : Theory1 K L M} {η θ : Theory2 K α β}
+    (Κ : Theory3 K η θ) (γ : Theory1 K M N) :
+    Theory3 K (Theory2.whiskerRight K η γ) (Theory2.whiskerRight K θ γ) :=
+  fun ρ =>
+    K.toReflexiveKanComplex.toKanComplex.whiskerRightCongr
+      (Κ ρ) (γ ρ)
+
 /-- The modelwise tetrahedron whose middle face is right whiskering of a
 semantic 2-cell. -/
 noncomputable def Theory3.whiskerRightTetrahedron
@@ -9119,6 +9507,25 @@ noncomputable def Theory3.whiskerRightTetrahedron
         (K.compTriangle (β ρ) (γ ρ))
         (K.whiskerRightTriangle (η ρ) (γ ρ))
   | ρ => K.whiskerRightTetrahedron (η ρ) (γ ρ)
+
+/-- Boundary-aware comparison tetrahedron for right whiskering of parallel
+semantic 2-cells. The fourth face is the residual comparison between the two
+right-whiskered filler triangles. -/
+noncomputable def Theory3.whiskerRightComparisonTetrahedron
+    (K : ExtensionalKanComplex) {L M N : Term}
+    {α β : Theory1 K L M} (η θ : Theory2 K α β)
+    (γ : Theory1 K M N) :
+    TheoryTetrahedron K
+      (Theory2.toTriangle K (Theory2.refl K (Theory1.refl K N)))
+      (Theory2.toTriangle K (Theory2.whiskerRight K θ γ))
+      (Theory2.toTriangle K (Theory2.whiskerRight K η γ))
+      (Theory2.toTriangle K
+        (TheoryTriangle.comparisonPath2 K
+          (Theory1.whiskerRightTriangle K η γ)
+          (Theory1.whiskerRightTriangle K θ γ))) :=
+  fun ρ =>
+    K.toReflexiveKanComplex.toKanComplex.whiskerRightComparisonTetrahedron
+      (η ρ) (θ ρ) (γ ρ)
 
 /-- If the triangle comparison between the right-whiskered filler triangles of
 parallel semantic 2-cells contracts to reflexivity, then the right-whiskered
