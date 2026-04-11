@@ -4400,13 +4400,13 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_of_heads
         (reductionSeq_comp_associator_in_Theory3_of_heads K stepHead stepInvHead rest q r)
         (stepInvHead s rest q r)
 
-/-- Coherent-model recursive associator comparison, parameterized by the exact
-remaining midpoint/front seed witnesses on forward and inverse leading steps.
+/-- Recursive associator comparison, parameterized by the exact remaining
+midpoint/front seed witnesses on forward and inverse leading steps.
 
-This packages the current strongest theorem boundary in the coherent layer:
-once the source-side `hMidFront` witnesses are supplied, the exact reduced
+Once the source-side `hMidFront` witnesses are supplied, the exact reduced
 triangle witnesses, local head bridges, and the full recursive associator
-comparison all follow automatically. -/
+comparison all follow automatically on the bare `ExtensionalKanComplex`
+interface. -/
 noncomputable def reductionSeq_comp_associator_in_Theory3_of_midFronts
     (K : CoherentExtensionalKanComplex)
     (stepMidFront :
@@ -4480,8 +4480,8 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_of_midFronts
   intro L M N P p q r
   exact reductionSeq_comp_associator_in_Theory3_of_heads K0 stepHead stepInvHead p q r
 
-/-- Coherent-model recursive associator comparison, parameterized by the smaller
-remaining WLWR front-loop contractions on forward and inverse leading steps.
+/-- Recursive associator comparison, parameterized by the smaller remaining
+WLWR front-loop contractions on forward and inverse leading steps.
 
 This sharpens `reductionSeq_comp_associator_in_Theory3_of_midFronts`: once the
 direct WLWR front loops contract, the exact midpoint/front seed witnesses and
@@ -4573,8 +4573,8 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_of_frontContracts
   intro L M N P p q r
   exact reductionSeq_comp_associator_in_Theory3_of_midFronts K stepMidFront stepInvMidFront p q r
 
-/-- Coherent-model recursive associator comparison, parameterized by normalized
-WLWR right-half comparisons on forward and inverse leading steps.
+/-- Recursive associator comparison, parameterized by normalized WLWR
+right-half comparisons on forward and inverse leading steps.
 
 This sharpens `reductionSeq_comp_associator_in_Theory3_of_rightComparisons`:
 once the normalized comparisons `mid ; symm assoc ~ right` are known, the
@@ -4723,8 +4723,8 @@ noncomputable def reductionSeq_comp_associator_in_Theory3_of_normalizedRightComp
   exact reductionSeq_comp_associator_in_Theory3_of_frontContracts K
     stepFront stepInvFront p q r
 
-/-- Coherent-model recursive associator comparison, parameterized by the smaller
-reduced right-half WLWR comparisons on forward and inverse leading steps.
+/-- Recursive associator comparison, parameterized by the smaller reduced
+right-half WLWR comparisons on forward and inverse leading steps.
 
 This sharpens `reductionSeq_comp_associator_in_Theory3_of_frontContracts`: once
 the reduced right-half comparisons are known, the direct WLWR front loops, the
@@ -12595,6 +12595,137 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.homotopy2_associator_br
     K.toExtensionalKanComplex
     (FrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_associator_in_Theory3 K) p q r
 
+/-- The direct semantic pentagon on interpreted reduction sequences already
+follows from the reduced back-triangle pentagon seed. -/
+noncomputable def reductionSeq_pentagon_in_Theory3_ofPentagonBackComparisonRefl
+    (K : ExtensionalKanComplex)
+    (pentagonBackComparisonRefl :
+      ∀ {a b c d e : K.toReflexiveKanComplex.Obj}
+        (p : K.toReflexiveKanComplex.PathSpace a b)
+        (q : K.toReflexiveKanComplex.PathSpace b c)
+        (r : K.toReflexiveKanComplex.PathSpace c d)
+        (s : K.toReflexiveKanComplex.PathSpace d e),
+        K.toReflexiveKanComplex.Path3
+          (K.toReflexiveKanComplex.toKanComplex.trianglePath2
+            (K.toReflexiveKanComplex.toKanComplex.pentagonInnerBackTriangle p q r s)
+            (K.toReflexiveKanComplex.toKanComplex.pentagonRightBackTriangle p q r s))
+          (K.toReflexiveKanComplex.reflPath2
+            (K.toReflexiveKanComplex.compPath
+              (K.toReflexiveKanComplex.compPath
+                (K.toReflexiveKanComplex.compPath p q) r) s)))
+    {L M N P Q : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N)
+    (r : ReductionSeq N P) (s : ReductionSeq P Q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K
+          (Theory1.comp K
+            (reductionSeq_in_Theory1 K p)
+            (reductionSeq_in_Theory1 K q))
+          (reductionSeq_in_Theory1 K r)
+          (reductionSeq_in_Theory1 K s))
+        (Theory2.associator K
+          (reductionSeq_in_Theory1 K p)
+          (reductionSeq_in_Theory1 K q)
+          (Theory1.comp K
+            (reductionSeq_in_Theory1 K r)
+            (reductionSeq_in_Theory1 K s))))
+      (Theory2.trans K
+        (Theory2.trans K
+          (Theory2.whiskerRight K
+            (Theory2.associator K
+              (reductionSeq_in_Theory1 K p)
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s))
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K p)
+            (Theory1.comp K
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s)))
+        (Theory2.whiskerLeft K
+          (reductionSeq_in_Theory1 K p)
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K q)
+            (reductionSeq_in_Theory1 K r)
+            (reductionSeq_in_Theory1 K s)))) := by
+  exact Theory3.pentagonOfBackComparisonRefl K
+    (reductionSeq_in_Theory1 K p)
+    (reductionSeq_in_Theory1 K q)
+    (reductionSeq_in_Theory1 K r)
+    (reductionSeq_in_Theory1 K s)
+    (fun ρ =>
+      pentagonBackComparisonRefl
+        ((reductionSeq_in_Theory1 K p) ρ)
+        ((reductionSeq_in_Theory1 K q) ρ)
+        ((reductionSeq_in_Theory1 K r) ρ)
+        ((reductionSeq_in_Theory1 K s) ρ))
+
+/-- Equivalently, the direct semantic pentagon on interpreted reduction
+sequences already follows from the smaller front-face pentagon seed. -/
+noncomputable def reductionSeq_pentagon_in_Theory3_ofPentagonInnerRightFrontRefl
+    (K : ExtensionalKanComplex)
+    (pentagonInnerRightFrontRefl :
+      ∀ {a b c d e : K.toReflexiveKanComplex.Obj}
+        (p : K.toReflexiveKanComplex.PathSpace a b)
+        (q : K.toReflexiveKanComplex.PathSpace b c)
+        (r : K.toReflexiveKanComplex.PathSpace c d)
+        (s : K.toReflexiveKanComplex.PathSpace d e),
+        K.toReflexiveKanComplex.Path3
+          (K.toReflexiveKanComplex.toKanComplex.pentagonInnerRightFrontPath2 p q r s)
+          (K.toReflexiveKanComplex.reflPath2
+            (K.toReflexiveKanComplex.compPath q
+              (K.toReflexiveKanComplex.compPath r s))))
+    {L M N P Q : Term}
+    (p : ReductionSeq L M) (q : ReductionSeq M N)
+    (r : ReductionSeq N P) (s : ReductionSeq P Q) :
+    Theory3 K
+      (Theory2.trans K
+        (Theory2.associator K
+          (Theory1.comp K
+            (reductionSeq_in_Theory1 K p)
+            (reductionSeq_in_Theory1 K q))
+          (reductionSeq_in_Theory1 K r)
+          (reductionSeq_in_Theory1 K s))
+        (Theory2.associator K
+          (reductionSeq_in_Theory1 K p)
+          (reductionSeq_in_Theory1 K q)
+          (Theory1.comp K
+            (reductionSeq_in_Theory1 K r)
+            (reductionSeq_in_Theory1 K s))))
+      (Theory2.trans K
+        (Theory2.trans K
+          (Theory2.whiskerRight K
+            (Theory2.associator K
+              (reductionSeq_in_Theory1 K p)
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s))
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K p)
+            (Theory1.comp K
+              (reductionSeq_in_Theory1 K q)
+              (reductionSeq_in_Theory1 K r))
+            (reductionSeq_in_Theory1 K s)))
+        (Theory2.whiskerLeft K
+          (reductionSeq_in_Theory1 K p)
+          (Theory2.associator K
+            (reductionSeq_in_Theory1 K q)
+            (reductionSeq_in_Theory1 K r)
+            (reductionSeq_in_Theory1 K s)))) := by
+  exact Theory3.pentagonOfInnerRightFrontRefl K
+    (reductionSeq_in_Theory1 K p)
+    (reductionSeq_in_Theory1 K q)
+    (reductionSeq_in_Theory1 K r)
+    (reductionSeq_in_Theory1 K s)
+    (fun ρ =>
+      pentagonInnerRightFrontRefl
+        ((reductionSeq_in_Theory1 K p) ρ)
+        ((reductionSeq_in_Theory1 K q) ρ)
+        ((reductionSeq_in_Theory1 K r) ρ)
+        ((reductionSeq_in_Theory1 K s) ρ))
+
 /-- The reduced front-seed coherence boundary already determines the full direct
 semantic pentagon on interpreted reduction sequences. -/
 noncomputable def FrontSeedCoherentExtensionalKanComplex.reductionSeq_pentagon_in_Theory3
@@ -12636,9 +12767,8 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.reductionSeq_pentagon_i
             (reductionSeq_in_Theory1 K.toExtensionalKanComplex q)
             (reductionSeq_in_Theory1 K.toExtensionalKanComplex r)
             (reductionSeq_in_Theory1 K.toExtensionalKanComplex s)))) := by
-  simpa [FrontSeedCoherentExtensionalKanComplex.toCoherentExtensionalKanComplex] using
-    (HigherLambdaModel.Lambda.ExtensionalKan.reductionSeq_pentagon_in_Theory3
-      (K.toCoherentExtensionalKanComplex) p q r s)
+  exact reductionSeq_pentagon_in_Theory3_ofPentagonInnerRightFrontRefl
+    K.toExtensionalKanComplex K.pentagonInnerRightFrontReflPath3 p q r s
 
 /-- In a coherent extensional Kan model, the source endpoint of the explicit
 pentagon 3-cell bridges to the structural associator shells. -/
@@ -12737,9 +12867,10 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_sour
           (ReductionSeq.concat p q) r s)
         (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
           p q (ReductionSeq.concat r s))) := by
-  simpa [FrontSeedCoherentExtensionalKanComplex.toCoherentExtensionalKanComplex] using
-    (homotopy2_pentagon_source_coherent_bridge_in_Theory3
-      (K.toCoherentExtensionalKanComplex) p q r s)
+  exact homotopy2_pentagon_source_bridge_in_Theory3_of_associatorBridge
+    K.toExtensionalKanComplex
+    (FrontSeedCoherentExtensionalKanComplex.homotopy2_associator_bridge_in_Theory3 K)
+    p q r s
 
 /-- At the reduced front-seed boundary, the target endpoint of the explicit
 pentagon bridges to the mixed shell where the right-whiskered factor is still
@@ -12767,9 +12898,10 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_targ
         (reductionSeq_whiskerLeft_in_Theory2 K.toExtensionalKanComplex p
           (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
             q r s))) := by
-  simpa [FrontSeedCoherentExtensionalKanComplex.toCoherentExtensionalKanComplex] using
-    (homotopy2_pentagon_target_coherent_bridge_in_Theory3
-      (K.toCoherentExtensionalKanComplex) p q r s)
+  exact homotopy2_pentagon_target_bridge_in_Theory3_of_associatorBridge
+    K.toExtensionalKanComplex
+    (FrontSeedCoherentExtensionalKanComplex.homotopy2_associator_bridge_in_Theory3 K)
+    p q r s
 
 /-- At the reduced front-seed boundary, the explicit pentagon already identifies
 the structural source shell with the mixed target shell. -/
@@ -12795,9 +12927,10 @@ noncomputable def FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_shel
         (reductionSeq_whiskerLeft_in_Theory2 K.toExtensionalKanComplex p
           (reductionSeq_associator_shell_in_Theory2 K.toExtensionalKanComplex
             q r s))) := by
-  simpa [FrontSeedCoherentExtensionalKanComplex.toCoherentExtensionalKanComplex] using
-    (homotopy2_pentagon_shell_coherent_bridge_in_Theory3
-      (K.toCoherentExtensionalKanComplex) p q r s)
+  exact homotopy2_pentagon_shell_bridge_in_Theory3_of_associatorBridge
+    K.toExtensionalKanComplex
+    (FrontSeedCoherentExtensionalKanComplex.homotopy2_associator_bridge_in_Theory3 K)
+    p q r s
 
 
 end HigherLambdaModel.Lambda.ExtensionalKan

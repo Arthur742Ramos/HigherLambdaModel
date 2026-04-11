@@ -66,27 +66,22 @@ claim matrix:
    `FrontSeedCoherentExtensionalKanComplex`, and derives it axiom-free in the
    strict setting via `StrictKanComplex` / `StrictExtensionalKanComplex`. The
    remaining extension target is to eliminate those extra coherence interfaces
-   by deriving the WLWR/right-whisker lift and one equivalent reduced pentagon
-   seed directly in the base interfaces. The current bare-interface frontier in
-   `HigherLambdaModel/Lambda/ExtensionalKanHigher.lean` is now concentrated on
-   the refl-specialized middle contraction: the target-side shell API has been
-   strengthened through
-   `reductionSeq_comp_associator_refl_rightHeadComparison_in_Theory3`,
-   `reductionSeq_comp_associator_refl_targetHeadShell_in_Theory3_of_nestedWhiskerComparison`,
-   `reductionSeq_comp_associator_refl_targetRightShell_in_Theory3_of_nestedWhiskerComparison`,
-   `reductionSeq_comp_associator_refl_splitLoop_in_Theory3_of_nestedWhiskerComparison`,
-   `reductionSeq_comp_associator_refl_splitLoopContract_in_Theory3_of_nestedWhiskerComparison`,
-   `reductionSeq_comp_associator_refl_splitLoop_to_theoryWhiskerLeft_in_Theory3_of_nestedWhiskerComparison`,
-   `reductionSeq_comp_associator_refl_target_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison`,
+   entirely by deriving the WLWR/right-whisker lift and an equivalent reduced
+   pentagon seed directly in the base interfaces. The refl-tail forward bridge
+   and the reduced front-seed package are now formalized in
+   `HigherLambdaModel/Lambda/ExtensionalKanHigher.lean` through
+   `reductionSeq_comp_associator_step_refl_in_Theory3_of_nestedWhiskerComparison`,
+   `reductionSeq_comp_associator_in_Theory3_ofPentagonBackComparisonRefl`,
+   `reductionSeq_comp_associator_in_Theory3_ofPentagonInnerRightFrontRefl`,
+   `FrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_associator_in_Theory3`,
+   `FrontSeedCoherentExtensionalKanComplex.reductionSeq_pentagon_in_Theory3`,
+   `FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_source_bridge_in_Theory3`,
+   `FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_target_bridge_in_Theory3`,
    and
-   `reductionSeq_comp_associator_refl_rightShell_to_theoryWhiskerTail_in_Theory3_of_nestedWhiskerComparison`.
-   The split loop now contracts outright on the bare interface, and the
-   normalized right-hand shell already lands on the semantic whiskered tail.
-   What still remains is the degenerate pentagon fragment for `β = refl`,
-   equivalently the special refl-tail identification between the raw middle
-   expression and this normalized right-shell presentation, which is the last
-   missing step before the full bare recursive associator bridge and the reduced
-   pentagon seed.
+   `FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_shell_bridge_in_Theory3`.
+   So there is no remaining proof gap in the current repository on this route;
+   the only outstanding work here is the stronger post-paper refactor of making
+   those coherence packages unnecessary as separate interfaces.
 2. Replace the present low-dimensional ω-groupoid package with a direct
    all-dimensional constructive formalization, and use it to add genuinely new
    results beyond the original papers.
