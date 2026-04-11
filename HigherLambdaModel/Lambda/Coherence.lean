@@ -705,6 +705,44 @@ def omegaGroupoidHigherTower (G : HigherLambdaModel.Simplicial.OmegaGroupoid) :
     HigherLambdaModel.Simplicial.GlobularTower :=
   recursiveHigherTower G.toReflexiveGlobularTower
 
+/-- A direct all-dimensional constructive coherence package: the recursively
+completed tower of a reflexive 6-cell core realizes into a chosen full globular
+tower in every dimension, and the realization preserves source and target
+boundaries strictly. -/
+structure AllDimensionalHigherConversionCoherence
+    (tower : HigherLambdaModel.Simplicial.GlobularTower)
+    (core : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) where
+  realize : (n : Nat) → recursiveHigherCell core n → tower.Cell n
+  source_comm :
+    ∀ {n : Nat} (x : recursiveHigherCell core (n + 1)),
+      realize n (recursiveHigherSource core x) =
+        tower.source (realize (n + 1) x)
+  target_comm :
+    ∀ {n : Nat} (x : recursiveHigherCell core (n + 1)),
+      realize n (recursiveHigherTarget core x) =
+        tower.target (realize (n + 1) x)
+
+/-- The recursively completed tower realizes into itself tautologically. -/
+def recursiveHigherConversionCoherence
+    (core : HigherLambdaModel.Simplicial.ReflexiveGlobularTower.{u, v, w, z}) :
+    AllDimensionalHigherConversionCoherence (recursiveHigherTower core) core where
+  realize := fun _ x => x
+  source_comm := by
+    intro n x
+    rfl
+  target_comm := by
+    intro n x
+    rfl
+
+/-- The recursively completed tower of any omega-groupoid core therefore already
+forms a direct all-dimensional constructive coherence package. -/
+def omegaGroupoidHigherConversionCoherence
+    (G : HigherLambdaModel.Simplicial.OmegaGroupoid) :
+    AllDimensionalHigherConversionCoherence
+      (omegaGroupoidHigherTower G)
+      G.toReflexiveGlobularTower :=
+  recursiveHigherConversionCoherence G.toReflexiveGlobularTower
+
 /-- An admissible higher λ-model consists of an all-dimensional conversion
 tower together with a low-dimensional omega-groupoid core, expressed through
 the shared simplicial API. The low-dimensional equivalences identify the tower

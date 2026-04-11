@@ -58,6 +58,25 @@ tower into the explicit recursive higher λ-conversion tower. -/
 abbrev lambdaOmegaConstructiveRealize :=
   TruncationCore.lambdaOmegaConstructiveRealize
 
+/-- The shared recursively completed omega-groupoid tower on λ-terms, packaged
+as a direct all-dimensional constructive coherence witness. -/
+abbrev lambdaOmegaConstructiveHigherConversionCoherence :=
+  TruncationCore.lambdaOmegaConstructiveHigherConversionCoherence
+
+/-- The explicit higher λ-conversion tower is directly realized by the shared
+all-dimensional constructive omega-groupoid tower in every dimension. -/
+abbrev lambdaConstructiveHigherConversionCoherence :=
+  TruncationCore.lambdaConstructiveHigherConversionCoherence
+
+/-- The direct all-dimensional constructive coherence package on λ-terms is
+inhabited. -/
+theorem lambda_constructive_higher_conversions_form_allDimensional_omegaGroupoid :
+    Nonempty
+      (HigherLambdaModel.Lambda.Coherence.AllDimensionalHigherConversionCoherence
+        HigherLambdaModel.Lambda.NTerms.lambdaTower
+        TruncationCore.reflexiveLambdaTower) :=
+  TruncationCore.lambda_constructive_higher_conversions_form_allDimensional_omegaGroupoid
+
 /-! ## Paths Versus Classical βη-Conversion -/
 
 /-- Proposition-level classical equality obtained by truncating explicit paths. -/

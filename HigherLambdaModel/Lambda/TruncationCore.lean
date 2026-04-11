@@ -342,6 +342,66 @@ def lambdaOmegaConstructiveRealize :
         lambdaOmegaConstructiveRealize (n + 6) y,
         higherDerivMap (lambdaOmegaConstructiveRealize (n + 6)) h⟩
 
+private theorem lambdaOmegaConstructiveRealize_source_comm :
+    ∀ {n : Nat} (x : lambdaOmegaConstructiveCell (n + 1)),
+      lambdaOmegaConstructiveRealize n
+          (HigherLambdaModel.Lambda.Coherence.recursiveHigherSource
+            lambdaOmegaReflexiveTower x) =
+        HigherTerms.Cell.source (lambdaOmegaConstructiveRealize (n + 1) x)
+  | 0, ⟨_, _, _⟩ => rfl
+  | 1, ⟨_, _, _, _, _⟩ => rfl
+  | 2, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | 3, ⟨_, _, _, _, _, _, _, _, _⟩ => rfl
+  | 4, ⟨_, _, _, _, _, _, _, _, _, _, _⟩ => rfl
+  | 5, ⟨_, _, _, _, _, _, _, _, _, _, _, _, _⟩ => rfl
+  | _ + 6, ⟨_, _, _⟩ => rfl
+
+private theorem lambdaOmegaConstructiveRealize_target_comm :
+    ∀ {n : Nat} (x : lambdaOmegaConstructiveCell (n + 1)),
+      lambdaOmegaConstructiveRealize n
+          (HigherLambdaModel.Lambda.Coherence.recursiveHigherTarget
+            lambdaOmegaReflexiveTower x) =
+        HigherTerms.Cell.target (lambdaOmegaConstructiveRealize (n + 1) x)
+  | 0, ⟨_, _, _⟩ => rfl
+  | 1, ⟨_, _, _, _, _⟩ => rfl
+  | 2, ⟨_, _, _, _, _, _, _⟩ => rfl
+  | 3, ⟨_, _, _, _, _, _, _, _, _⟩ => rfl
+  | 4, ⟨_, _, _, _, _, _, _, _, _, _, _⟩ => rfl
+  | 5, ⟨_, _, _, _, _, _, _, _, _, _, _, _, _⟩ => rfl
+  | _ + 6, ⟨_, _, _⟩ => rfl
+
+/-- The shared recursively completed omega-groupoid tower on λ-terms is already
+a direct all-dimensional constructive coherence package. -/
+def lambdaOmegaConstructiveHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.AllDimensionalHigherConversionCoherence
+      lambdaOmegaConstructiveTower
+      lambdaOmegaReflexiveTower :=
+  HigherLambdaModel.Lambda.Coherence.omegaGroupoidHigherConversionCoherence
+    HigherLambdaModel.Lambda.Coherence.lambdaOmegaGroupoid
+
+/-- The explicit higher λ-conversion tower is directly realized by the shared
+all-dimensional constructive omega-groupoid tower in every dimension. -/
+def lambdaConstructiveHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.AllDimensionalHigherConversionCoherence
+      HigherLambdaModel.Lambda.NTerms.lambdaTower
+      lambdaOmegaReflexiveTower where
+  realize := lambdaOmegaConstructiveRealize
+  source_comm := by
+    intro n x
+    exact lambdaOmegaConstructiveRealize_source_comm x
+  target_comm := by
+    intro n x
+    exact lambdaOmegaConstructiveRealize_target_comm x
+
+/-- The direct all-dimensional constructive coherence package on λ-terms is
+inhabited. -/
+theorem lambda_constructive_higher_conversions_form_allDimensional_omegaGroupoid :
+    Nonempty
+      (HigherLambdaModel.Lambda.Coherence.AllDimensionalHigherConversionCoherence
+        HigherLambdaModel.Lambda.NTerms.lambdaTower
+        lambdaOmegaReflexiveTower) := by
+  exact ⟨lambdaConstructiveHigherConversionCoherence⟩
+
 /-- The shared omega-groupoid tower on λ-terms is also admissible for the
 generic coherence theorem. This reuses the all-dimensional identity-completion
 constructor rather than the explicit recursive `HigherTerms.Cell` tower. -/
