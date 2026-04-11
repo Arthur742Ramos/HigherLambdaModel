@@ -35,8 +35,11 @@ result, the repository now contains:
 - and a small suite of concrete higher-conversion examples.
 
 The exact paper-level coverage is tracked in
-[`docs/theorem_index.md`](./docs/theorem_index.md). Completed execution work is
-tracked in [`docs/closure_backlog.md`](./docs/closure_backlog.md).
+[`docs/theorem_index.md`](./docs/theorem_index.md). A narrative summary of the
+completed mathematics and follow-up paper directions is in
+[`docs/mathematical_results_and_followup.md`](./docs/mathematical_results_and_followup.md).
+Completed execution work is tracked in
+[`docs/closure_backlog.md`](./docs/closure_backlog.md).
 
 ## Repository Snapshot
 
@@ -94,6 +97,7 @@ HigherLambdaModel/
 |   +-- Examples.lean          # Concrete higher-conversion example suite
 |-- docs/
 |   |-- theorem_index.md       # Paper-to-Lean claim matrix
+|   |-- mathematical_results_and_followup.md # Mathematical summary and next-paper directions
 |   +-- closure_backlog.md     # Completed closure roadmap
 |-- paper/
 |   +-- K_infinity_homotopy_lambda_model.pdf
@@ -114,6 +118,50 @@ git clone https://github.com/Arthur742Ramos/HigherLambdaModel.git
 cd HigherLambdaModel
 lake build
 ```
+
+## Calling an Azure AI Foundry deployment
+
+This repository is a Lean project, so there is no built-in model client in the
+library itself. For local prompting against an Azure AI Foundry / Azure OpenAI
+deployment, use `scripts/invoke_foundry_chat.ps1`.
+
+The script calls the stable `openai/v1/chat/completions` endpoint and accepts
+either:
+
+- a normal endpoint + deployment pair, or
+- the Azure AI Foundry deployment URL copied from `ai.azure.com`, which it
+  parses automatically.
+
+Authentication works with either `AZURE_OPENAI_API_KEY` or an existing Azure CLI
+login (`az login`).
+
+### Windows / PowerShell example
+
+```powershell
+$env:AZURE_OPENAI_ENDPOINT = "https://<your-resource>.openai.azure.com"
+$env:AZURE_OPENAI_DEPLOYMENT = "gpt-5.4-pro"
+$env:AZURE_OPENAI_API_KEY = "<your-key>"
+
+pwsh -File .\scripts\invoke_foundry_chat.ps1 `
+  -Prompt "Summarize the main theorem in this repository."
+```
+
+### Using the Foundry deployment URL directly
+
+```powershell
+pwsh -File .\scripts\invoke_foundry_chat.ps1 `
+  -FoundryDeploymentUrl "https://ai.azure.com/resource/deployments/%2Fsubscriptions%2F...%2Fdeployments%2Fgpt-5.4-pro?..." `
+  -Prompt "List the key Lean files in this repository."
+```
+
+### Notes
+
+- `AZURE_OPENAI_ENDPOINT` may be either `https://<resource>.openai.azure.com`
+  or `https://<resource>.services.ai.azure.com`.
+- If you omit `AZURE_OPENAI_API_KEY`, the script falls back to
+  `az account get-access-token --resource https://cognitiveservices.azure.com`.
+- Pass `-RawJson` if you want the full response payload instead of only the
+  assistant text.
 
 ### Dependencies
 
@@ -188,7 +236,8 @@ primitive triangle and pentagon constructors inside `StructuralHomotopy3`. The
 recursive wrapper therefore reaches the full primitive `Homotopy3Deriv`
 3-cell language.
 
-The remaining paper-level caveat is now separated cleanly from the original
+All indexed paper claims are now formalized in Lean. The repository also keeps
+the stronger post-paper coherence layer separated cleanly from the original
 model interface rather than hidden inside it:
 
 - the bare simplicial API isolates the reduced front/back pentagon seed
@@ -221,7 +270,7 @@ model interface rather than hidden inside it:
   it without forcing a return to the raw semantic level; the public strict
   recursive associator theorem now factors through that coherent bridge.
 
-The main remaining proof targets are now sharply separated:
+The remaining extension targets are now sharply separated:
 
 1. derive the reduced front-seed coherence boundary from the original bare
    `ExtensionalKanComplex` API itself, most likely by proving a generic
@@ -274,7 +323,7 @@ recursive `HigherDeriv` completion above the explicit 6-cell core.
 
 Contributions are welcome. The highest-signal directions are:
 
-- strengthening the remaining `partial` and `missing` rows in `docs/theorem_index.md`,
+- extending the post-paper coherence targets called out in `docs/theorem_index.md`,
 - internalizing more of the confluence story now imported from `Metatheory`,
 - extending the direct semantic treatment of higher 3-cells,
 - and pushing the `K∞` layer from chosen-data shadows to exact paper statements.
