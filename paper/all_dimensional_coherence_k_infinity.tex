@@ -1,0 +1,2434 @@
+% all_dimensional_coherence_k_infinity.tex
+% Draft: All-Dimensional Coherence for Higher Lambda-Conversions
+%        and the K-infinity Model
+%
+% Authors: (fill in before submission)
+%
+% This manuscript presents new mathematical results extracted from
+% a Lean 4 formalization of the theory of higher lambda-models.
+%
+% Prepared for the Journal of Logic and Computation (OUP).
+% Template: oup-authoring-template  (numbered sections, numbered references)
+
+\documentclass[webpdf,traditional,large,numbered]{oup-authoring-template}
+\makeatletter
+\@numbibtrue
+\makeatother
+\onecolumn
+
+% ---- Extra packages NOT already loaded by the OUP class ----------------
+\usepackage{stmaryrd}       % \llbracket, \rrbracket, etc.
+% The OUP class does not define description, but enumitem expects it.
+\makeatletter
+\@ifundefined{description}{%
+  \providecommand*\descriptionlabel[1]{\hspace\labelsep\normalfont\bfseries #1}
+  \newenvironment{description}
+    {\list{}{\labelwidth\z@ \itemindent-\leftmargin
+      \let\makelabel\descriptionlabel}}
+    {\endlist}
+}{}
+\@ifundefined{appendix}{%
+  \newcommand{\appendix}{%
+    \setcounter{section}{0}%
+    \setcounter{subsection}{0}%
+    \gdef\thesection{\Alph{section}}%
+    \gdef\theHsection{appendix.\Alph{section}}%
+    \gdef\theHsubsection{appendix.\Alph{section}.\arabic{subsection}}}
+}{}
+\makeatother
+\usepackage{enumitem}       % label= in enumerate
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+% ---- Lean listing style ------------------------------------------------
+%  (listings and xcolor are loaded by oup-authoring-template)
+\definecolor{leanblue}{RGB}{0,0,160}
+\definecolor{leangreen}{RGB}{0,128,0}
+\definecolor{leangray}{RGB}{100,100,100}
+\lstdefinelanguage{Lean}{
+  morekeywords={def,theorem,structure,where,noncomputable,abbrev,import,
+    namespace,open,universe,Sort,Prop,Type,Nat,inductive,extends,
+    by,exact,intro,apply,simp,rfl,fun,let,have,match,with,
+    axiom,variable,section,end,class,instance,if,then,else,return},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[n]{/-}{-/},
+  morestring=[b]",
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{leanblue}\bfseries,
+  commentstyle=\color{leangreen}\itshape,
+  stringstyle=\color{leangray},
+  breaklines=true,
+  showstringspaces=false,
+  columns=flexible,
+  frame=single,
+  backgroundcolor=\color{gray!5},
+  xleftmargin=2em,
+}
+\lstset{language=Lean}
+
+% ---- Theorem environments (OUP styles, numbered within section) --------
+\theoremstyle{thmstyleone}%  italic body – for main results
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{thmstyletwo}%  upright body – for examples/remarks
+\newtheorem{example}[theorem]{Example}
+\newtheorem{remark}[theorem]{Remark}
+
+\theoremstyle{thmstylethree}%  upright body, bold head – for definitions
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{notation_}[theorem]{Notation}
+
+% ---- Notation macros ---------------------------------------------------
+\newcommand{\Kinf}{K_\infty}
+\newcommand{\Kn}{K_n}
+\newcommand{\THeq}{\mathrm{TH}_{\lambda =}}
+\newcommand{\HoTFT}{\mathrm{HoTFT}}
+\newcommand{\chpo}{\mathrm{c.h.p.o.}}
+\newcommand{\ReductionSeq}{\mathrm{RedSeq}}
+\providecommand{\Hom}{\mathrm{Hom}}
+\newcommand{\HigherDeriv}{\mathrm{HigherDeriv}}
+\newcommand{\whiskerLeft}{\mathrm{wl}}
+\newcommand{\whiskerRight}{\mathrm{wr}}
+\newcommand{\ass}{\mathrm{ass}}
+\newcommand{\realize}{\mathrm{realize}}
+
+\AtBeginDocument{%
+\makeatletter
+\def\ps@opening{%
+  \def\@oddhead{\raisebox{\if@large-6pt\else\if@medium-6pt\else-6pt\fi\fi}[0pt][0pt]{%
+            \hbox to \textwidth{{%
+            \parbox{0.8\textwidth}{\raggedright\fontsize{7bp}{10bp}\selectfont
+            \textit{\@journaltitle},\ \@copyrightyear, pp. \thepage--\thelastpage\par
+            \@DOI\par\ifx\@access\@empty\else\@access\par\fi%
+            \ifx\@appnotes\@empty\else\textbf{\@appnotes}\par\fi}
+              }%
+            \hfill\hbox{\color{black!20}\rule[-7.5pt]{55pt}{20pt}}}}}%
+  \def\@evenhead{\raisebox{\if@large-6pt\else\if@medium-6pt\else-6pt\fi\fi}[0pt][0pt]{%
+            \hbox to \textwidth{{%
+            \parbox{0.8\textwidth}{\raggedright\fontsize{7bp}{10bp}\selectfont
+            \textit{\@journaltitle},\ \@copyrightyear, pp. \thepage--\thelastpage\par
+            \@DOI\par\ifx\@access\@empty\else\@access\par\fi%
+            \ifx\@appnotes\@empty\else\textbf{\@appnotes}\par\fi}
+              }%
+            \hfill\hbox{\color{black!20}\rule{55pt}{20pt}}}}}%
+  \def\@evenfoot{\raisebox{0mm}[0pt][0pt]{\parbox{\textwidth}{\noindent\rule{\textwidth}{.5pt}\par%
+            \vskip2.5pt\fontsize{6.25bp}{8.25bp}\selectfont\@history\par\raggedright%
+            \noindent\copyright\space The Author(s) \@copyrightyear.}}}%
+  \let\@oddfoot\@evenfoot
+}
+\makeatother
+}
+
+% ========================================================================
+
+\begin{document}
+
+% ---- OUP journal metadata (placeholders for production) ----------------
+\journaltitle{Journal of Logic and Computation}
+\DOI{}
+\copyrightyear{2026}
+\pubyear{2026}
+\vol{00}
+\issue{0}
+\access{}
+\appnotes{Paper}
+
+\firstpage{1}
+
+\title[All-Dimensional Coherence in Higher $\lambda$-Models]{%
+  All-Dimensional Coherence in Higher
+  \texorpdfstring{$\lambda$}{Lambda}-Models:
+  Front-Seed Semantics, Proof-Relevant Witnesses, and the
+  \texorpdfstring{$K_\infty$}{K-infinity} Model}
+
+\author[1]{Daniel O. Mart\'{\i}nez-Rivillas}
+\author[2,$\ast$]{Arthur F. Ramos}
+\author[1]{Ruy J.G.B. de~Queiroz}
+
+\address[1]{\orgdiv{Centro de Inform\'{a}tica (CIn)},
+  \orgname{Universidade Federal de Pernambuco (UFPE)},
+  \orgaddress{Recife, \state{Pernambuco}, \country{Brazil}}}
+
+\address[2]{\orgname{Microsoft},
+  \orgaddress{\country{USA}}}
+
+\corresp[$\ast$]{Corresponding author. \href{mailto:arfreita@microsoft.com}{arfreita@microsoft.com}}
+
+%\editor{Associate Editor: Name}
+
+\abstract{Mart\'{\i}nez-Rivillas and de~Queiroz established a semantic framework in which
+untyped $\lambda$-terms are interpreted in extensional Kan complexes, higher
+$\beta\eta$-conversions are organized into an explicit tower of $n$-cells, and
+the inclusion $\THeq \subseteq \HoTFT$ holds for every such complex.  In a
+companion paper they constructed the $K_\infty$ homotopy $\lambda$-model as an
+inverse limit of iterated function spaces and exhibited a nontrivial separation
+phenomenon at the level of individual witnesses.
+Taking those two developments as a closed baseline, the present paper fills
+four specific gaps left by the existing framework.
+First, \emph{all-dimensional constructive coherence}: the higher
+$\lambda$-conversion tower carries an all-dimensional constructive globular
+coherence package extending a recursively completed low-dimensional
+$\lambda$-$\omega$-groupoid core, with strict source/target compatibility at
+every level.
+Second, \emph{reduced front-seed semantic coherence}: a bare extensional Kan
+complex together with exactly two explicit $3$-cell data---a
+whiskering-left/whiskering-right comparison and an inner-right-front pentagon
+contraction---suffices to recover the recursive associator comparison theorem and
+the semantic pentagon identity.
+Third, \emph{proof-relevant $K_\infty$ witness semantics}: on the fixed
+witness-separation span, every explicit $1$-term witness receives a canonical $K_\infty$
+interpretation determined by its $\beta/\eta$ class, and the resulting
+semantic separation persists uniformly through every dimension of the
+higher-cell tower, including the recursively completed dimensions.
+Fourth, \emph{exact $K_\infty$ reflexive packaging}: the inverse limit $K_\infty$
+carries globally continuous reify, reflect, and application maps satisfying
+explicit stagewise formulas, yielding a complete reflexive c.h.p.o.
+The exact reflexive packaging theorem is the most concrete model-specific
+result; the other theorems clarify how much of the higher structure is forced
+once the low-dimensional witness language, the reduced coherence data, and the
+point-level $\beta/\eta$ separation are fixed.  Taken together, these results
+separate the genuinely model-specific input from the structural consequences of
+the recursive higher tower.
+All results have been formally verified in Lean~4.}
+
+\keywords{higher lambda-calculus, proof relevance, extensional Kan complexes,
+  omega-groupoid, denotational semantics, formal verification}
+
+\maketitle
+
+\noindent\textbf{2020 Mathematics Subject Classification.}
+03B40, 68Q55, 18N50.
+\par\medskip
+
+% ========================================================================
+\section{Introduction}\label{sec:intro}
+
+\subsection{Background and lineage}
+
+The untyped $\lambda$-calculus has served since its creation as a meeting ground
+for logic, computation, and algebra.  The classical denotational tradition,
+beginning with Scott's construction of continuous
+lattices~\cite{Scott:continuous} and codified in
+Barendregt's~\cite{Barendregt:lambda} systematic treatment, interprets
+$\lambda$-terms as elements of reflexive domains---ordered structures carrying
+reify and reflect maps.  In that tradition the key equation
+$F(G(f))(x)=f(x)$ (and its dual) collapses the distinction between data and
+function, and the resulting models are \emph{extensional} precisely when
+$G(F(x))=x$.
+This interplay between the logical structure of convertibility and the
+computational content of reduction witnesses is a central theme of the present
+paper.
+
+A complementary thread, motivated by the homotopy-theoretic programme of
+Grothendieck~\cite{Grothendieck:pursuing} and the algebraic coherence machinery
+of Batanin~\cite{Batanin:monoidal}, asks whether the conversion relation
+of a logical calculus can itself be organized into a higher-categorical object---a
+weak $\omega$-groupoid whose $n$-cells are explicit $n$-dimensional conversion
+witnesses.  In the setting of dependent type theory, that question was answered
+affirmatively by the development of homotopy type theory~\cite{HoTT}, where
+identity types naturally form a weak $\omega$-groupoid.
+
+The work of Mart\'{\i}nez-Rivillas and de~Queiroz connects these two traditions
+for the \emph{untyped} calculus.  In a series of
+papers~\cite{MRdQ:homotopydomain,MRdQ:topological,MRdQ:theory,MRdQ:Kinfinity}
+they introduced a framework in which $\lambda$-terms are interpreted in
+\emph{extensional Kan complexes}, higher $\beta\eta$-conversions are organized
+into a tower of explicit $n$-cells, and the classical conversion theory is
+recovered as the $0$-truncation of a richer homotopical structure.
+
+A further ingredient in this circle of ideas is the computational-paths
+programme of de~Veras, Ramos, de~Queiroz, and
+de~Oliveira~\cite{deVeras:computational}, which demonstrated that the paths
+generated by directed reduction steps in a rewriting system carry natural weak
+groupoid structure.  That work, published in this journal~\cite{deVeras:computational}, established a direct link between directed rewriting and higher-categorical algebra.  That observation provides a syntactic precursor to the
+semantic picture developed here: the explicit reduction sequences between
+$\lambda$-terms play the role of computational paths, and the higher-dimensional
+conversion witnesses are the coherence data for the resulting higher groupoid.
+
+\subsection{The two baseline papers}
+
+We rely on two specific antecedents as a closed baseline; all results quoted
+from them are taken as established.
+
+\medskip
+\noindent\textbf{Paper~I}~\cite{MRdQ:theory} introduced extensional Kan
+semantics for the untyped $\lambda$-calculus, defined the explicit tower of
+higher $\beta$- and $\eta$-conversions through dimension~3, and proved the
+central witness-lifting theorem: for every extensional Kan complex $K$, every
+explicit reduction witness lifts to a semantic $1$-cell, and explicit
+syntactic $2$- and $3$-cells lift to semantic $2$- and $3$-cells between the
+corresponding interpreted witnesses.
+The proof proceeds by induction on the structure of reduction sequences,
+lifting individual-step $\beta$- and $\eta$-soundness to a full semantic
+interpretation of each dimension of the explicit tower.  The resulting theory
+enriches the classical proposition-level equality $M=_{\beta\eta}N$ with a
+proof-relevant layer of semantic $n$-cells.  Paper~I also established
+$\beta\eta$-confluence via Hindley--Rosen and proved the invertibility of
+reduction sequences via Church--Rosser.
+
+\medskip
+\noindent\textbf{Paper~II}~\cite{MRdQ:Kinfinity} constructed the $\Kinf$
+homotopy $\lambda$-model as the inverse limit
+$\Kinf=\varprojlim_n K_n$ of a tower of iterated function spaces over a
+nontrivial homotopy-group base $K_0=\mathbb{N}^+$.
+The construction follows the classical Scott tradition but enriches it with an
+explicit homotopical layer.  Paper~II proved that $\Kinf$ is an algebraic
+bounded-complete domain (Proposition~4.1) and exhibited a separation
+phenomenon, recalled below in Example~\ref{ex:witness-span}: the
+$\beta$-contraction and the $\eta$-contraction
+of a common redex land at the same target but receive semantically distinct
+images in~$\Kinf$.  That example established the nontriviality of the
+proof-relevant structure but did not analyze the witness language at the level
+of explicit reduction terms or trace the separation through the recursively
+completed higher-cell tower.
+
+\subsection{Contributions of the present paper}
+
+Starting from the closed baseline described above, this paper fills four
+specific gaps left by Papers~I and~II.  The four theorem packages are not all
+of the same kind.  Section~\ref{sec:packaging} contains the most concrete
+model-specific result, Section~\ref{sec:front-seed} isolates the exact
+coherence interface needed later, and Sections~\ref{sec:all-dim}
+and~\ref{sec:witness} are structural results describing how the recursive tower
+behaves once the low-dimensional or point-level data are fixed.
+
+\medskip
+\noindent\textbf{Main contributions.}
+\begin{enumerate}[label=(\Alph*)]
+  \item \textbf{All-dimensional constructive coherence
+    (Section~\ref{sec:all-dim}).}
+    We prove a structural completion theorem for the explicit higher
+    $\lambda$-conversion tower.  Paper~I supplies explicit data through
+    dimension~$3$, and the recursive higher-derivation machinery already
+    suggests how to continue above that range.  The content of
+    Theorem~\ref{thm:A} is to compare the explicit low-dimensional presentation
+    with the equality-generated continuation, identify the intermediate
+    dimensions in which those presentations meet, and prove strict globular
+    boundary compatibility for the resulting all-dimensional tower.
+
+  \item \textbf{Reduced front-seed semantic coherence
+    (Section~\ref{sec:front-seed}).}
+    We isolate the precise refinement of the coherent semantic interface needed
+    later: a bare extensional Kan complex equipped with a
+    whiskering-left/whiskering-right comparison and only the
+    inner-right-front pentagon contraction already suffices to recover the
+    recursive associator comparison theorem, the semantic pentagon identity for
+    interpreted reduction sequences, and the source/target/shell bridge
+    theorems.  The gain is that the full pentagon witness can be replaced by
+    this smaller front-facing seed while keeping WLWR explicit.
+
+  \item \textbf{Proof-relevant $\Kinf$ witness separation
+    (Section~\ref{sec:witness}).}
+    We refine the point-level separation of Paper~II on the
+    witness-separation span of Example~\ref{ex:witness-span} to a theorem about
+    explicit witnesses on that fixed span.  The main new input is
+    a canonical classification of explicit $1$-witnesses into $\beta$- and
+    $\eta$-classes together with their canonical $\Kinf$ interpretations.  Once
+    that point-level dichotomy is in place, the higher-dimensional
+    non-connection
+    statements become structural consequences of the equality-generated tower.
+
+  \item \textbf{Exact $\Kinf$ reflexive packaging
+    (Section~\ref{sec:packaging}).}
+    We establish that the inverse limit $\Kinf$ carries globally continuous
+    reify, reflect, and application operations satisfying explicit stagewise
+    formulas, yielding a complete reflexive $\chpo$ with a strictly stronger
+    retract law ($h(k(x))=x$ rather than merely $h(k(x))\le x$) than the
+    standard domain-theoretic formulation requires.
+\end{enumerate}
+
+\subsection{Structure of the paper}
+Sections~\ref{sec:prelim}--\ref{sec:tower} collect definitions and
+restate the baseline results of Papers~I and~II.
+Sections~\ref{sec:all-dim}--\ref{sec:witness} contain the new theorems,
+presented with full proofs.  Section~\ref{sec:discussion} gives a detailed
+comparison with related work and a list of open problems.
+
+Sections~\ref{sec:all-dim} and~\ref{sec:witness} should be read as structural
+completion and persistence theorems: they explain what follows once the
+low-dimensional core and the point-level $\Kinf$ separation are fixed.
+Sections~\ref{sec:front-seed} and~\ref{sec:packaging} isolate the semantic
+interface and the model-specific inverse-limit structure on which those
+structural arguments rest.
+
+The mathematical content comes first throughout.  The formal
+development~\cite{Lean4} plays an evidential role: a brief verification note at
+the end of the paper records that all stated results have been mechanically
+checked, but the paper is self-contained and can be read without reference to
+the proof assistant.
+The constructive character of the proofs---particularly the explicit witness
+constructions in Theorems~\ref{thm:A} and~\ref{thm:C}---reflects the paper's
+orientation toward the logic-and-computation tradition, where the computational
+content of proofs is a first-class object of study.
+
+% ========================================================================
+\section{Preliminaries and Setup}\label{sec:prelim}
+
+\subsection{Lambda-terms and reduction}
+
+We work with the untyped $\lambda$-calculus using de~Bruijn indices. A
+\emph{term} is generated by:
+\[
+  M, N ::= \mathtt{var}\;n \mid M\;N \mid \lambda\,M
+\]
+where $n \in \mathbb{N}$ is a de~Bruijn index. We write $M\;N$ for application
+and $\lambda\,M$ for abstraction. Substitution $M[N]$ denotes the capture-free
+replacement of the variable at index~$0$ in $M$ by $N$, with the standard
+shifting conventions.
+
+A \emph{$\beta$-step} is a single reduction of the form $(\lambda\,M)\,N
+\to_\beta M[N]$, closed under subterm contexts. An \emph{$\eta$-step} is a
+single reduction of the de~Bruijn form
+\[
+  \lambda\,((\mathsf{shift}(1,0)M)\,(\mathtt{var}\;0)) \to_\eta M,
+\]
+equivalently
+\[
+  \lambda\,(M\,(\mathtt{var}\;0)) \to_\eta \mathsf{shift}(-1,0)M,
+\]
+when $\mathtt{var}\;0$ does not occur free in $M$. A \emph{$\beta\eta$-step} is
+either a $\beta$-step or an $\eta$-step.
+
+\begin{definition}[Reduction sequences]
+  A \emph{reduction sequence} from $M$ to $N$ is a finite sequence of
+  $\beta\eta$-steps and their formal inverses:
+  \[
+    M = M_0 \leftrightarrow M_1 \leftrightarrow \cdots \leftrightarrow M_k = N.
+  \]
+  We write $\ReductionSeq(M,N)$ for the type of all such sequences. Each
+  reduction sequence is an explicit proof-relevant witness for the
+  $\beta\eta$-convertibility of $M$ and $N$.
+\end{definition}
+
+\subsection{Extensional Kan complexes}
+
+The semantic setting is that of \emph{Kan complexes} in the simplicial sense.
+
+\begin{definition}[Kan complex]
+  A \emph{Kan complex} $K$ is a simplicial set equipped with a chosen horn
+  filler: for every horn $\Lambda \subset \Delta^{n+1}$ with a missing face, a
+  chosen $(n+1)$-simplex $\sigma$ extending the given faces. Formally, $K$
+  carries a function
+  \[
+    \mathsf{fill} : \mathrm{Horn}(K, n, j) \to K_{n+1}
+  \]
+  satisfying the face-matching specification for all non-missing faces.
+\end{definition}
+
+\begin{definition}[Reflexive and extensional Kan complexes]
+  A Kan complex $K$ is \emph{reflexive} if it is equipped with maps $F: |K|
+  \to [K \to K]$ and $G: [K \to K] \to |K|$ satisfying the $\eta$-law
+  $F(G(f))(x) = f(x)$. It is \emph{extensional} if additionally $G(F(x)) = x$
+  for all objects $x$. Here $[K \to K]$ denotes the endofunction space on
+  $0$-simplices used by the semantic interpretation, and $|K|$ is the set of
+  $0$-simplices.
+\end{definition}
+
+An extensional Kan complex $K$ interprets $\lambda$-terms via:
+\[
+  \llbracket\mathtt{var}\;n\rrbracket_\rho = \rho(n),\qquad
+  \llbracket M\;N \rrbracket_\rho = F(\llbracket M\rrbracket_\rho)
+    (\llbracket N\rrbracket_\rho),\qquad
+  \llbracket \lambda\,M \rrbracket_\rho =
+    G\bigl(x \mapsto \llbracket M \rrbracket_{\rho[0 \mapsto x]}\bigr).
+\]
+
+\begin{definition}[The theories $\THeq$, $\mathrm{TheoryEq}_K$, and $\HoTFT$]\label{def:theories}
+  Fix an extensional Kan complex $K$.  The \emph{model-specific equality
+  theory} is
+  \[
+    \mathrm{TheoryEq}_K(M,N)
+    \;:\equiv\;
+    \forall\,\rho,\;\llbracket M\rrbracket_\rho = \llbracket N\rrbracket_\rho.
+  \]
+  Separately, the \emph{classical $\lambda$-theory} $\THeq$ is the syntactic
+  relation $M =_{\beta\eta} N$.  The \emph{homotopical theory} $\HoTFT(K)$
+  enriches $\mathrm{TheoryEq}_K$ to a proof-relevant tower:
+  $\HoTFT_1(K)$ assigns semantic $1$-cells between denotations, while
+  $\HoTFT_2(K)$ and $\HoTFT_3(K)$ are indexed by parallel lower-dimensional
+  witnesses.
+\end{definition}
+
+\begin{remark}[Comparing the three theories]
+The three notions should be kept distinct.  The classical theory $\THeq$ is
+syntactic and propositional: the assertion $M =_{\beta\eta} N$ records only
+that some finite conversion chain exists, without remembering any particular
+chain.  For a fixed model $K$, the relation $\mathrm{TheoryEq}_K$ forgets
+witnesses in a different way: it asks only that all environments give equal
+denotations.  By contrast, $\HoTFT(K)$ retains the \emph{explicit witness}: a
+pair $(M,N)$ in $\HoTFT_1(K)$ is accompanied by a specified semantic path, and
+the higher layers are indexed by parallel lower-dimensional witnesses.  The
+passage from $\THeq$ to $\HoTFT$ is therefore not merely a set-theoretic
+strengthening but a genuinely proof-relevant enrichment.  This enrichment is
+not an artefact of the formalism.  Theorem~\ref{thm:C} below demonstrates that
+the $\Kinf$ model separates $\beta$-witnesses from $\eta$-witnesses even when
+they connect the same pair of terms, so the additional structure carried by
+$\HoTFT$ is genuinely non-degenerate.
+\end{remark}
+
+\subsection{Higher conversions}
+
+\begin{definition}[Explicit higher cells]
+  Given terms $M, N$, a \emph{2-cell} $\alpha: p \Rightarrow q$ between
+  reduction sequences $p, q : \ReductionSeq(M,N)$ is a formal witness of
+  homotopy between $p$ and $q$, built inductively from reflexivity, symmetry,
+  transitivity, congruence under whiskering, and the structural interchange,
+  associator, pentagon, and triangle operations.
+
+  A \emph{3-cell} $\Theta: \alpha \Rrightarrow \beta$ between 2-cells is built
+  by the same schema one dimension higher.
+\end{definition}
+
+The tower of $n$-cells is organized into \emph{$n$-conversions} $\Sigma_n$
+(reduction sequences at dimension~1, homotopies at dimension~2, etc.) and
+\emph{$n$-terms} $\Pi_n$ (explicit witnesses for $n$-conversions).
+
+% ========================================================================
+\section{Baseline: Soundness and \texorpdfstring{$\THeq \subseteq \HoTFT$}{TH\_lambda= subset HoTFT}}
+\label{sec:baseline}
+
+The results of this section are not new: they were established in
+Paper~I~\cite{MRdQ:theory} and are restated here in the notation of the present
+paper so that the subsequent sections can cite them precisely.  The reader
+already familiar with~\cite{MRdQ:theory} may safely skip to
+Section~\ref{sec:tower}.
+
+\medskip
+The foundation of the semantic theory is the soundness of $\beta$- and
+$\eta$-reduction, and the architecture by which that foundation lifts through
+the explicit tower is worth stating precisely, both because it fixes notation
+and because the subsequent sections extend the same inductive strategy to
+higher-dimensional data.
+
+The logical structure of the lifting is as follows.  At the base, one proves
+that a single $\beta$-step (respectively $\eta$-step) induces a semantic
+$1$-cell in any extensional Kan complex; this is the content of the two
+soundness theorems below.  A key supporting ingredient is the
+\emph{substitution lemma}: the semantic interpretation commutes with syntactic
+substitution,
+\[
+  \llbracket M[N/0] \rrbracket_\rho
+  \;=\;
+  \llbracket M \rrbracket_{\rho[0\mapsto \llbracket N\rrbracket_\rho]},
+\]
+which reduces soundness of the $\beta$-rule to a computation in the function
+space.  From these individual-step results one passes to composite reduction
+sequences by induction on sequence length: concatenation of sequences lifts to
+composition of semantic paths, and formal inversion lifts to symmetry of paths.
+
+At the next level, each inductive constructor of a $2$-cell---left whiskering,
+right whiskering, horizontal composition, and the associator, unitor, and
+interchange $2$-cells---is shown to lift to a semantic $2$-cell, using the
+composition and whiskering operations of the Kan complex.  The $3$-cell
+constructors (pentagon, triangle, and the higher interchange witnesses) then
+lift by the same scheme one dimension higher, using the $3$-dimensional
+horn-filling structure of the Kan complex to produce the required higher
+homotopies.  In each case the inductive step is structural: the semantic image
+of a composite constructor is the corresponding composite of the semantic images
+of its constituents.
+
+The three theorems below record the cumulative outcome of this lifting
+procedure.
+
+\begin{theorem}[$\beta$-soundness]
+  For every extensional Kan complex $K$, every $\beta$-step $M \to_\beta N$
+  induces a semantic path from $\llbracket M \rrbracket_\rho$ to $\llbracket N
+  \rrbracket_\rho$ for every environment $\rho$.
+\end{theorem}
+
+\begin{theorem}[$\eta$-soundness]
+  For every extensional Kan complex $K$, every $\eta$-step $M \to_\eta N$
+  induces a semantic path from $\llbracket M \rrbracket_\rho$ to
+  $\llbracket N \rrbracket_\rho$ for every environment $\rho$.
+\end{theorem}
+
+By induction on the structure of reduction sequences and their higher-cell
+constructors, these individual-step soundness results lift to witness-level
+interpretations of the explicit tower:
+
+\begin{theorem}[{$\THeq \subseteq \HoTFT$, $\Sigma_2 \subseteq \HoTFT_2$,
+  $\Sigma_3 \subseteq \HoTFT_3$}]
+\label{thm:baseline}
+  Let $K$ be an extensional Kan complex. Then:
+  \begin{enumerate}[label=(\roman*)]
+    \item Every reduction sequence $p : \ReductionSeq(M,N)$ induces a semantic
+      path in $K$.  In particular, every syntactic $\beta\eta$-conversion
+      witness in $\THeq$ admits a proof-relevant semantic lift in
+      $\HoTFT_1(K)$.
+    \item If $p,q : \ReductionSeq(M,N)$ and $\alpha : p \Rightarrow q$, then
+      $\alpha$ induces a semantic 2-cell between the interpreted $1$-cells of
+      $p$ and $q$.
+    \item If $p,q : \ReductionSeq(M,N)$, $\alpha,\beta : p \Rightarrow q$, and
+      $\Theta : \alpha \Rrightarrow \beta$, then $\Theta$ induces a semantic
+      3-cell between the interpreted $2$-cells of $\alpha$ and $\beta$.
+  \end{enumerate}
+\end{theorem}
+
+These results are exactly those established in~\cite{MRdQ:theory}.  We take them
+as the starting point for the new theorems presented below.
+
+% ========================================================================
+\section{Higher Conversions and the Explicit Tower}\label{sec:tower}
+
+\subsection{The globular tower of \texorpdfstring{$n$}{n}-conversions}
+
+The $n$-conversion tower is a \emph{globular set}: at dimension~0 one has
+terms, at dimension~1 reduction sequences between terms, at dimension~2
+homotopies between reduction sequences, at dimension~3 higher homotopies
+between homotopies, and so on. Source and target maps $s, t : \Sigma_{n+1} \to
+\Sigma_n$ record the boundary of each cell, and the globularity conditions
+$s \circ s = s \circ t$ and $t \circ s = t \circ t$ hold by construction.
+
+Through dimensions~$0$--$3$, the cells are built by explicit inductive types
+carrying the full combinatorial structure of $\lambda$-reduction: whiskering,
+horizontal composition, associators, pentagon and triangle coherences,
+interchange, and so on. At dimension~$4$ and above, the cells are generated by
+a uniform \emph{recursive completion} principle.
+
+\subsection{The omega-groupoid core}
+
+The low-dimensional structure through dimension~3 forms a weak $\omega$-groupoid
+core. Concretely, the following data are available:
+
+\begin{itemize}
+  \item \emph{Composition}: concatenation of reduction sequences.
+  \item \emph{Inverses}: formal reversal of reduction sequences.
+  \item \emph{Whiskering}: left and right whiskering of 2-cells along 1-cells.
+  \item \emph{Horizontal composition}: horizontal composition of 2-cells.
+  \item \emph{Associator}: a 2-cell
+    $\alpha_{p,q,r} : (p \cdot q) \cdot r \Rightarrow p \cdot (q \cdot r)$.
+  \item \emph{Unitors}: 2-cells $\ell_p : \mathrm{id} \cdot p \Rightarrow p$
+    and $\rho_p : p \cdot \mathrm{id} \Rightarrow p$.
+  \item \emph{Pentagon}: a 3-cell witnessing the standard pentagon identity for
+    four composable 1-cells.
+  \item \emph{Triangle}: a 3-cell witnessing the triangle identity relating the
+    associator and the unitors.
+  \item \emph{Interchange}: 3-cells witnessing both parenthesizations of
+    horizontal composition.
+\end{itemize}
+
+All whiskering operations preserve identity, composition, symmetry, and
+congruence up to explicit 3-cells.
+
+\begin{definition}[$\omega$-groupoid on higher $\lambda$-conversions]
+  The \emph{$\lambda$-$\omega$-groupoid} is the structure
+  $\mathscr{G}_\lambda$ with objects~$= \mathrm{Term}$, 1-cells~$=
+  \ReductionSeq$, 2-cells~$= \mathrm{Homotopy}_2$, 3-cells~$=
+  \mathrm{Homotopy}_3$, and the above operations, satisfying the globularity
+  conditions at all low dimensions.
+\end{definition}
+
+% ========================================================================
+\section{All-Dimensional Constructive Coherence}\label{sec:all-dim}
+
+\subsection{Recursive completion of the tower}
+
+The weak $\omega$-groupoid $\mathscr{G}_\lambda$ constructed from explicit
+$\beta\eta$-paths already gives concrete data in low dimensions:
+\[
+\Sigma_0=\mathrm{Term},\qquad
+\Sigma_1=\ReductionSeq,\qquad
+\Sigma_2=\mathrm{Homotopy}_2,\qquad
+\Sigma_3=\mathrm{Homotopy}_3.
+\]
+Moreover, the low-dimensional core also carries the next layers of reflexive
+higher coherence needed to iterate the construction.  The point of this section
+is therefore structural rather than model-specific: once this finite core is
+fixed, no new primitive coherence operations are needed in higher dimension,
+and one can continue the tower uniformly by freely adding formal reflexivity,
+symmetry, and transitivity witnesses.  The non-formal part of the argument is
+to show that this equality-generated continuation agrees with the explicit
+low-dimensional presentation and preserves strict globular boundaries.
+Figure~\ref{fig:tower-architecture} summarizes the three phases of that
+comparison.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  phase/.style={
+    draw,
+    rounded corners,
+    align=center,
+    minimum width=3.5cm,
+    minimum height=1.45cm,
+    fill=gray!8
+  },
+  flow/.style={-{Latex[length=2mm]}, thick},
+  note/.style={align=center}
+]
+  \node[phase] (explicit) {$\Sigma_0,\Sigma_1,\Sigma_2,\Sigma_3$\\explicit witness language};
+  \node[phase, right=1.8cm of explicit] (bridge) {$4 \le n \le 6$\\comparison and packaging\\of the two presentations};
+  \node[phase, right=1.8cm of bridge] (recursive) {$n \ge 7$\\uniform recursive completion\\by formal higher derivations};
+
+  \draw[flow] (explicit) -- node[above] {identify} (bridge);
+  \draw[flow] (bridge) -- node[above] {continue} (recursive);
+
+  \node[note, below=0.95cm of bridge] {$\mathscr{G}_\lambda$ acquires an all-dimensional constructive globular coherence package\\with strict source/target compatibility at every level.};
+\end{tikzpicture}
+\caption{Architecture of the proof of Theorem~\ref{thm:A}.  The explicit low-dimensional tower is first matched with the equality-generated continuation in the bridge dimensions, after which the recursive completion proceeds uniformly.}
+\label{fig:tower-architecture}
+\end{figure}
+
+\begin{remark}[Which layers are explicit]
+Two different presentations are in play here.  The syntactic tower
+$\Sigma_\bullet$ is explicit through dimension~$3$, and for $n\ge 4$ its cells
+are already given recursively as higher-derivation data between parallel
+$(n-1)$-cells.  Separately, the shared simplicial core used by the generic
+coherence packaging is a reflexive $6$-cell core: its $4$-, $5$-, and $6$-cells
+are packaged reflexivity layers attached to the low-dimensional
+$\lambda$-$\omega$-groupoid interface.  The role of dimensions $4$--$6$ in
+Theorem~\ref{thm:A} is precisely to identify these two presentations before the
+uniform recursive continuation begins above dimension~$6$.
+\end{remark}
+
+\begin{definition}[Higher derivation]\label{def:higherderiv}
+Let $X$ be a type.  The type $\HigherDeriv_X(x,y)$ of \emph{higher
+derivations} between $x,y\in X$ is generated inductively by
+\[
+\mathsf{refl}_x : \HigherDeriv_X(x,x),\qquad
+\mathsf{symm} : \HigherDeriv_X(x,y)\to \HigherDeriv_X(y,x),
+\]
+and
+\[
+\mathsf{trans} : \HigherDeriv_X(x,y)\to \HigherDeriv_X(y,z)\to
+\HigherDeriv_X(x,z).
+\]
+Thus $\HigherDeriv_X$ is the reflexive--symmetric--transitive closure of the
+equality data already present on $X$.
+\end{definition}
+
+The type $\HigherDeriv_X(x,y)$ does not introduce new primitive generators
+between unrelated objects.  In particular, any element of
+$\HigherDeriv_X(x,y)$ determines that
+the endpoints agree.  Accordingly, above the explicit core the recursive tower
+is \emph{equality-generated}: higher cells are added by iterating formal
+reflexivity, symmetry, and transitivity on previously constructed parallel
+cells.  Its central structural property is still \emph{functoriality}: every
+map on the underlying type transports higher derivations covariantly.
+
+\begin{proposition}[Functoriality of $\HigherDeriv$]\label{prop:hd-functor}
+  Let $f:X\to Y$ be any map.  There is a canonical map
+  \[
+    \HigherDeriv(f) : \HigherDeriv_X(x,y) \longrightarrow
+    \HigherDeriv_Y\bigl(f(x),\,f(y)\bigr),
+  \]
+  defined by recursion on the constructors of\/ $\HigherDeriv$:
+  \begin{align*}
+    \HigherDeriv(f)(\mathsf{refl}_x)
+      &= \mathsf{refl}_{f(x)},\\
+    \HigherDeriv(f)(\mathsf{symm}(h))
+      &= \mathsf{symm}\bigl(\HigherDeriv(f)(h)\bigr),\\
+    \HigherDeriv(f)(\mathsf{trans}(h_1,h_2))
+      &= \mathsf{trans}\bigl(\HigherDeriv(f)(h_1),\,
+         \HigherDeriv(f)(h_2)\bigr).
+  \end{align*}
+  Moreover, the assignment $f\mapsto \HigherDeriv(f)$ respects identity and
+  composition:
+  \[
+    \HigherDeriv(\mathrm{id}_X) = \mathrm{id},\qquad
+    \HigherDeriv(g\circ f) = \HigherDeriv(g)\circ \HigherDeriv(f).
+  \]
+\end{proposition}
+
+\begin{proof}
+  The recursive clauses define $\HigherDeriv(f)$ by structural induction on
+  derivation terms.  The identity law is immediate:
+  $\HigherDeriv(\mathrm{id})$ fixes every constructor pointwise, since
+  $\mathsf{refl}_x\mapsto \mathsf{refl}_{\mathrm{id}(x)}=\mathsf{refl}_x$,
+  $\mathsf{symm}(h)\mapsto \mathsf{symm}(\HigherDeriv(\mathrm{id})(h))$,
+  and the induction hypothesis closes the recursion.
+
+  For the composition law, the base case is:
+  \[
+    \begin{aligned}
+      \HigherDeriv(g)(\HigherDeriv(f)(\mathsf{refl}_x))
+        &= \HigherDeriv(g)(\mathsf{refl}_{f(x)}) \\
+        &= \mathsf{refl}_{g(f(x))} \\
+        &= \HigherDeriv(g\circ f)(\mathsf{refl}_x).
+    \end{aligned}
+  \]
+  The inductive cases for $\mathsf{symm}$ and $\mathsf{trans}$ follow by the
+  same structural unwinding: the outer map $\HigherDeriv(g)$ distributes
+  across the constructors produced by $\HigherDeriv(f)$, and the induction
+  hypothesis matches each sub-derivation.
+\end{proof}
+
+Proposition~\ref{prop:hd-functor} is the engine that drives the realization
+theorem below: at each dimension, the realization of a higher derivation is
+obtained by applying $\HigherDeriv$ to the endpoint realization map.  The
+identity and composition laws ensure that this process is compatible with the
+globular boundary structure and with the recursive definition of source and
+target.
+
+Starting from the reflexive $6$-cell core of $\mathscr{G}_\lambda$, we define a
+recursive globular tower $\mathscr{R}_\bullet(\mathscr{G}_\lambda)$ as follows.
+For dimensions $0,\dots,6$ we keep the given low-dimensional cells of the core
+explicitly.  For every $n\ge 6$, an $(n+1)$-cell is a triple
+\[
+(x,y,h),\qquad x,y\in \mathscr{R}_n(\mathscr{G}_\lambda),\quad
+h\in \HigherDeriv(x,y).
+\]
+Its source is $x$ and its target is $y$.  The globularity equalities are then
+automatic: if $h$ is a higher derivation from $x$ to $y$, the two iterated
+sources and the two iterated targets agree because every constructor of
+$\HigherDeriv$ preserves equality of endpoints.
+
+This recursive completion should be compared with the explicit tower
+$\Sigma_\bullet$ of higher $\lambda$-conversions.  The latter is already
+constructive in all dimensions, but its presentation is not literally the same
+as the generic recursive completion in dimensions $4,5,6$: there one must
+package the previously constructed $3$-cells, $4$-cells, and $5$-cells as
+explicit cells of the target tower.  Once these dimensions are handled, however,
+the higher stages on both sides are governed by the same rule: ``a higher cell
+is a higher derivation between parallel cells of the preceding dimension.''
+
+The interface between the explicit low-dimensional tower and the recursive
+completion in the intermediate dimensions is captured by the following
+observation, which we state as a separate lemma because it isolates the only
+non-trivial step in passing from the low-dimensional core to the recursive
+continuation.
+
+\begin{lemma}[Low-dimensional packaging]\label{lem:packaging}
+  For $d\in\{3,4,5\}$, let $\Sigma_d$ denote the explicit $d$-cells of the
+  $\lambda$-$\omega$-groupoid, and let $\mathscr{R}_{d+1}(\mathscr{G}_\lambda)$
+  denote the $(d+1)$-cells of the recursive completion.  There is a canonical
+  \emph{packaging map}
+  \[
+    \mathsf{pack}_{d+1}:\mathscr{R}_{d+1}(\mathscr{G}_\lambda)
+    \longrightarrow \Sigma_{d+1}
+  \]
+  defined by:
+  \begin{enumerate}[label=(\alph*)]
+    \item embedding the two endpoint $d$-cells into $\Sigma_d$ via the identity
+      (for $d\le 3$) or via the inductively defined packaging map
+      $\mathsf{pack}_d$ (for $d\in\{4,5\}$), and then
+    \item transporting the higher derivation datum along the resulting endpoint
+      map, using the functoriality of $\HigherDeriv$
+      (Proposition~\textup{\ref{prop:hd-functor}}).
+  \end{enumerate}
+  No new primitive coherence operations beyond those already present in the
+  $3$-cell core enter the construction.
+\end{lemma}
+
+\begin{proof}
+  At dimension $4$, the endpoints are $3$-cells, which belong to the explicit
+  core and therefore need no packaging: $\mathsf{pack}_4$ applies
+  $\HigherDeriv(\mathrm{id})$ to the derivation datum, which by the identity law
+  of Proposition~\ref{prop:hd-functor} is the identity.  Concretely, a $4$-cell
+  of the recursive completion consists of two parallel $3$-cells $\eta,\theta$
+  together with a higher derivation $\omega:\HigherDeriv(\eta,\theta)$, and
+  $\mathsf{pack}_4$ sends this to the explicit $4$-cell $(\eta,\theta,\omega)$
+  verbatim.
+
+  At dimension $5$, the endpoints are $4$-cells.  Each such $4$-cell was itself
+  produced by $\mathsf{pack}_4$, so $\mathsf{pack}_5$ applies
+  $\HigherDeriv(\mathsf{pack}_4)$ to the derivation data.  The composition law
+  of Proposition~\ref{prop:hd-functor} guarantees that iterated packaging
+  respects the boundary maps.  The argument for dimension $6$ is identical, with
+  $\mathsf{pack}_5$ replacing $\mathsf{pack}_4$.
+
+  The key observation is that every constructor invoked---$\mathsf{refl}$,
+  $\mathsf{symm}$, $\mathsf{trans}$, and the endpoint maps---already exists in
+  the $3$-cell core.  The packaging maps merely \emph{compose} these existing
+  operations through the functoriality of $\HigherDeriv$; they do not introduce
+  any new generating data.
+\end{proof}
+
+\subsection{The realization theorem}
+
+\begin{definition}[All-dimensional coherence package]
+Let $\mathscr{C}$ be a reflexive low-dimensional globular core and let
+$\mathscr{T}$ be a globular tower.  An \emph{all-dimensional coherence package}
+from $\mathscr{C}$ to $\mathscr{T}$ consists of maps
+\[
+\realize_n:\mathscr{R}_n(\mathscr{C})\longrightarrow \mathscr{T}_n
+\qquad (n\in\mathbb N),
+\]
+where $\mathscr{R}_\bullet(\mathscr{C})$ is the recursive completion of
+$\mathscr{C}$, such that for every $(n+1)$-cell $x$,
+\[
+s(\realize_{n+1}(x))=\realize_n(sx),
+\qquad
+t(\realize_{n+1}(x))=\realize_n(tx).
+\]
+\end{definition}
+
+\begin{theorem}[All-dimensional constructive coherence]
+\label{thm:A}
+The explicit higher $\lambda$-conversion tower $\Sigma_\bullet$ admits an
+all-dimensional coherence package from the recursive completion of the
+$\lambda$-$\omega$-groupoid core $\mathscr{G}_\lambda$.  In particular:
+\begin{enumerate}[label=(\roman*)]
+  \item For every $n\in\mathbb N$, there is a realization map
+    \[
+      \realize_n:\mathscr{R}_n(\mathscr{G}_\lambda)\to \Sigma_n.
+    \]
+  \item These realization maps commute strictly with source and target maps.
+  \item Hence the higher $\lambda$-conversions form an all-dimensional
+    constructive globular coherence package extending the low-dimensional
+    $\lambda$-$\omega$-groupoid core.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+We divide the construction into a low-dimensional core and a recursive
+continuation.
+
+\smallskip
+\noindent
+\emph{Step 1: dimensions $0$--$3$.}
+At the first four levels there is nothing to prove beyond unpacking the
+definitions.  The objects of $\mathscr{G}_\lambda$ are $\lambda$-terms, its
+$1$-cells are explicit reduction zigzags, its $2$-cells are explicit
+homotopies between parallel zigzags, and its $3$-cells are explicit homotopies
+between parallel $2$-cells.  Thus
+\[
+\realize_0,\realize_1,\realize_2,\realize_3
+\]
+are simply the identity identifications between the recursively completed tower
+and the explicit tower.
+
+\smallskip
+\noindent
+\emph{Step 2: dimensions $4$--$6$.}
+Here one must compare two presentations of the same information.  On the
+recursive side, a $4$-cell consists of the full boundary data
+\[
+(M,N,p,q,\alpha,\beta,\eta,\theta,\omega),
+\]
+where $\eta,\theta$ are parallel $3$-cells and $\omega$ is a $4$-cell between
+them in the low-dimensional core.  On the explicit $\lambda$-tower, by contrast,
+a $4$-cell is presented as a pair of $3$-cells together with a higher
+derivation between those $3$-cells.  The realization map sends the above tuple
+to the explicit pair of packaged $3$-cells determined by $\eta$ and $\theta$,
+together with the image of $\omega$ under the functorial action of
+$\HigherDeriv$ on the embedding of $3$-cells into the explicit tower.
+
+Exactly the same pattern works in dimensions $5$ and $6$: one first packages a
+core $4$-cell as an explicit $4$-cell, then transports a higher derivation
+between such cells along that packaging map; similarly for $5$-cells.  In other
+words, dimensions $4,5,6$ are handled by iterating the same elementary
+principle:
+
+\begin{quote}
+\emph{to realize a higher derivation, realize its endpoints first and then map
+the derivation constructors $(\mathsf{refl},\mathsf{symm},\mathsf{trans})$
+across that endpoint map.}
+\end{quote}
+
+This produces concrete realization maps $\realize_4,\realize_5,\realize_6$.
+
+\smallskip
+\noindent
+\emph{Step 3: recursive continuation above dimension $6$.}
+Suppose now that $\realize_n$ has already been defined for some $n\ge 6$.
+An $(n+1)$-cell of the recursive completion is, by definition, a triple
+$(x,y,h)$ with $x,y\in \mathscr{R}_n(\mathscr{G}_\lambda)$ and
+$h\in \HigherDeriv(x,y)$.  We define
+\[
+\realize_{n+1}(x,y,h)
+:=
+\bigl(\realize_n(x),\,\realize_n(y),\,
+\HigherDeriv(\realize_n)(h)\bigr).
+\]
+Here $\HigherDeriv(\realize_n)(h)$ denotes the image of $h$ under the map
+obtained by recursion on the constructors of $\HigherDeriv$:
+\[
+\mathsf{refl}(x)\mapsto \mathsf{refl}(\realize_n(x)),\qquad
+\mathsf{symm}(h)\mapsto \mathsf{symm}(\HigherDeriv(\realize_n)(h)),
+\]
+\[
+\mathsf{trans}(h_1,h_2)\mapsto
+\mathsf{trans}(\HigherDeriv(\realize_n)(h_1),
+               \HigherDeriv(\realize_n)(h_2)).
+\]
+Thus the realization in dimension $n+1$ is forced by the realization in
+dimension $n$.
+
+The conceptual point is worth highlighting: no new coherence operations,
+packaging maps, or case analyses enter the construction above dimension~$6$.
+The reason is structural.  Below dimension~$4$, the explicit tower is defined by
+a bespoke inductive type carrying whiskering, interchange, pentagon, and
+triangle constructors.  In dimensions $4$--$6$, one must translate between that
+bespoke presentation and the generic recursive completion, which requires the
+packaging maps of Lemma~\ref{lem:packaging}.  But from dimension~$7$ onward,
+\emph{both} towers are defined by the same rule: a cell is a higher derivation
+between parallel cells of the preceding dimension.  The recursive continuation
+is therefore definitionally an isomorphism of globular sets at every stage, and
+the realization map is simply the identity modulo the inductive hypothesis.  In
+particular, no finite list of ``exceptional dimensions'' grows as one climbs the
+tower: the base and packaging phases are completed once and for all in
+dimensions $0$--$6$, and the rest is pure induction.
+
+\smallskip
+\noindent
+\emph{Step 4: compatibility with source and target.}
+For dimensions $0$--$6$, compatibility is checked directly from the formulas:
+both the recursive tower and the explicit $\lambda$-tower compute source by
+forgetting the last boundary component, and compute target by forgetting the
+corresponding source component.
+
+For dimensions above $6$, let $x=(u,v,h)$ be an $(n+1)$-cell.  Then, by
+definition of the recursive source and target maps,
+\[
+s(x)=u,\qquad t(x)=v.
+\]
+Applying the recursive formula for realization gives
+\[
+\realize_{n+1}(x)=
+\bigl(\realize_n(u),\realize_n(v),\HigherDeriv(\realize_n)(h)\bigr).
+\]
+Hence its source in the explicit tower is exactly $\realize_n(u)$ and its target
+is exactly $\realize_n(v)$, so
+\[
+s(\realize_{n+1}(x))=\realize_n(sx),\qquad
+t(\realize_{n+1}(x))=\realize_n(tx).
+\]
+This proves strict source and target compatibility in all dimensions.
+
+\smallskip
+\noindent
+\emph{Step 5: conclusion.}
+The realization maps identify the recursively completed tower of the
+$\lambda$-$\omega$-groupoid core with the explicit higher $\lambda$-conversion
+tower at every dimension.  Since the recursive completion is globular by
+construction and the realization preserves boundaries strictly, the explicit
+tower inherits the all-dimensional coherence package of the theorem statement.
+\end{proof}
+
+\subsection{Truncation and the classical theory}
+
+An immediate corollary of Theorem~\ref{thm:A} is that the all-dimensional tower
+extends, rather than replaces, the ordinary theory of $\beta\eta$-equality.
+
+\begin{corollary}[0-truncation]
+The $0$-truncation of the all-dimensional $\omega$-groupoid on $\lambda$-terms
+recovers the classical $\beta\eta$-equality:
+\[
+\pi_0(\mathscr{G}_\lambda)(M,N)
+\;\Longleftrightarrow\;
+M =_{\beta\eta} N.
+\]
+\end{corollary}
+
+\begin{proof}
+The proposition $\pi_0(\mathscr{G}_\lambda)(M,N)$ asserts only that there exists
+a $1$-cell from $M$ to $N$, that is, an explicit reduction sequence
+$p:\ReductionSeq(M,N)$.  Forgetting the witness $p$ yields an ordinary
+$\beta\eta$-conversion from $M$ to $N$.  Conversely, every ordinary
+$\beta\eta$-conversion admits an explicit reduction-sequence representative.
+Thus existence of a $1$-cell in the all-dimensional tower is equivalent to the
+classical proposition-level equality relation.
+\end{proof}
+
+% ========================================================================
+\section{Minimal Semantic Coherence Data}\label{sec:front-seed}
+
+\subsection{Three semantic regimes}
+
+The semantic development separates three logically distinct layers.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Bare semantics.}
+    An extensional Kan complex suffices for the interpretation of terms,
+    $\beta$- and $\eta$-soundness, the interpretation of explicit reduction
+    sequences, and the semantic images of the explicit $2$- and $3$-cells
+    already present in the syntax.
+
+  \item \textbf{Coherent semantics.}
+    A coherent extensional Kan complex adds explicit $3$-dimensional comparison
+    data for associativity and whiskering.  This makes it possible to compare
+    different semantic parenthesizations of composite interpreted paths.
+
+  \item \textbf{Strict semantics.}
+    In a strict extensional Kan complex, the required coherent comparison data
+    are derived axiom-freely from uniqueness of horn fillers, so no additional
+    chosen coherence fields are needed beyond the extensional $\lambda$-model
+    structure.
+\end{enumerate}
+
+We now show that a smaller front-facing seed already generates the full
+associator and pentagon package needed later.
+
+\subsection{The reduced front-seed boundary}
+
+\begin{definition}[Front-seed coherent extensional Kan complex]
+A \emph{front-seed coherent extensional Kan complex} is an extensional Kan
+complex $K$ equipped with the following additional $3$-cell data.
+
+\begin{enumerate}[label=(FS\arabic*)]
+  \item \textbf{WLWR comparison.}
+    For every composable $1$-cells
+    \[
+    a \xrightarrow{\alpha} b \xrightarrow{\beta,\gamma} c \xrightarrow{\delta} d
+    \]
+    and every $2$-cell $\eta:\beta\Rightarrow\gamma$, a chosen $3$-cell
+    \[
+    \whiskerRight(\whiskerLeft(\alpha,\eta),\delta)
+    \;\Longrightarrow\;
+    \ass(\alpha,\beta,\delta)\;\cdot\;
+    \whiskerLeft(\alpha,\whiskerRight(\eta,\delta))\;\cdot\;
+    \ass(\alpha,\gamma,\delta)^{-1}.
+    \]
+    In words: right-whiskering a left-whiskered $2$-cell agrees, up to the
+    appropriate associator corrections, with first right-whiskering and then
+    left-whiskering.
+
+  \item \textbf{Inner-right-front pentagon contraction.}
+    For every composable quadruple $p,q,r,s$, a chosen $3$-cell contracting the
+    inner-right-front face of the semantic pentagon to the reflexive $2$-cell on
+    the edge labeled by $q\cdot(r\cdot s)$ before left-whiskering by $p$.
+\end{enumerate}
+\end{definition}
+
+The second datum is deliberately asymmetric: it does not assert the entire
+pentagon at once, but only contracts one distinguished front face.  The theorem
+below says that, together with WLWR, this already forces the higher coherence
+needed for associator comparison and for the full pentagon at interpreted
+reduction sequences.
+
+\medskip
+It is useful to describe the geometric content of the two seeds more precisely.
+
+\smallskip
+\noindent
+\textbf{FS1 (WLWR comparison): front-face horn filling for mixed whiskering.}\;
+Given a $2$-cell $\eta:\beta\Rightarrow\gamma$ flanked by $1$-cells $\alpha$ on
+the left and $\delta$ on the right, there are two natural ways to extend $\eta$
+to the full composite boundary: first left-whisker by $\alpha$ and then
+right-whisker by $\delta$, or first right-whisker by $\delta$ and then
+left-whisker by $\alpha$.  These two expressions land at the same pair of
+endpoints $\alpha\cdot\beta\cdot\delta$ and $\alpha\cdot\gamma\cdot\delta$, but
+they are not \emph{a priori} the same $2$-cell because the whiskering operations
+interact with the associativity of path composition.  Seed~(FS1) asserts that
+the discrepancy is controlled by the associator: the two mixed whiskerings
+differ by exactly the pair of associator $2$-cells that rebrackets the
+composite.  In simplicial terms, FS1 fills a specific $3$-horn whose two
+front faces are the two mixed-whiskering composites and whose remaining faces
+are associator instances.
+
+\smallskip
+\noindent
+\textbf{FS2 (inner-right-front pentagon contraction): partial boundary
+seeding.}\;
+The pentagon coherence for four composable $1$-cells $p,q,r,s$ is a $3$-cell
+whose boundary consists of five associator $2$-cells arranged around the
+boundary of a $4$-simplex.  Rather than positing the full pentagon $3$-cell as
+primitive, FS2 provides only the contraction of the \emph{inner-right-front}
+face---the face built from the associator $\ass(q,r,s)$ whiskered by $p$ on
+the left.  This contracts a particular sub-composite of the pentagon boundary
+to the identity $2$-cell on the edge labeled by $q\cdot(r\cdot s)$ before
+left-whiskering by $p$.  Geometrically, FS2 is a partial horn-filling datum:
+it specifies one non-degenerate face of the pentagon $4$-horn, from which the
+remaining faces can be assembled using the WLWR comparison of FS1 together with
+the standard Kan-complex horn-filling machinery.
+
+\medskip
+The significance of Theorem~\ref{thm:B} is a precise reduction of the semantic
+coherence package actually used later.  In the formal development, the coherent
+semantic interface is already separated into two chosen ingredients: a WLWR
+comparison and a full pentagon witness.  The front-seed theorem sharpens the
+second ingredient: the full pentagon field may be replaced by the smaller
+inner-right-front contraction, from which one derives the recursive
+associator comparison, the semantic pentagon on interpreted reduction
+sequences, and the source/target/shell bridge theorems for the explicit
+syntactic pentagon.  Thus the gain is not an appeal to an unspecified larger
+coherence package, but a concrete reduction from a full pentagon datum to a
+smaller front-facing seed, while keeping WLWR explicit.
+
+\begin{theorem}[Reduced front-seed coherence]
+\label{thm:B}
+Let $K$ be a front-seed coherent extensional Kan complex.  Then:
+\begin{enumerate}[label=(\roman*)]
+  \item For any reduction sequences $p_1,\dots,p_k$, every interpreted
+    parenthesization of their composite is related to the standard
+    left-associated composite by a chain of semantic associators and inverses.
+  \item The semantic pentagon identity holds for interpreted reduction
+    sequences.
+  \item The explicit syntactic pentagon witnesses admit source, target, and
+    shell bridge theorems to the structural semantic pentagon shells.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+We prove the three claims in order.
+
+\smallskip
+\noindent
+\emph{Step 1: from WLWR to the recursive associator comparison.}
+The basic inductive problem is the following.  Let $p,q,r$ be explicit
+reduction sequences.  There is a \emph{structural associator shell} comparing
+the two semantic composites
+\[
+((p\cdot q)\cdot r)
+\qquad\text{and}\qquad
+p\cdot(q\cdot r),
+\]
+obtained by interpreting explicit paths and then composing them in $K$.  There
+is also an \emph{equality-generated} comparison coming from the literal
+associativity equality of concatenation of reduction sequences.  One must show
+that these two semantic $2$-cells are themselves connected by a semantic
+$3$-cell.
+
+For a composite whose leftmost factor is a single generating step, the only
+non-formal obstruction is a nested whiskering term of the shape
+\[
+\whiskerRight(\whiskerLeft(\alpha,\eta),\delta),
+\]
+where $\eta:\beta\Rightarrow\gamma$, $\alpha$ is the semantic image of the head
+step, and $\delta$ is the semantic image of $r$.  Seed~(FS1) replaces exactly
+this nested whisker by the
+normalized expression
+\[
+\ass(\alpha,\beta,\delta)\;\cdot\;
+\whiskerLeft(\alpha,\whiskerRight(\eta,\delta))\;\cdot\;
+\ass(\alpha,\gamma,\delta)^{-1}.
+\]
+After this normalization, the head-step case matches the standard associator
+shell and closes.
+
+One then argues by induction on the first reduction sequence $p$.  If
+$p=\mathsf{refl}$, the comparison is immediate.  If $p$ begins with a forward or
+backward step, write $p$ as a head step followed by a shorter tail.  The WLWR
+comparison handles the head-step normalization just described, and the induction
+hypothesis handles the tail.  Vertical composition of these $3$-cells produces a
+$3$-cell from the structural associator shell of $(p,q,r)$ to the
+equality-generated associator.  Iterating this argument gives the comparison for
+arbitrary parenthesized composites of any finite list $p_1,\dots,p_k$: one
+changes parenthesization one associator at a time, and each elementary move is
+controlled by the preceding inductive comparison.
+
+\smallskip
+\noindent
+\emph{Step 2: from the front pentagon seed to the full semantic pentagon.}
+Now fix four reduction sequences $p,q,r,s$.  The semantic pentagon compares the
+two composites
+\[
+\ass(p\cdot q,r,s)\;\cdot\;\ass(p,q,r\cdot s)
+\]
+and
+\[
+(\ass(p,q,r)\ast s)\;\cdot\;\ass(p,q\cdot r,s)\;\cdot\;(p\ast \ass(q,r,s)),
+\]
+where $\ast$ denotes whiskering.  Seed~(FS2) gives a contraction of the
+inner-right-front face of the pentagon.  This is not yet the full pentagon, but
+it determines one crucial missing face of the corresponding $4$-dimensional
+horn.  The WLWR comparison from Step~1 supplies the whiskering rebracketing
+needed to identify the remaining front-facing pieces with the appropriate
+associator composites.  Once these auxiliary faces are in place, the horn has
+all of its boundary fixed except for the desired pentagon face, so the Kan
+filling machinery provides the missing $3$-cell.  Equivalently, the front seed
+canonically upgrades $K$ to a coherent extensional Kan complex, and in that
+upgraded structure the usual semantic pentagon is available.  Evaluating it on
+the interpreted sequences $p,q,r,s$ yields the required direct semantic pentagon
+for interpreted reduction sequences.
+
+\smallskip
+\noindent
+\emph{Step 3: bridge theorems from syntax to semantic shells.}
+The explicit syntactic higher calculus already contains an associator $2$-cell
+and a pentagon $3$-cell between explicit reduction sequences.  These objects can
+be interpreted in any bare extensional Kan complex, so in particular in our
+front-seed model $K$.  However, their semantic images land a priori in the
+``syntactic'' presentation of the boundary, while Step~1 and Step~2 produce the
+``structural'' semantic shells built from the Kan-complex associator and
+whiskering operations.
+
+The associator bridge from Step~1 identifies the semantic image of the explicit
+syntactic associator with the structural associator shell.  Applying this bridge
+to the two associators on the source side of the pentagon yields the
+\emph{source bridge}; applying it to the three associator pieces on the target
+side yields the \emph{target bridge}.  Finally, compose
+\begin{enumerate}[label=(\alph*)]
+  \item the source bridge,
+  \item the interpreted syntactic pentagon $3$-cell, and
+  \item the inverse of the target bridge.
+\end{enumerate}
+The result is a $3$-cell from the structural source shell to the structural
+target shell.  This is exactly the shell bridge theorem.  Thus the explicit
+syntactic pentagon and the structural semantic pentagon are not merely parallel
+facts: they are connected by explicit comparison $3$-cells.
+
+This proves (i), (ii), and (iii).
+\end{proof}
+
+\begin{remark}[Open strengthening target]
+The remaining conceptual question is whether the two front-seed data can be
+derived from the bare extensional Kan interface alone.  A positive answer would
+show that no additional semantic coherence fields are needed even for the
+associator and pentagon package.  At present, what is proved is sharper but more
+modest: the full coherent interface is unnecessary, and the minimal boundary
+currently known to suffice is precisely the WLWR comparison together with the
+inner-right-front pentagon contraction.
+\end{remark}
+
+% ========================================================================
+\section{The \texorpdfstring{$\Kinf$}{K-infinity} Model}\label{sec:Kinfty}
+
+The $\Kinf$ model was introduced in Paper~II~\cite{MRdQ:Kinfinity}, which
+defined the inverse-limit construction, proved algebraicity and bounded
+completeness (Proposition~4.1), and exhibited the separation phenomenon of
+Example~\ref{ex:witness-span}.  What was not established there---and what the present section
+provides---is the \emph{exact reflexive packaging}: explicit, globally
+continuous reify and reflect maps together with a stagewise application formula
+that pins down the relationship between the finite stages and the limit.  The
+packaging theorem (Theorem~\ref{thm:D}) also proves a retract law strictly stronger
+than the standard domain-theoretic requirement $h(k(x))\le x$, showing that
+$h\circ k=\mathrm{id}$ holds on the nose.
+
+\subsection{Construction}
+
+The object $\Kinf$ is obtained as the inverse limit of the reflexive tower
+\[
+  K_0,\ K_1,\ K_2,\ \ldots,
+  \qquad
+  K_0=\mathbb{N}^+,\qquad K_{n+1}=[K_n\to K_n].
+\]
+At each stage there is a projection pair
+\[
+  f_n^+ : K_n \longrightarrow K_{n+1},
+  \qquad
+  f_n^- : K_{n+1} \longrightarrow K_n
+\]
+with
+\[
+  f_n^- \circ f_n^+ = \mathrm{id}_{K_n},
+  \qquad
+  f_n^+\bigl(f_n^-(u)\bigr)\leq u
+  \quad (u\in K_{n+1}).
+\]
+Thus every successor stage is a reflexive enlargement of the previous one.
+
+\begin{definition}[The tower $K_0,K_1,\ldots$]
+  Set $K_0=\mathbb{N}^+$, the flat domain on the non-trivial homotopy-group
+  witness set together with bottom, and define inductively
+  \[
+    K_{n+1}=[K_n\to K_n].
+  \]
+  The transition maps are the projection pairs $(f_n^+,f_n^-)$ above.
+\end{definition}
+
+\begin{definition}[$\Kinf$]
+  The inverse limit $\Kinf$ is the set of coherent threads
+  \[
+    \Kinf=\varprojlim_n K_n
+    =\Bigl\{(x_n)_{n\ge 0}\in \prod_{n\ge 0}K_n :
+      f_n^-(x_{n+1})\simeq x_n\ \text{for all }n\Bigr\},
+  \]
+  ordered coordinatewise. We write
+  \[
+    \pi_n:\Kinf\to K_n
+  \]
+  for the $n$th projection.
+\end{definition}
+
+The domain-theoretic content of the construction is the following.
+
+\begin{proposition}[Proposition~4.1]
+  $\Kinf$ is a homotopy Scott domain: it is algebraic and bounded complete.
+\end{proposition}
+
+\begin{proof}
+  We first analyze the finite stages.
+
+  \smallskip
+  \noindent\emph{Bounded completeness of the stages.}
+  The base $K_0=\mathbb{N}^+$ is a flat domain, hence bounded complete.
+  If $K_n$ is bounded complete, then the function space
+  $K_{n+1}=[K_n\to K_n]$ is bounded complete under the pointwise order, since
+  least upper bounds of upper-bounded families are computed pointwise.
+  Therefore every $K_n$ is bounded complete.
+
+  \smallskip
+  \noindent\emph{Algebraicity of the stages.}
+  The base stage $K_0$ is algebraic: every non-bottom element is compact, and
+  every element is the least upper bound of the compact elements below it.
+  Assume now that $K_n$ is algebraic. We show that
+  $K_{n+1}=[K_n\to K_n]$ is algebraic.
+
+  For $a,b\in K_n$ with $a$ compact and $b$ compact-below $f(a)$, let
+  $[a\Rightarrow b]$ denote the usual compact step map which sends arguments
+  above $a$ to $b$ and arguments below $a$ to bottom. Finite joins of such step
+  maps are still compact. Let $\mathcal{A}_f$ be the set of all finite joins of
+  compact step maps lying below $f$. Then $\mathcal{A}_f$ is directed under
+  inclusion of the underlying finite families, and every member of
+  $\mathcal{A}_f$ is compact-below $f$.
+
+  To see that $f$ is the least upper bound of $\mathcal{A}_f$, fix
+  $x\in K_n$. Since $K_n$ is algebraic, the value $f(x)$ is the least upper
+  bound of the compact elements below it. Each such compact element is already
+  captured by some step approximation built from a compact approximation to $x$.
+  Hence evaluation at $x$ of the directed family $\mathcal{A}_f$ is cofinal in
+  the compact-below approximants to $f(x)$, so its pointwise supremum is exactly
+  $f(x)$. Since this holds for every $x$, $f=\sup \mathcal{A}_f$, and $K_{n+1}$
+  is algebraic.
+
+  Thus every finite stage $K_n$ is an algebraic bounded-complete domain.
+
+  \smallskip
+  \noindent\emph{Passage to the inverse limit.}
+  For $x\in\Kinf$, define its $n$th finite-stage approximation by
+  \[
+    a_n(x):=f_{n,\infty}(\pi_n(x)),
+  \]
+  where $f_{n,\infty}:K_n\to\Kinf$ is the canonical exact embedding of the $n$th
+  stage into the limit. By construction,
+  \[
+    \pi_m(a_n(x))=\pi_m(x)\qquad (m\le n),
+  \]
+  so each $a_n(x)$ agrees with $x$ on the first $n+1$ coordinates; in
+  particular $a_n(x)\le x$. Moreover the family $(a_n(x))_{n\ge 0}$ is directed,
+  since passing from stage $n$ to stage $n+1$ only refines the approximation.
+
+  Now let $c\ll x$ be compact-below in $\Kinf$. Compactness in an inverse limit
+  is finite-stage: there is some stage $n$ and some compact
+  $b\ll \pi_n(x)$ in $K_n$ such that
+  \[
+    c\le f_{n,\infty}(b)\le a_n(x).
+  \]
+  Hence the directed family $\{a_n(x)\}_{n\ge 0}$ is cofinal among compact
+  approximants below $x$. Therefore $x$ is a least upper bound of this family,
+  and the chosen supremum of the family is equivalent to $x$ in the induced
+  homotopy order:
+  \[
+    x \simeq \sup_{n\ge 0} a_n(x).
+  \]
+  Thus every element of $\Kinf$ is a least upper bound of compact elements below
+  it. This proves algebraicity of $\Kinf$.
+
+  Finally, bounded completeness of $\Kinf$ is obtained coordinatewise. If
+  $X\subseteq \Kinf$ is upper-bounded, then each projected family
+  $\pi_n(X)\subseteq K_n$ is upper-bounded and therefore has a least upper bound
+  in $K_n$. The projection-pair coherence ensures that these coordinatewise
+  suprema again form a coherent thread, which is the least upper bound of $X$ in
+  $\Kinf$.
+\end{proof}
+
+\subsection{Exact reflexive packaging}\label{sec:packaging}
+
+The central structural fact is that the inverse limit is itself reflexive.  In
+fact, the projection-pair machinery on the tower produces global reify and
+reflect maps.  The proof of this fact assembles three technical ingredients that
+are implicit in the inverse-limit construction but are worth isolating as
+standalone statements, both because they clarify the argument and because they
+are reused in the proof-relevant witness analysis of
+Section~\ref{sec:witness}.
+
+\begin{lemma}[Density of finite-stage approximants]\label{lem:density}
+  For every $x\in\Kinf$, define the \emph{$n$th finite-stage approximant}
+  \[
+    a_n(x) := f_{n,\infty}(\pi_n(x)) \in \Kinf.
+  \]
+  Then:
+  \begin{enumerate}[label=(\roman*)]
+    \item $a_n(x)\le x$ for every $n$,
+    \item the family $(a_n(x))_{n\ge 0}$ is directed, and
+    \item $x \simeq \sup_{n\ge 0} a_n(x)$.
+  \end{enumerate}
+  In particular, $\Kinf$ is generated, up to chosen-supremum equivalence, by
+  the embedded finite stages $\bigcup_n f_{n,\infty}(K_n)$.
+\end{lemma}
+
+\begin{proof}
+  Clause~(i) holds because $a_n(x)$ agrees with $x$ on coordinates $0$
+  through $n$ (by the retract property $\pi_n\circ f_{n,\infty}=\mathrm{id}$)
+  and is $\le x$ on all higher coordinates (by iterated application of the
+  section inequality $f_m^+f_m^-\le\mathrm{id}$).  Clause~(ii) follows because
+  passing from stage $n$ to $n+1$ only refines the approximation: $a_n(x)\le
+  a_{n+1}(x)$ by the compatibility of the projection pairs.  Clause~(iii) was
+  established in the proof of Proposition~4.1 (algebraicity of $\Kinf$): every
+  compact element below $x$ is already below some $a_n(x)$, so the directed
+  family is cofinal among the compact approximants to $x$, hence has $x$ as a
+  least upper bound; the chosen supremum is therefore equivalent to $x$.
+\end{proof}
+
+\begin{lemma}[Coherence of stage restrictions]\label{lem:coherent-restrict}
+  Let $g:\Kinf\to\Kinf$ be a continuous endomap and define its \emph{stage-$n$
+  restriction} by
+  \[
+    r_n(g) := \pi_n\circ g\circ f_{n,\infty} \;\in\; [K_n\to K_n] = K_{n+1}.
+  \]
+  Then the family $(r_n(g))_{n\ge 0}$ satisfies the coherence condition
+  \[
+    f_n^-\bigl(r_{n+1}(g)\bigr) \simeq r_n(g)
+    \qquad\text{for all } n\ge 0.
+  \]
+  In particular, the shifted thread $\bigl(f_0^-(r_0(g)),\,r_0(g),\,r_1(g),\,
+  \ldots\bigr)$ is a well-defined element of $\Kinf$.
+\end{lemma}
+
+\begin{proof}
+  Fix $a\in K_n$.  Applying $f_n^-$ to the map $r_{n+1}(g)$ and evaluating at
+  $a$ gives
+  \[
+    f_n^-\bigl(r_{n+1}(g)\bigr)(a)
+    = \pi_n\bigl(g(f_{n+1,\infty}(f_n^+(a)))\bigr).
+  \]
+  Since $f_{n+1,\infty}\circ f_n^+$ and $f_{n,\infty}$ produce the same
+  coherent thread in $\Kinf$ (both agree on all coordinates up to $n$ and
+  satisfy the tower coherence above $n$), continuity of $g$ gives
+  $g(f_{n+1,\infty}(f_n^+(a))) = g(f_{n,\infty}(a))$.  Projecting to level $n$
+  yields $r_n(g)(a)$.  Since $a$ was arbitrary, $f_n^-(r_{n+1}(g))=r_n(g)$ as
+  required.  The ``in particular'' clause follows because this coherence
+  condition is exactly the defining property of a thread in the inverse limit
+  $\Kinf$.
+\end{proof}
+
+These two lemmas decompose the proof of the following theorem into identifiable
+modules: Lemma~\ref{lem:density} provides the density argument that drives the
+section law, and Lemma~\ref{lem:coherent-restrict} provides the
+well-definedness of the reify map.
+
+\begin{theorem}[Exact $\Kinf$ reflexive packaging]
+\label{thm:D}
+  There exist globally continuous maps
+  \[
+    h : [\Kinf \to \Kinf] \to \Kinf,
+    \qquad
+    k : \Kinf \to [\Kinf \to \Kinf]
+  \]
+  such that
+  \[
+    k \circ h = \mathrm{id}_{[\Kinf \to \Kinf]},
+    \qquad
+    h \circ k = \mathrm{id}_{\Kinf}.
+  \]
+  The induced application operation
+  \[
+    \mathsf{app}(x,y):=k(x)(y)
+  \]
+  is jointly continuous. If $f_{n,\infty}:K_n\to\Kinf$ denotes the canonical
+  stage embedding, then for every $x\in\Kinf$, every $y\in K_n$, and every
+  $n\ge 0$,
+  \[
+    \pi_n\bigl(\mathsf{app}(x,f_{n,\infty}(y))\bigr)
+      = \pi_{n+1}(x)(y).
+  \]
+\end{theorem}
+
+\begin{proof}
+  We construct $h$ and $k$ directly from the finite stages.
+
+  \smallskip
+  \noindent\emph{Step 1: exact finite-stage embeddings.}
+  For each $n$ there is a canonical map
+  \[
+    f_{n,\infty}:K_n\to\Kinf
+  \]
+  obtained as follows: below level $n$ one repeatedly applies the projections
+  $f^-_i$, at level $n$ one keeps the given element, and above level $n$ one
+  repeatedly applies the embeddings $f_i^+$.  Explicitly, the thread
+  $f_{n,\infty}(u)$ is the unique coherent sequence whose $n$th coordinate is
+  $u$, whose lower coordinates are its iterated projections, and whose higher
+  coordinates are its iterated embeddings. By construction,
+  \[
+    \pi_n\circ f_{n,\infty}=\mathrm{id}_{K_n},
+  \]
+  and successive embeddings are compatible with the tower:
+  \[
+    f_{n+1,\infty}\circ f_n^+ \simeq f_{n,\infty}.
+  \]
+
+  \smallskip
+  \noindent\emph{Step 2: finite-stage restrictions of endomaps.}
+  Given a continuous endomap $g:\Kinf\to\Kinf$, define its stage-$n$ restriction
+  by
+  \[
+    r_n(g):=\pi_n\circ g\circ f_{n,\infty} \in [K_n\to K_n]=K_{n+1}.
+  \]
+  These restrictions are compatible:
+  \[
+    f_n^-\bigl(r_{n+1}(g)\bigr)\simeq r_n(g).
+  \]
+  Indeed, for $a\in K_n$,
+  \[
+    f_n^-\bigl(r_{n+1}(g)\bigr)(a)
+      = \pi_n\bigl(g(f_{n+1,\infty}(f_n^+(a)))\bigr)
+      \simeq \pi_n\bigl(g(f_{n,\infty}(a))\bigr)
+      = r_n(g)(a),
+  \]
+  because $f_{n+1,\infty}\circ f_n^+$ and $f_{n,\infty}$ define the same thread
+  in the inverse limit.
+
+  The coherence condition of Lemma~\ref{lem:coherent-restrict} guarantees
+  that we may assemble the coherent thread
+  \[
+    h(g)_0:=f_0^-(r_0(g)),\qquad h(g)_{n+1}:=r_n(g)\ \ (n\ge 0).
+  \]
+  This defines a map
+  \[
+    h:[\Kinf\to\Kinf]\to\Kinf,
+  \]
+  and continuity is immediate because each coordinate $h(g)_{n+1}=r_n(g)$ is
+  obtained by composing continuous maps.
+
+  \smallskip
+  \noindent\emph{Step 3: finite-stage application shadows.}
+  For $x,y\in\Kinf$, define the $n$th binary approximation to application by
+  \[
+    k_n(x,y):=f_{n,\infty}\bigl(\pi_{n+1}(x)(\pi_n(y))\bigr)\in\Kinf.
+  \]
+  Each $k_n$ is jointly continuous. Moreover the family $(k_n)_{n\ge 0}$ is
+  monotone:
+  \[
+    k_n(x,y)\le k_{n+1}(x,y).
+  \]
+  This follows from two facts: first, the thread coherence of $x$ identifies
+  $\pi_n(x)$ with the $f_n^-$-projection of $\pi_{n+1}(x)$; second, the section
+  inequality $f_n^+f_n^-\le \mathrm{id}$ implies that evaluating at the lifted
+  argument in stage $n+1$ dominates the stage-$n$ value. Hence the directed
+  supremum
+  \[
+    k(x,y):=\sup_{n\ge 0}k_n(x,y)
+  \]
+  exists in $\Kinf$ and is jointly continuous. Currying gives
+  \[
+    k:\Kinf\to[\Kinf\to\Kinf].
+  \]
+
+  \smallskip
+  \noindent\emph{Step 4: the stagewise formula.}
+  Fix $x\in\Kinf$ and $y\in K_n$. Restrict the map $k(x)$ along the exact
+  embedding $f_{n,\infty}$. On the one hand, the $n$th approximant
+  $k_n(x,f_{n,\infty}(y))$ has $n$th coordinate exactly
+  $\pi_{n+1}(x)(y)$. On the other hand, every higher approximant has $n$th
+  coordinate below the same value, so after projecting to level $n$ the entire
+  directed family is bounded above by $\pi_{n+1}(x)(y)$ and contains an element
+  attaining that upper bound. Since projection preserves directed suprema,
+  \[
+    \pi_n\bigl(k(x)(f_{n,\infty}(y))\bigr)=\pi_{n+1}(x)(y).
+  \]
+  This is exactly the stated stagewise application formula.
+
+  \smallskip
+  \noindent\emph{Step 5: the section law $k\circ h=\mathrm{id}$.}
+  Let $g:\Kinf\to\Kinf$. For every stage $n$ and every $y\in K_n$, the previous
+  formula applied to $h(g)$ gives
+  \[
+    \pi_n\bigl(k(h(g))(f_{n,\infty}(y))\bigr)
+      = \pi_{n+1}(h(g))(y)
+      = r_n(g)(y)
+      = \pi_n\bigl(g(f_{n,\infty}(y))\bigr).
+  \]
+  Thus $k(h(g))$ and $g$ agree on every embedded finite stage.
+
+  Now fix $z\in\Kinf$ and use the density of finite-stage approximants
+  (Lemma~\ref{lem:density}): the directed family of finite-stage approximants of
+  $z$ has $z$ as a least upper bound, and its chosen supremum is equivalent to
+  $z$. Since both $k(h(g))$ and $g$ are continuous and agree on every member of
+  this generating directed family, they agree on the chosen supremum.  The
+  equivalence with $z$ then transports this equality back to $z$, and
+  antisymmetry of the stage orders forces $k(h(g))(z)=g(z)$. Hence
+  $k(h(g))=g$.
+
+  \smallskip
+  \noindent\emph{Step 6: the retract law $h\circ k=\mathrm{id}_{\Kinf}$.}
+  For $x\in\Kinf$ and $n\ge 0$,
+  \[
+    \pi_{n+1}(h(k(x)))=r_n(k(x)).
+  \]
+  Evaluating this map at $y\in K_n$ and using the stagewise formula just proved,
+  we obtain
+  \[
+    \pi_{n+1}(h(k(x)))(y)
+      = \pi_n\bigl(k(x)(f_{n,\infty}(y))\bigr)
+      = \pi_{n+1}(x)(y).
+  \]
+  Therefore the $(n+1)$st coordinates of $h(k(x))$ and $x$ coincide for all
+  $n\ge 0$. At level $0$ one gets
+  \[
+    \pi_0(h(k(x)))=f_0^-(\pi_1(x))=\pi_0(x)
+  \]
+  by thread coherence. Hence in fact
+  \[
+    h(k(x))=x.
+  \]
+
+  Finally, $\mathsf{app}(x,y)=k(x)(y)$ is jointly continuous because it is the
+  composite of the continuous map
+  \[
+    (x,y)\longmapsto (k(x),y)
+  \]
+  with the continuous evaluation map on the function space
+  $[\Kinf\to\Kinf]$.
+\end{proof}
+
+The maps $h$ and $k$ are implemented in the Lean formalization by projection-pair
+data at each finite stage.  The following code fragment illustrates that
+interface; Section~\ref{sec:witness} then uses the stagewise formula of
+Theorem~\ref{thm:D} to separate proof-relevant witness classes inside $\Kinf$.
+
+\begin{lstlisting}[caption={Projection pairs for the $K_n$ tower
+  (from \texttt{KInfinity/Construction.lean}).}]
+structure ProjectionPair
+    (A : CompleteHomotopyPartialOrder)
+    (B : CompleteHomotopyPartialOrder) where
+  emb : ContinuousMap A B
+  proj : ContinuousMap B A
+  retract : ContinuousMap.comp proj emb = ContinuousMap.id A
+  section_le :
+    forall x : B.Obj, B.Rel (emb (proj x)) x
+\end{lstlisting}
+
+% ========================================================================
+\section{Proof-Relevant Witness Separation}\label{sec:witness}
+
+Paper~II~\cite{MRdQ:Kinfinity} established, via the witness-separation span
+restated below as Example~\ref{ex:witness-span}, that the $\Kinf$
+model is nontrivial: two distinct contraction patterns from the same redex
+receive semantically distinct images.  That result, however, was a point-level
+observation---it did not analyze the structure of the reduction witnesses
+themselves, nor did it trace the separation through the recursively completed
+higher-cell tower above the explicit core dimensions.
+
+The present section has two logically distinct parts.  First, we introduce a
+\emph{witness language} that remembers which contraction was chosen and
+classifies every explicit one-step witness by a canonical $\beta$ or $\eta$
+tag.  This is the model-specific input.  Second, we show that once the
+resulting point-level dichotomy is established, the absence of connecting
+$1$-cells and higher cells is forced by the equality-generated structure of the
+$\Kinf$ higher-cell tower, including the recursively completed dimensions.
+
+\subsection{A basic witness-separation example}
+
+Paper~II~\cite{MRdQ:Kinfinity} proved the non-triviality of $\Kinf$ by means of
+the following concrete span, which we restate here for direct reference.
+
+\begin{example}[Witness-separation span]\label{ex:witness-span}
+Consider the source
+\[
+  M=((\lambda z.\,xz)\,y)
+\]
+and the common target
+\[
+  N=xy.
+\]
+The two basic one-step contractions are displayed explicitly as
+\[
+  ((\lambda z.\,xz)\,y)\;\to_\beta\;xz[y/z]=xy
+\]
+and
+\[
+  ((\lambda z.\,xz)\,y)\;\to_\eta\;xy,
+\]
+where in the second line the $\eta$-contraction is performed in the function
+part $\lambda z.\,xz\to_\eta x$.  Thus the same source and target admit two
+distinguished one-step witnesses: the direct $\beta$-contraction and the direct
+$\eta$-contraction through the function part.
+\end{example}
+
+The point of the proof-relevant refinement is that we do not merely remember
+that the endpoints are propositionally $\beta\eta$-equal; we remember
+\emph{which contraction witness was chosen}.  A general proof-relevant explicit
+$1$-witness from $M$ to $N$ may contain reflexive padding before or after the
+essential contraction, but within this witness-separation span the witness
+language still falls into exactly two reachability classes: the $\beta$-class
+and the $\eta$-class.  Thus every proof-relevant
+$1$-witness on this span carries a canonical tag
+\[
+  \mathrm{tag}(t)\in\{\beta,\eta\}.
+\]
+Figure~\ref{fig:witness-separation} records this fixed span and the two
+canonical semantic images attached to its witness classes.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  term/.style={draw, rounded corners, align=center, inner sep=6pt, fill=gray!8},
+  semantic/.style={draw, rounded corners, align=center, text width=4.2cm, inner sep=5pt, fill=gray!4},
+  witness/.style={-{Latex[length=2mm]}, thick},
+  sem/.style={-{Latex[length=2mm]}, thick, dashed}
+]
+  \node[term] (M) {$M=((\lambda z.\,xz)\,y)$};
+  \node[term, right=5.5cm of M] (N) {$N=xy$};
+
+  \draw[witness] (M) to[bend left=22] node[above] {$t_\beta$} (N);
+  \draw[witness] (M) to[bend right=22] node[below] {$t_\eta$} (N);
+
+  \path (M) -- coordinate[midway] (center) (N);
+  \path (M) to[bend left=22] coordinate[midway] (betamid) (N);
+  \path (M) to[bend right=22] coordinate[midway] (etamid) (N);
+
+  \node[semantic, below=2.35cm of center, xshift=-2.55cm] (R)
+    {$\beta$-class\\[2pt]{\footnotesize $\llbracket t \rrbracket_{\Kinf}$}\\[-1pt]{\footnotesize $= f_{0,\infty}(s^R_1)$}};
+  \node[semantic, below=2.35cm of center, xshift=2.55cm] (L)
+    {$\eta$-class\\[2pt]{\footnotesize $\llbracket t \rrbracket_{\Kinf}$}\\[-1pt]{\footnotesize $= f_{0,\infty}(s^L_1)$}};
+
+  \draw[sem] (betamid) -- (R.north);
+  \draw[sem] (etamid) -- (L.north);
+
+  \node at ($(R.east)!0.5!(L.west)+(0,0.5)$) {$\neq$};
+\end{tikzpicture}
+\caption{The witness-separation span of Example~\ref{ex:witness-span}.  The same source and target admit a $\beta$-witness and an $\eta$-witness, but their canonical $\Kinf$ interpretations land at distinct points.}
+\label{fig:witness-separation}
+\end{figure}
+
+\subsection{Witness languages}
+
+\begin{definition}[Explicit witnesses]
+  A \emph{$\beta_1$-witness} for terms $(M,N)$ is an explicit one-step
+  $\beta$-reduction $M\to_\beta N$ together with the reduction-sequence datum it
+  generates.  An \emph{$\eta_1$-witness} is defined analogously.  More generally,
+  a \emph{$1$-term witness} is an explicit reduction witness obtained from these
+  generators by composition and reflexive padding.
+\end{definition}
+
+In this section we restrict attention to the fixed witness-separation span of
+Example~\ref{ex:witness-span}
+\[
+  M=((\lambda z.\,xz)\,y),
+  \qquad
+  N=xy.
+\]
+To each explicit $1$-term witness $t$ from $M$ to $N$ we attach two pieces of
+semantic data:
+
+\begin{enumerate}
+  \item a continuous equality $\epsilon_t$ witnessing that the source and target
+  terms have the same ordinary denotation in the reflexive semantics, and
+  \item a distinguished point of $\Kinf$ recording whether the witness belongs
+  to the $\beta$-class or to the $\eta$-class.
+\end{enumerate}
+
+The second piece is what detects proof relevance.  Let $s^R_1$ and $s^L_1$ be
+the right and left poles in the $S^1$-summand of the non-trivial base object
+used to define $K_0=\mathbb{N}^+$.  If $\mathrm{tag}(t)=\beta$, we set
+\[
+  \llbracket t\rrbracket_{\Kinf}:=f_{0,\infty}(s^R_1),
+\]
+and if $\mathrm{tag}(t)=\eta$, we set
+\[
+  \llbracket t\rrbracket_{\Kinf}:=f_{0,\infty}(s^L_1).
+\]
+Thus the interpretation depends only on the essential witness class, not on the
+amount of reflexive padding surrounding it.  We now make this classification and
+its stability precise before stating the main separation theorem.
+
+\begin{lemma}[Witness classification on the witness-separation span]\label{lem:witness-normal}
+  Let $t$ be an explicit $1$-term witness from the source $M =
+  ((\lambda z.\,xz)\,y)$ to the target $N = xy$.  Then exactly one of the
+  following holds:
+  \begin{enumerate}[label=(\alph*)]
+    \item $t$ is obtained from the direct $\beta$-contraction by inserting
+      reflexive witnesses on the left and/or right;
+    \item $t$ is obtained from the direct $\eta$-contraction by inserting
+      reflexive witnesses on the left and/or right.
+  \end{enumerate}
+  In particular, the canonical tag $\mathrm{tag}(t)\in\{\beta,\eta\}$ is
+  well-defined.
+\end{lemma}
+
+\begin{proof}
+  Proceed by structural induction on the explicit witness language.  The base
+  constructors are the direct $\beta$- and $\eta$-witnesses together with
+  reflexivity.  The reflexive case cannot occur between the chosen source and
+  target because $M\neq N$, so any witness from $M$ to $N$ must be classified
+  by one of the two nontrivial contractions.
+
+  For a composite witness, once a nontrivial $\beta$- or $\eta$-witness has
+  appeared, the remaining factor can contribute only reflexive padding.  Indeed,
+  the witness-separation span admits no third nontrivial contraction pattern: the
+  source has exactly the direct outer $\beta$-contraction and the inner
+  $\eta$-contraction through the function part, and the target $xy$ supports no
+  further forward $\beta$- or $\eta$-step.  Hence every sequential composite
+  factors as one distinguished nontrivial contraction together with reflexive
+  witnesses on the left and/or right.
+
+  The two classes are disjoint because the direct $\beta$- and $\eta$-steps are
+  syntactically distinct and have different chosen semantic tags.  Therefore
+  exactly one of (a) or (b) holds, and the tag is well-defined.
+\end{proof}
+
+\begin{corollary}[Stability under reflexive padding]\label{cor:tag-stable}
+  Let $t$ and $t'$ be explicit $1$-term witnesses from $M$ to $N$ that differ
+  only by insertion or removal of reflexive subpaths.  Then
+  $\mathrm{tag}(t)=\mathrm{tag}(t')$, and hence
+  $\llbracket t \rrbracket_{\Kinf} = \llbracket t' \rrbracket_{\Kinf}$.
+\end{corollary}
+
+\begin{proof}
+  By Lemma~\ref{lem:witness-normal}, the two classes are defined precisely by
+  adjoining reflexive witnesses to the direct $\beta$- or $\eta$-contraction.
+  Inserting or removing reflexive padding therefore cannot change whether a
+  witness is of $\beta$-type or $\eta$-type.  Hence
+  $\mathrm{tag}(t)=\mathrm{tag}(t')$, and the $\Kinf$-interpretation was
+  defined in terms of the tag alone.
+\end{proof}
+
+With these preliminaries in hand, we can state the main separation theorem.
+
+\begin{theorem}[Proof-relevant witness separation]
+\label{thm:C}
+  Let $t_\beta$ and $t_\eta$ be the explicit $\beta_1$- and $\eta_1$-witnesses
+  from Example~\ref{ex:witness-span}. Their canonical $\Kinf$ interpretations are:
+  \begin{enumerate}[label=(\roman*)]
+    \item distinct as $\Kinf$-points,
+    \item not connected by any $\Kinf$-path (1-cell),
+    \item not connected by any 2-cell, 3-cell, or 4-cell in the explicit
+      $\Kinf$ higher-cell tower,
+    \item not connected by any $n$-cell for any $n\geq 5$ in the recursively
+      completed tower.
+  \end{enumerate}
+  The same conclusion holds for any pair of explicit $1$-witnesses whose
+  canonical tags are $\beta$ and $\eta$, respectively, on this same
+  witness-separation span.
+\end{theorem}
+
+\begin{proof}
+  We divide the argument into classification, point-level separation, and
+  transport through the higher dimensions.
+
+  \smallskip
+  \noindent\emph{1. Classification of witnesses.}
+  By Lemma~\ref{lem:witness-normal}, every proof-relevant explicit $1$-witness
+  $t$ from the source $M$ to the target $N$ of Example~\ref{ex:witness-span}
+  lies in exactly one of
+  two classes: the $\beta$-class, obtained from the direct $\beta$-contraction
+  by reflexive padding, or the $\eta$-class, obtained analogously from the
+  direct $\eta$-contraction.  The canonical tag
+  $\mathrm{tag}(t)\in\{\beta,\eta\}$ is therefore well-defined.  By
+  Corollary~\ref{cor:tag-stable}, the tag---and hence the
+  $\Kinf$-interpretation---is invariant under insertion or removal of reflexive
+  subpaths.
+
+  \smallskip
+  \noindent\emph{2. Canonical interpretation.}
+  The interpretation of $t$ is the pair $(\epsilon_t,\llbracket
+  t\rrbracket_{\Kinf})$ consisting of its continuous semantic witness
+  $\epsilon_t$ together with the point
+  \[
+    \llbracket t\rrbracket_{\Kinf}=
+    \begin{cases}
+      f_{0,\infty}(s^R_1),& \text{if }\mathrm{tag}(t)=\beta,\\[1ex]
+      f_{0,\infty}(s^L_1),& \text{if }\mathrm{tag}(t)=\eta.
+    \end{cases}
+  \]
+  In particular,
+  \[
+    \pi_0(\llbracket t_\beta\rrbracket_{\Kinf})=s^R_1,
+    \qquad
+    \pi_0(\llbracket t_\eta\rrbracket_{\Kinf})=s^L_1.
+  \]
+
+  \smallskip
+  \noindent\emph{3. Separation at dimension $0$.}
+  Since $s^R_1$ and $s^L_1$ are distinct poles of the chosen $S^1$-summand, they
+  are distinct already in $K_0$. Hence
+  \[
+    \llbracket t_\beta\rrbracket_{\Kinf}\neq
+    \llbracket t_\eta\rrbracket_{\Kinf},
+  \]
+  because equality in $\Kinf$ would imply equality of all projections, in
+  particular equality of the $0$th projections. This proves~(i).
+
+  \smallskip
+  \noindent\emph{4. No 1-cells.}
+  The canonical $\Kinf$-tower used here is the equality-type
+  $\omega$-groupoid on the carrier of $\Kinf$. Consequently a $1$-cell from
+  $x$ to $y$ is precisely an identification $x=y$. Since the two points are
+  already distinct by the previous step, there is no $1$-cell between them.
+  This proves~(ii).
+
+  \smallskip
+  \noindent\emph{5. Transport through dimensions $2$ to $4$.}
+  A $2$-cell can exist only between parallel $1$-cells; therefore the existence
+  of a $2$-cell between the $\beta$- and $\eta$-interpretations would in
+  particular produce a $1$-cell between them, impossible by~(ii). The same
+  argument iterates:
+  a $3$-cell has as boundary a pair of $2$-cells, and a $4$-cell has as
+  boundary a pair of $3$-cells. Hence emptiness propagates inductively upward
+  through the explicit low-dimensional hierarchy. This proves~(iii).
+
+  \smallskip
+  \noindent\emph{6. Recursive higher dimensions.}
+  For dimensions $\ge 5$, the recursively completed tower
+  is obtained from the low-dimensional $\Kinf$-cells by iterated identity
+  completion. In that completed tower every cell of dimension $m\ge 5$ has equal
+  $0$-source and $0$-target. Concretely, this is because the explicit $5$- and
+  $6$-cells already collapse their object-level boundary, and every higher cell
+  is then generated by repeated identity extension from lower-dimensional data.
+
+  Therefore, if there were an $(n+5)$-cell in the recursive tower with
+  $0$-source $\llbracket t_\beta\rrbracket_{\Kinf}$ and $0$-target
+  $\llbracket t_\eta\rrbracket_{\Kinf}$, the equality of $0$-source and
+  $0$-target for all such cells would force
+  \[
+    \llbracket t_\beta\rrbracket_{\Kinf}
+    =
+    \llbracket t_\eta\rrbracket_{\Kinf},
+  \]
+  contradicting the dimension-$0$ separation already proved. This establishes
+  (iv).
+
+  \smallskip
+  \noindent\emph{7. Uniformity.}
+  Nothing in the preceding argument used any special feature of the two
+  distinguished witnesses beyond their tags on the fixed witness-separation span.  Any
+  witness on that span classified as $\beta$ is interpreted by the same
+  canonical $\beta$-point, and any witness classified as $\eta$ is interpreted
+  by the same canonical $\eta$-point.  Hence the same separation theorem holds
+  for every pair of witnesses on this span lying in opposite classes.
+\end{proof}
+
+\begin{remark}
+  Theorem~\ref{thm:C} should be read in two layers.  Its genuinely model-specific
+  input is the canonical $\beta/\eta$ dichotomy on the witness language of
+  Example~\ref{ex:witness-span} and the corresponding separation at
+  dimension~$0$.  Once that input
+  is fixed, the higher-dimensional clauses record that the recursive
+  equality-generated tower does not create connecting cells across the two
+  classes.  Thus the theorem isolates both the base semantic distinction and
+  the precise sense in which that distinction propagates through the
+  proof-relevant semantics.
+\end{remark}
+
+% ========================================================================
+\section{Discussion and Future Work}\label{sec:discussion}
+
+\subsection{Summary of results}
+
+We have presented four theorem packages on the theory of higher
+$\lambda$-models:
+\begin{enumerate}[label=(\Alph*)]
+  \item All-dimensional constructive coherence for higher
+    $\lambda$-conversions (Theorem~\ref{thm:A}).
+  \item Minimal semantic coherence data for associator/pentagon reasoning
+    (Theorem~\ref{thm:B}).
+  \item Proof-relevant witness separation for $\Kinf$ (Theorem~\ref{thm:C}).
+  \item Exact reflexive packaging and application for $\Kinf$
+    (Theorem~\ref{thm:D}).
+\end{enumerate}
+
+\noindent
+These four results have different mathematical roles.  Theorem~\ref{thm:D} is
+the most concrete model-specific theorem: it gives an exact reflexive structure
+on $\Kinf$ with explicit stagewise formulas.  Theorem~\ref{thm:B} isolates the
+minimal coherence interface required to transport associator and pentagon
+arguments into that setting.  Theorems~\ref{thm:A} and~\ref{thm:C} are more
+structural: the former compares the explicit low-dimensional tower with its
+recursive equality-generated continuation, while the latter shows that the
+point-level $\beta/\eta$ separation on the witness-separation span remains stable under that
+continuation.
+
+\subsection{Comparison with related work}
+
+We organize the discussion into three threads: direct antecedents within the
+higher $\lambda$-model programme, the broader higher-categorical and
+homotopical background, and the classical domain-theoretic lineage.
+
+\medskip
+\noindent\textbf{Direct antecedents.}
+The immediate foundation is the two-paper programme of Mart\'{\i}nez-Rivillas
+and de~Queiroz.  Paper~I~\cite{MRdQ:theory} introduced the extensional Kan
+semantics, defined the explicit tower of $n$-conversions, and proved the main
+inclusion $\THeq\subseteq\HoTFT$.  Paper~II~\cite{MRdQ:Kinfinity} constructed
+$\Kinf$ and exhibited the separation restated here as Example~\ref{ex:witness-span}.  The present work begins from
+those results but addresses four specific remaining gaps.  For
+Theorem~\ref{thm:A}, the missing point is not the existence of recursive
+higher-derivation syntax, but the comparison between the explicit
+low-dimensional tower and the equality-generated continuation together with the
+proof of strict globular compatibility for that continuation.  For
+Theorem~\ref{thm:B}, the missing point is the isolation of the smaller
+WLWR-plus-front-seed interface sufficient for the later semantic arguments.
+For Theorem~\ref{thm:C}, Paper~II gives only point-level separation; what was
+missing was a witness-level classification on the witness-separation span together
+with an account of how that separation behaves in the recursive tower.  For
+Theorem~\ref{thm:D}, the missing point is the exact reflexive packaging of
+$\Kinf$ by globally continuous reify, reflect, and application maps with
+explicit stagewise formulas and a strict retract law.
+
+Earlier in the same programme, Mart\'{\i}nez-Rivillas and
+de~Queiroz~\cite{MRdQ:homotopydomain} developed a homotopy domain theory that
+enriches the classical Scott semantics with an explicit homotopical layer, and
+in~\cite{MRdQ:topological} they studied the $\infty$-groupoid generated by an
+arbitrary topological $\lambda$-model.  Both papers anticipate the idea that
+the conversion structure of the $\lambda$-calculus has a nontrivial
+higher-categorical life, but neither constructs the all-dimensional coherence
+package or the witness-level separation that the present paper provides.
+
+A closely related syntactic thread is the computational-paths programme of
+de~Veras, Ramos, de~Queiroz, and de~Oliveira~\cite{deVeras:computational},
+which showed that the paths generated by directed reduction steps in a rewriting
+system form a weak groupoid.  Their construction provides a syntactic template
+for the 1-dimensional layer of our tower: the reduction sequences between
+$\lambda$-terms are precisely computational paths, and the explicit 2-cells
+(homotopies between reduction sequences) can be viewed as the coherence data
+that upgrade the resulting path groupoid to a $2$-groupoid.  The present paper
+extends that picture to all dimensions by showing that the recursive completion
+of the low-dimensional core yields a genuine $\omega$-groupoid (Theorem~\ref{thm:A}).
+
+\medskip
+\noindent\textbf{Higher-categorical and homotopical background.}\quad
+The coherence machinery that underlies Theorem~\ref{thm:A} has a long history in
+higher category theory.  Batanin~\cite{Batanin:monoidal} introduced monoidal
+globular categories as the natural algebraic environment for defining weak
+$n$-categories; the globular tower of $n$-conversions in the present paper
+fits that framework, and the recursive completion principle of
+Definition~\ref{def:higherderiv} can be viewed as a free globular resolution.
+Batanin's work does not itself address $\lambda$-calculus, but it provides the
+coherence-theoretic language---globularity, strict source/target compatibility,
+composition by whiskering---that our construction instantiates in the
+$\lambda$-calculus setting.
+
+Grothendieck's \emph{Pursuing Stacks}~\cite{Grothendieck:pursuing} proposed
+that the fundamental $\omega$-groupoid of a space should serve as a complete
+algebraic invariant.  The analogy with the present work is suggestive: the
+space of $\lambda$-terms modulo $\beta\eta$-conversion has, by Theorem~\ref{thm:A}, a
+natural fundamental $\omega$-groupoid whose higher cells are explicit
+conversion witnesses, and the $0$-truncation of that groupoid recovers the
+classical theory (the Corollary on $0$-truncation in Section~\ref{sec:all-dim}).
+We do not claim a direct technical connection to Grothendieck's programme---our
+construction is combinatorial and syntactic rather than topological---but the
+conceptual alignment with the idea that ``higher identification data should be
+explicit and algebraically coherent'' is strong.
+
+Homotopy type theory~\cite{HoTT} provides a different realization of the same
+principle: identity types in Martin-L\"of type theory form a weak
+$\omega$-groupoid, and the univalence axiom enriches the resulting structure
+further.  Our setting is the untyped $\lambda$-calculus rather than dependent
+type theory, and the higher cells are generated by reduction steps rather than
+by identity elimination.  Nevertheless, the structural parallel is close enough
+that one may ask (see Open Problem~3 below) whether there is a precise
+translation between the $\lambda$-$\omega$-groupoid $\mathscr{G}_\lambda$ and
+the fundamental $\omega$-groupoid constructions in HoTT.
+More broadly, the present work connects to the logic-and-computation community's
+interest in proof relevance and computational interpretations of identity: where
+HoTT uses identity types to generate higher structure in a typed setting, we use
+directed reduction witnesses to generate it in the untyped $\lambda$-calculus,
+offering a complementary perspective on the computational content of
+equivalence proofs.
+
+Lurie's \emph{Higher Topos Theory}~\cite{Lurie:htt} develops a comprehensive
+framework for higher categories in which $\infty$-groupoids play a central role
+as the homotopy types of spaces.  The relationship to the present work is at the
+level of conceptual architecture rather than direct technical overlap: we are
+constructing a concrete combinatorial $\omega$-groupoid from the syntax of the
+$\lambda$-calculus, while Lurie's machinery addresses the abstract
+higher-categorical foundations.  The two perspectives meet in the observation
+that the $\lambda$-$\omega$-groupoid $\mathscr{G}_\lambda$ is an explicitly
+presented object of the kind that Lurie's theory classifies.
+
+\medskip
+\noindent\textbf{Classical domain-theoretic lineage.}\quad
+The $\Kinf$ construction (Section~\ref{sec:Kinfty}) is a direct descendant of
+Scott's continuous lattice semantics~\cite{Scott:continuous}.  Scott showed that
+every countably based continuous lattice admits a reflexive structure, and the
+resulting models interpret the untyped $\lambda$-calculus.  The $\Kinf$ tower
+replaces Scott's single-step reflexivity with an iterated function-space tower
+$K_{n+1}=[K_n\to K_n]$ whose inverse limit inherits both the classical
+algebraic-domain structure and a new homotopical layer.
+
+Barendregt's~\cite{Barendregt:lambda} systematic treatment of $\lambda$-models
+provides the classical reference frame: the notions of extensionality, the
+$\beta\eta$-theory, Church--Rosser, and confluence that appear in our
+preliminaries and baseline sections are standard in the sense
+of~\cite{Barendregt:lambda}.  The novelty of the present approach is that these
+classical ingredients are enriched with higher-dimensional semantic structure
+that was invisible in the purely propositional setting.
+
+\medskip
+\noindent\textbf{Nature of the contribution.}\quad
+The rôle of the formal development is methodological and certifying rather than
+expository.  The mathematical burden of the paper is carried by the arguments in
+Sections~\ref{sec:all-dim}--\ref{sec:witness}.  Among those, Theorem~\ref{thm:D}
+is the strongest model-specific statement, Theorem~\ref{thm:B} identifies the
+minimal coherence input needed for the later semantic comparison arguments, and
+Theorems~\ref{thm:A} and~\ref{thm:C} describe structural consequences of the
+recursive higher tower once the low-dimensional and point-level data are fixed.
+Lean~4~\cite{Lean4} provided a disciplined setting in which these arguments were
+discovered and checked, but the paper is intended to stand or fall on its
+mathematics rather than on the existence of the formalization.
+In the broader logic-and-computation tradition, the results illustrate a
+recurring theme: that the proof-relevant refinement of a classical equivalence
+relation (here, $\beta\eta$-convertibility) reveals computational
+structure---witness classes, coherence data, semantic separation---that the
+propositional collapse erases.  The constructive character of the proofs,
+particularly the explicit witness constructions, aligns with the programme of
+making the computational content of logical derivations visible and tractable.
+
+\subsection{Open problems}
+
+\begin{enumerate}
+  \item \textbf{Eliminating the front-seed.}
+    Derive the reduced front-seed coherence package (seeds FS1 and FS2 in
+    Theorem~\ref{thm:B}) directly from the bare extensional Kan complex interface.
+    A positive answer would unify the bare and coherent semantic regimes,
+    showing that every extensional Kan complex is automatically coherent
+    in the sense needed for associator and pentagon reasoning.
+
+  \item \textbf{Typed extensions.}
+    Extend the all-dimensional coherence to typed $\lambda$-calculi, where
+    the type structure could provide additional constraints on the
+    higher-cell tower.  Simply-typed and polymorphic calculi are natural
+    first targets.
+
+  \item \textbf{Connections to HoTT.}
+    Investigate the relationship between the $\lambda$-$\omega$-groupoid
+    $\mathscr{G}_\lambda$ and the fundamental $\omega$-groupoid constructions
+    in homotopy type theory~\cite{HoTT}.  Is there a precise functor, or at
+    least a comparison map, between the two?
+
+  \item \textbf{Explicit strictification.}
+    Determine whether the weak $\omega$-groupoid $\mathscr{G}_\lambda$ admits
+    a strictification to a strict $\omega$-category, and if so, what
+    information about the $\lambda$-calculus is lost in the process.
+\end{enumerate}
+
+\subsection{Formal verification note}
+
+All results proved in this paper have been formally verified in the Lean~4
+theorem prover~\cite{Lean4}; the complete development is available at
+\begin{center}
+  \url{https://github.com/Arthur742Ramos/HigherLambdaModel}
+\end{center}
+\noindent and contains no use of \texttt{sorry} (the Lean keyword for an
+unfinished proof obligation).
+From the mathematical point of view, the formalization plays an evidential role:
+it certifies that every case split, boundary compatibility check, and recursive
+induction invoked above has been verified mechanically.  In particular, the
+recursive inductions in the proofs of Theorems~\ref{thm:A} and~\ref{thm:D}
+involve several dozen case-by-case verifications that are straightforward but
+tedious to reproduce on paper; the formal proof provides independent assurance
+that none were dropped.
+From a logic-and-computation perspective, the formalization also serves as a
+computational certificate: the Lean kernel's type-checking algorithm
+independently verifies every logical step, providing a degree of assurance that
+complements traditional peer review.
+The formalization also covers all four main theorems,
+the baseline results of Section~\ref{sec:baseline}, and the full explicit tower
+through dimension~6.
+
+To keep the present paper focused on the mathematics, we record only one short
+code fragment in the main text---the \texttt{ProjectionPair} interface from
+Section~\ref{sec:Kinfty}.  For readers who want a direct bridge back to the
+formal development, Appendix~\ref{app:lean-map} records representative Lean
+entry points for the four main theorems.
+
+% ========================================================================
+% Appendix
+% ========================================================================
+
+\appendix
+
+\section{Lean roadmap for the main theorems}\label{app:lean-map}
+
+This appendix gives a compact map from the four headline results of the paper
+to representative declarations in the Lean development, together with short
+illustrative excerpts.  It is not an exhaustive index; the full paper-to-Lean
+claim matrix is maintained in \path{docs/theorem_index.md}.  The excerpts below
+are intentionally short and omit some argument lists with \texttt{...} when the
+omitted data are not mathematically central to the discussion in the paper.
+
+\subsection*{Theorem A: all-dimensional constructive coherence}
+
+\noindent\textbf{Primary files.}
+\begin{quote}\raggedright
+\path{HigherLambdaModel/Lambda/Coherence.lean}\\
+\path{HigherLambdaModel/Lambda/TruncationCore.lean}\\
+\path{HigherLambdaModel/Lambda/Truncation.lean}
+\end{quote}
+\noindent\textbf{Representative declarations.}
+\begin{quote}\raggedright
+\path{AllDimensionalHigherConversionCoherence}\\
+\path{lambdaOmegaConstructiveRealize}\\
+\path{lambdaConstructiveHigherConversionCoherence}
+\end{quote}
+
+\begin{lstlisting}[caption={Representative Lean excerpt for Theorem A
+  (from \texttt{Lambda/TruncationCore.lean}).}]
+def lambdaConstructiveHigherConversionCoherence :
+    HigherLambdaModel.Lambda.Coherence.AllDimensionalHigherConversionCoherence
+      HigherLambdaModel.Lambda.NTerms.lambdaTower
+      lambdaOmegaReflexiveTower where
+  realize := lambdaOmegaConstructiveRealize
+  source_comm := by
+    intro n x
+    exact lambdaOmegaConstructiveRealize_source_comm x
+  target_comm := by
+    intro n x
+    exact lambdaOmegaConstructiveRealize_target_comm x
+\end{lstlisting}
+
+\subsection*{Theorem B: reduced front-seed coherence}
+
+\noindent\textbf{Primary file.}
+\begin{quote}\raggedright
+\path{HigherLambdaModel/Lambda/ExtensionalKanHigher.lean}
+\end{quote}
+\noindent\textbf{Representative declarations.}
+\begin{quote}\raggedright
+\path{FrontSeedCoherentExtensionalKanComplex}\\
+\path{FrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_associator_in_Theory3}\\
+\path{FrontSeedCoherentExtensionalKanComplex.reductionSeq_pentagon_in_Theory3}\\
+\path{FrontSeedCoherentExtensionalKanComplex.homotopy2_pentagon_shell_bridge_in_Theory3}
+\end{quote}
+
+\begin{lstlisting}[caption={Representative Lean excerpt for Theorem B
+  (from \texttt{Lambda/ExtensionalKanHigher.lean}).}]
+structure FrontSeedCoherentExtensionalKanComplex
+    extends ExtensionalKanComplex where
+  pentagonInnerRightFrontReflPath3 : ...
+  wlwrPath3 : ...
+
+noncomputable def
+    FrontSeedCoherentExtensionalKanComplex.reductionSeq_comp_associator_in_Theory3
+    (K : FrontSeedCoherentExtensionalKanComplex) ... :=
+  reductionSeq_comp_associator_in_Theory3_ofPentagonInnerRightFrontRefl
+    K.toExtensionalKanComplex
+    K.pentagonInnerRightFrontReflPath3
+    K.wlwrPath3 ...
+\end{lstlisting}
+
+\subsection*{Theorem C: proof-relevant witness separation}
+
+\noindent\textbf{Primary files.}
+\begin{quote}\raggedright
+\path{HigherLambdaModel/KInfinity/Examples.lean}\\
+\path{HigherLambdaModel/KInfinity/ContinuousSemantics.lean}
+\end{quote}
+\noindent\textbf{Representative declarations.}
+\begin{quote}\raggedright
+\path{betaEtaPaper_beta1Witness_interpretation}\\
+\path{betaEtaPaper_eta1Witness_interpretation}\\
+\path{betaEtaPaper_witness_interpretations_distinct}\\
+\path{betaEtaPaper_witness_interpretations_no_recursive_higher_cell}
+\end{quote}
+
+\begin{lstlisting}[caption={Representative Lean excerpt for Theorem C
+  (from \texttt{KInfinity/Examples.lean}).}]
+noncomputable def betaEtaPaper_beta1Witness_interpretation :
+    Example42NTerm1WitnessInterpretation :=
+  example42NTerm1Witness_interpretation betaEtaPaper_beta1Witness
+
+noncomputable def betaEtaPaper_eta1Witness_interpretation :
+    Example42NTerm1WitnessInterpretation :=
+  example42NTerm1Witness_interpretation betaEtaPaper_eta1Witness
+
+theorem betaEtaPaper_witness_interpretations_no_recursive_higher_cell
+    (n : Nat) :
+    not (Nonempty {x : kInfinityTower.Cell (n + 5) // ... }) := ...
+\end{lstlisting}
+
+\subsection*{Theorem D: exact reflexive packaging of $\Kinf$}
+
+\noindent\textbf{Primary file.}
+\begin{quote}\raggedright
+\path{HigherLambdaModel/KInfinity/Properties.lean}
+\end{quote}
+\noindent\textbf{Representative declarations.}
+\begin{quote}\raggedright
+\path{hInfinity}\\
+\path{kInfinityContinuous}\\
+\path{kInfinityReflexiveCHPO}\\
+\path{applicationContinuous}
+\end{quote}
+
+\begin{lstlisting}[caption={Representative Lean excerpt for Theorem D
+  (from \texttt{KInfinity/Properties.lean}).}]
+noncomputable def kInfinityReflexiveCHPO : ReflexiveCHPO KInfinityCHPO where
+  reify := hInfinityContinuous
+  reflect := kInfinityContinuous
+  retract := by
+    ext x
+    exact hInfinity_kInfinityContinuous_apply x
+
+noncomputable def applicationContinuous :
+    ContinuousMap (Product.chpo KInfinityCHPO KInfinityCHPO) KInfinityCHPO := ...
+\end{lstlisting}
+
+% ========================================================================
+% Bibliography
+% ========================================================================
+
+\begin{thebibliography}{99}
+
+\bibitem{Barendregt:lambda}
+  H.~P.~Barendregt,
+  \emph{The Lambda Calculus: Its Syntax and Semantics},
+  revised edition,
+  Studies in Logic and the Foundations of Mathematics~103,
+  North-Holland, 1984.
+
+\bibitem{Batanin:monoidal}
+  M.~A.~Batanin,
+  Monoidal globular categories as a natural environment for the theory
+  of weak $n$-categories,
+  \emph{Advances in Mathematics} 136(1):39--103, 1998.
+  \textsc{doi}: \href{https://doi.org/10.1006/aima.1998.1724}{10.1006/aima.1998.1724}.
+
+\bibitem{deVeras:computational}
+  T.~M.~L.~de~Veras, A.~F.~Ramos, R.~J.~G.~B.~de~Queiroz, and
+  A.~G.~de~Oliveira,
+  Computational paths---a weak groupoid,
+  \emph{Journal of Logic and Computation} 35(5):exad071, 2025.
+  \textsc{doi}: \href{https://doi.org/10.1093/logcom/exad071}{10.1093/logcom/exad071}.
+  Also available as arXiv:2007.07769.
+
+\bibitem{Grothendieck:pursuing}
+  A.~Grothendieck,
+  \emph{Pursuing Stacks},
+  edited by G.~Maltsiniotis,
+  Documents math\'{e}matiques~20,
+  Soci\'{e}t\'{e} Math\'{e}matique de France, 2022.
+  (Original manuscript, 1983.)
+
+\bibitem{HoTT}
+  The Univalent Foundations Program,
+  \emph{Homotopy Type Theory: Univalent Foundations of Mathematics},
+  Institute for Advanced Study, 2013.
+
+\bibitem{Lean4}
+  L.~de~Moura and S.~Ullrich,
+  The Lean~4 theorem prover and programming language,
+  in: \emph{Automated Deduction---CADE~28},
+  LNCS~12699, Springer, 2021, pp.~625--635.
+  \textsc{doi}: \href{https://doi.org/10.1007/978-3-030-79876-5_37}{10.1007/978-3-030-79876-5\_37}.
+
+\bibitem{Lurie:htt}
+  J.~Lurie,
+  \emph{Higher Topos Theory},
+  Princeton University Press, 2009.
+  \textsc{doi}: \href{https://doi.org/10.1515/9781400830558}{10.1515/9781400830558}.
+
+\bibitem{MRdQ:homotopydomain}
+  D.~O.~Mart\'{\i}nez-Rivillas and R.~J.~G.~B.~de~Queiroz,
+  Towards a homotopy domain theory,
+  \emph{Archive for Mathematical Logic} 62:559--579, 2023.
+  \textsc{doi}: \href{https://doi.org/10.1007/s00153-022-00856-0}{10.1007/s00153-022-00856-0}.
+  Preprint: arXiv:2007.15082.
+
+\bibitem{MRdQ:Kinfinity}
+  D.~O.~Mart\'{\i}nez-Rivillas and R.~J.~G.~B.~de~Queiroz,
+  The $K_\infty$ homotopy $\lambda$-model,
+  to appear in \emph{Logic Journal of the IGPL}.
+  \textsc{doi}: \href{https://doi.org/10.48550/arXiv.2505.07103}{10.48550/arXiv.2505.07103}.
+  Preprint: arXiv:2505.07103 [cs.LO], 2025.
+
+\bibitem{MRdQ:theory}
+  D.~O.~Mart\'{\i}nez-Rivillas and R.~J.~G.~B.~de~Queiroz,
+  The theory of an arbitrary higher $\lambda$-model,
+  \emph{Bulletin of the Section of Logic} 52(1):39--58, 2023.
+  \textsc{doi}: \href{https://doi.org/10.18778/0138-0680.2023.11}{10.18778/0138-0680.2023.11}.
+  Also available as arXiv:2111.07092.
+
+\bibitem{MRdQ:topological}
+  D.~O.~Mart\'{\i}nez-Rivillas and R.~J.~G.~B.~de~Queiroz,
+  The $\infty$-groupoid generated by an arbitrary topological $\lambda$-model,
+  \emph{Logic Journal of the IGPL} 30:465--488, 2022.
+  \textsc{doi}: \href{https://doi.org/10.1093/jigpal/jzab015}{10.1093/jigpal/jzab015}.
+
+\bibitem{Scott:continuous}
+  D.~S.~Scott,
+  Continuous lattices,
+  in: \emph{Toposes, Algebraic Geometry and Logic},
+  Lecture Notes in Mathematics~274, Springer, 1972, pp.~97--136.
+  Originally circulated as PRG-7, Oxford University Computing Laboratory,
+  Programming Research Group, 1971.
+
+\end{thebibliography}
+
+\end{document}

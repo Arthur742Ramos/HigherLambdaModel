@@ -1,0 +1,1819 @@
+The K∞ Homotopy λ-Model
+Daniel O. Martı́nez-Rivillas, Ruy J.G.B. de Queiroz
+
+Abstract
+We extend the complete ordered set Dana Scott’s D∞ to a complete weakly
+ordered Kan complex K∞ , with properties that guarantee the non-equivalence
+of the interpretation of some higher conversions of βη-conversions of λ-terms.
+Keywords: Homotopy domain theory, Homotopy domain equation, Homotopy
+lambda model, weakly ordered Kan complex, complete homotopy partial order
+(c.h.p.o), homotopy Scott domain
+2020 MSC: 03B70
+
+1. Introduction
+The initiative to search for λ-models [1] with an ∞-groupoid structure emerged
+in [2], which studied the geometry of any complete partial order (c.p.o) (e.g.,
+D∞ ), and found that the topology inherent in these models generated trivial
+higher groups. From that moment on, the need arose to look for a type of model
+that presented a rich geometric structure, where their higher-order fundamental
+groups would not collapse.
+It is known in the literature that Dana Scott’s Domain Theory ([3] and [4]),
+provides general techniques for obtaining λ-models by solving domain equations over arbitrary Cartesian closed categories. To fulfill the purpose of getting
+λ-models with non-trivial ∞-groupoid structure, the most natural way would
+be to adapt Dana Scott’s Domain Theory to a “Homotopy Domain Theory”
+([5], [6] and [7]), where the Cartesian closed categories (c.c.c) will be replaced
+by Cartesian closed ∞-categories (c.c.i), in this work: the c.p.o’s will be replaced by “c.h.p.o’s (complete homotopy partial orders)”, continuity with [6]:
+Preprint submitted to Journal of LATEX Templates
+
+March 30, 2026
+
+the 0-categories by 0-∞-categories and the isomorphism between objects in a
+Cartesian closed 0-category (in the recursive domain equation) will be replaced
+by an equivalence between objects in a Cartesian closed 0-∞-category, which we
+call “homotopy domain equation” such as summarized in Table 1. Here, the last
+row we added to this table is: Extending the D∞ λ-model to the K∞ homotopy
+λ-model (initially defined in [7]) so that proving its non-triviality and that is a
+“Homotopy Scott Domain”, are the new results of this work.
+Table 1: Generalization of Recursive Domain Equations
+
+Dana Scott’s Domain Theory
+
+Homotopy Domain Theory
+
+Cartesian Closed Category (c.c.c)
+
+Cartesian Closed ∞-Category (c.c.i)
+
+Complete Partial Order (c.p.o)
+
+Complete Homotopy Partial Order
+(c.h.p.o)
+
+CPO c.c.c
+
+CHPO c.c.i
+
+0-category
+
+0-∞-category
+
+Recursive Domain Equation:
+
+Homotopy Domain Equation:
+
+X∼
+= [X → X]
+
+X ≃ [X → X]
+
+The D∞ λ-model
+
+The K∞ Homotopy λ-model
+
+Intuitively, from the computational point of view, we have that a Kan complex, which satisfies the Homotopy Domain Equation as K∞ , is not only capable
+of verifying the computability of constructions typical of classical programming
+languages, as D∞ does it, but also, it has the advantage (over D∞ ) of verifying the computability of higher constructions, such as a mathematical proof of
+some proposition, the proof of the equivalence between two proofs of the same
+proposition etc.
+To guarantee the existence of Kan complexes with good information, we
+define the “non-trivial Kan complexes”, which in intuitive terms are those that
+have holes in all higher dimensions and also have holes in the locality or class of
+any vertex. We prove that K∞ is a non-trivial Kan complex and is also reflexive,
+2
+
+that is, K∞ is a “non-trivial homotopy λ-model”, previously called homotopic
+λ-model in [2], and developed in [5].
+In Section 2 this corresponds to the bases of ∞-categories and some result
+of previous work on homotopy domain theory. In Section 3, we extend the
+category of complete partial orders CPO to ∞-category of complete homotopy
+partial orders CHPO, we generalise Dana Scott’s set D∞ to a Kan complex that
+we denote by K∞ and prove that it is a Scott Domain extended to a CHPO. In
+Section 4, we show that K∞ is a solution of the equation X ≃ [X → X], i.e.,
+is a homotopy λ-model, in addition we prove that it is non-trivial, and finally,
+we present an example of the interpretation of β-contraction and η-contraction
+and the non-equivalence of these in K∞ .
+
+2. Theoretical Foundations
+The ∞-categories or quasi-categories are a type of simplicial sets, introduced
+by [8] to generalise classical categories. In the decade of the 2000s, André Joyal
+made important advances, e.g. showing some results analogous to classical
+category theory in its ∞-categorical version, as can be seen in [9] and [10]. In
+[11] and [12], one can find the most complete treatise written so far on the
+theory of ∞-categories and in [13] everything related to the higher operators
+and algebras on ∞-categories.
+2.1. Simplicial sets
+For a better understanding of the definitions and basic results of ∞-categories,
+necessary for the development of this work, we present some notions of simplicial
+sets [14].
+Definition 2.1 (Simplicial indexing category). Define ∆ as the category as
+follows. The objects are finite ordinals [n] = {0, 1, . . . , n}, n ≥ 0, and the
+morphisms are the (non-strictly) order-preserving maps. Morphisms in ∆ are
+often called simplicial operators.
+
+3
+
+Remark 2.1. There is a coface operator di : [n − 1] → [n], which skips the
+i-th element and a codegeneracy operator si : [n + 1] → [n], which maps i and
+i + 1 to the same element. Every operator f ∗ in ∆ can be obtained as a finite
+composition of coface and codegeneracy operators.
+Definition 2.2 (Simplicial set). A simplicial set X is a functor X : ∆op →
+Set (or presheaf ). A simplicial morphism is just a natural transformation of
+functors. The category of simplicial sets F un(∆op , Set) will be denoted by sSet
+or Set∆ .
+It is typical to write Xn for X([n]), and to call it the set of n-simplexes in
+X.
+Remark 2.2. Given a simplex a ∈ Xn and a simplicial operator f ∗ : [m] → [n],
+the function f : Xn → Xm is given by f (a) := X(f ∗ )(a). In this explicit
+language, a simplicial set consists of
+• a sequence of sets X0 , X1 , X2 , . . . ,
+• functions f : Xn → Xm for each simplicial operator f ∗ : [m] → [n].
+• id(a) = a and (gf )(a) = g(f (a)) for all simplex a and simplicial operators
+f ∗ and g ∗ whenever this makes sense.
+For the coface operator di : [n − 1] → [n], the face map is denoted by di :
+Xn → Xn−1 , 0 ≤ i ≤ n. For the codegeneracy operator si : [n + 1] → [n], the
+degeneracy map is written by si : Xn → Xn+1 , 0 ≤ i ≤ n.
+Definition 2.3 (Product of simplicial sets [15]). Let X and Y be simplicial
+sets. Their product X × Y is defined by
+1. (X × Y )n = Xn × Yn = {(x, y) | x ∈ Xn , y ∈ Yn },
+2. if (x, y) ∈ (X × Y )n , then di (x, y) = (di x, di y),
+3. if (x, y) ∈ (X × Y )n , then si (x, y) = (si x, si y).
+Notice that there are evident projection maps π1 : X × Y → X and π2 :
+X × Y → Y given by π1 (x, y) = x and π2 (x, y) = y. These maps are clearly
+simplicial morphisms.
+4
+
+Definition 2.4 (Standard n-simplex). The standard n-simplex ∆n is the simplicial set defined by
+∆n := ∆(−, [n]).
+That is, the standard n-simplex is exactly the functor represented by the object
+[n].
+The standard 0-simplex ∆0 is the terminal object in sSet; i.e., for every
+simplicial set X there is a unique map X → ∆0 . Sometimes we write ∗ instead
+of ∆0 for this object. The empty simplicial set ∅ is the functor ∆op → Set
+sending each [n] to the empty set. It is the initial object in sSet, i.e., for every
+simplicial set X there is a unique map ∅ → X. Besides, there is a bijection
+sSet(∆n , X) ∼
+= Xn ; applying the Yoneda Lemma to category ∆ [16].
+A graphical representation of the convex hull of ∆n is made up of the n +
+1 vertices ⟨0⟩, ⟨1⟩, . . . , ⟨n⟩ and the faces are the injective simplicial operators,
+which are called non-degenerated cells.
+Definition 2.5 ([14]). For two simplicial sets X, Y we have a mapping simplicial set, M ap(X, Y ) defined as:
+M ap(X, Y )n := sSet(X × ∆n , Y ).
+Note, in particular, M ap(X, Y )0 = sSet(X ×∆0 , Y ) ∼
+= sSet(X, Y ) (bijection
+of sets). Sometimes, to simplify the notation, the simplicial set M ap(X, Y ) will
+be written as X Y or [X → Y ].
+Next, a collection of sub-objects of standard simplexes is defined, called
+“horns”.
+Definition 2.6 (Horns). For each n ≥ 1, there are subcomplexes Λni ⊂ ∆n for
+each 0 ≤ i ≤ n. The horn Λni is the subcomplex of ∆n such that this is the
+largest sub-object that does not include the face opposing the i-th vertex.
+When 0 < i < n one says that Λni ⊂ ∆n is an inner horn. It is also said
+that it is a left horn if i < n and a right horn if 0 < i.
+5
+
+For example, the horns inside ∆1 are just the vertices: the left horn, the
+right horn Λ10 = {0} ⊂ ∆1 and Λ11 = {1} ⊂ ∆1 . Neither is an inner horn.
+Other example. ∆2 has three horns: The left horn Λ20 , the internal horn Λ21
+and the right horn Λ21 .
+2.2. Definition of ∞-category and Kan complex
+Definition 2.7 (∞-category [11]). An ∞-category is a simplicial set X which
+has the following property: for any 0 < i < n, any map f0 : Λni → X admits an
+extension f : ∆n → X.
+Definition 2.8. From the above definition, we have the following special cases:
+• X is a Kan complex if there is an extension for each 0 ≤ i ≤ n.
+• X is a category if the extension exists uniquely [17].
+• X is a groupoid if the extension exists for all 0 ≤ i ≤ n and is unique [17].
+In other words, a Kan complex is an ∞-groupoid; composed of objects,
+1-morphisms, 2-morphisms, etc., all invertible.
+Definition 2.9. A functor of ∞-categories X → Y is exactly a morphism of
+simplicial sets. Thus, F un(X, Y ) = M ap(X, Y ) must be a simplicial set of the
+functors from X to Y .
+Notation 2.1. The notation M ap(X, Y ) is usually used for simplicial sets,
+while F un(X, Y ) is for ∞-categories. One will refer to morphisms in F un(X, Y )
+as natural transformations of functors, and equivalences in F un(X, Y ) as natural equivalences.
+The composition from n-simplex f : ∆n → X (or f ∈ Xn ) with a functor
+F : X → Y , will be denoted as the image F (f ) ∈ Yn , where n ≥ 0.
+A 1-simplex f : ∆1 → X, such that f (0) = x and f (1) = y will be denoted
+as a morphism f : x → y in the ∞-category X.
+6
+
+f
+
+An inner horn Λ21 → X, which corresponds to composable morphisms x −
+→
+g
+
+y −
+→ z in the ∞-category X, will be denoted by (g, −, f ) or in some cases to
+simplify notation it will be denoted by g.f .
+Proposition 2.1 ([11] and [16]). For every ∞-category Y , the simplicial set
+F un(X, Y ) is an ∞-category.
+
+The proof of the following theorem can be found in [11] and [16].
+Definition 2.10 (Trivial Fibration). A morphism p : X → S of simplicial
+sets is a trivial fibration if it has the right lifting property with respect to every
+inclusion ∂∆n ⊆ ∆n , i.e., if given any diagram
+/X
+>
+
+∆n _
+
+p
+
+
+∆n
+
+
+/S
+
+there exists a dotted arrow, as indicated, rendering the diagram commutative.
+Proposition 2.2 ([12]). Let p : X → Y be a trivial fibration of simplicial sets.
+Then, for every simplicial set B, the induced map F un(B, X) → F un(B, Y ) is
+a trivial fibration.
+Theorem 2.1 (Joyal). A simplicial set X is an ∞-category if and only if the
+canonical morphism
+F un(∆2 , X) → F un(Λ21 , X),
+is a trivial fibration. Thus, each fibre of this morphism is contractible.
+The above theorem guarantees the laws of coherence of the composition of
+1-simplexes or morphisms of an ∞-category. In the sense that the composition
+of morphisms is unique up to homotopy, i.e., the composition is well-defined up
+to a space of choices being contractible (equivalent to ∆0 ).
+
+7
+
+Definition 2.11 (Space of morphisms [18]). For two vertices x, y in an ∞category X, define the space of morphisms X(x, y) by the following pullback
+diagram
+X(x, y)
+
+/ F un(∆1 , X)
+
+
+∆0
+
+
+/ X ×X
+
+(s,t)
+
+(x,y)
+
+in the category sSet.
+Proposition 2.3 ([11] and [18]). The morphism spaces X(x, y) are Kan complexes.
+2.3. Natural transformations and natural equivalence
+In category theory, we have the concept of isomorphism of objects. For the
+case of the ∞-categories, we will have the equivalence of objects (vertices) in
+the following sense.
+Definition 2.12 (Equivalent vertices). A morphism (1-simplex) f : x → y in
+an ∞-category X is invertible (equivalence) if there is a morphism g : y → x in
+α
+
+β
+
+X, a pair of 2-simplexes α, β ∈ X2 such that (g, −, f ) −
+→ 1x and (f, −, g) −
+→ 1y ,
+i.e., we can fill in following diagram
+x
+
+/y
+
+f
+
+1x
+
+1y
+
+g
+
+ 
+x
+
+f
+
+/ y
+
+with the 2-simplexes α and β.
+Theorem 2.2 ([11] and [16]). Let X be an ∞-category. The following are
+equivalent
+1. Every morphism (1-simplex) in X is an equivalence.
+2. X is a Kan complex.
+8
+
+2.4. Natural transformations and natural equivalence
+Definition 2.13 ([16] and [18]). If X is a simplicial set and Y is an ∞-category,
+and if F, G : X → Y are two functors, a natural transformation from F to G is
+a map H : X × ∆1 → Y such that
+H(x, 0) = F (x),
+
+H(x, 1) = G(x),
+
+for each vertex x ∈ X. Such a natural transformation is invertible or it is a
+natural equivalence if for any vertex x ∈ X, the induced morphism F (x) → G(x)
+(corresponding to the restriction of H to ∆1 ∼
+= {x} × ∆1 ) is invertible in Y . If
+there is a natural equivalence from F to G, we write F ≃ G.
+Remark 2.3. This means that for each vertex x ∈ X, one chooses a morphism
+Hx : F (x) → G(x) such that the following diagram
+F (x)
+
+F (f )
+
+
+F (x′ )
+
+Hx
+
+g
+
+Hx′
+
+/ G(x)
+
+G(f )
+
+" 
+/ G(x′ )
+
+commutes under some 2-simplexes α : g → (G(f ), −, Hx ) and β : (Hx′ , −, F (f )) →
+g.
+2.5. Categorical equivalences and homotopy equivalences
+Definition 2.14 (Categorical equivalence [18] and [11]). A functor of ∞-categories
+F : X → Y is a categorical equivalence if there is another functor G : Y → X,
+such that GF ≃ 1X and F G ≃ 1Y .
+Remark 2.4. From the above definition, if F : X → Y is a functor of Kan
+complexes, we say that F is a homotopy equivalence.
+Lemma 2.1 ([18] and [16]). A functor of ∞-categories F : X → Y is a categorical equivalence if it satisfies the following two conditions:
+
+9
+
+• Fully Faithful (Embedding): For two objects x, y ∈ X the induced functor
+of Kan complexes
+X(x, y) → Y (F x, F y),
+is a homotopy equivalence.
+• Essentially Surjective: For every object y ∈ Y there exists an object x ∈ Y
+such that F x is equivalent to y.
+2.6. The join of ∞-categories
+Next, the extension from join of categories to ∞-categories. This will make
+us able to define limit and colimit in an ∞-category.
+Definition 2.15 (Join [11]). Let K and L be simplicial sets. The join K ⋆ L is
+the simplicial set defined by
+(K ⋆ L)n := Kn ∪ Ln ∪
+
+[
+
+Ki × Lj ,
+
+n ≥ 0.
+
+i+1+j=n
+
+Example 2.1 ([19]).
+
+1. If K ∈ sSet and L = ∆0 , then K ▷ = K ⋆ ∆0 is the
+
+cocone or the right cone on K. Dually, If L ∈ sSet then L◁ = ∆0 ⋆ L is
+the cone or the left cone on L.
+2. Let K = Λ20 . If we see this left horn as a pushout, the cocone (Λ20 )▷ is
+isomorphic to the square □ = ∆1 × ∆1 , that is, to the filled in diagram
+
+Proposition 2.4 ([11]).
+
+(0, 0)
+
+/ (1, 0)
+
+
+(0, 1)
+
+! 
+/ (1, 1)
+
+(i) For the standard simplexes one has an isomor-
+
+phism ∆i ⋆ ∆j ∼
+= ∆i+1+j , i, j ≥ 0, and these isomorphisms have obvious
+inclusions of ∆i and ∆j .
+(ii) If X and Y are ∞-categories, then the join X ⋆ Y is an ∞-category.
+
+10
+
+2.7. The slice ∞-category
+In the case of the classical categories, if A, B are categories and p : A → B
+is any functor, one can form the slice category B/p of the object over p or cones
+on p. The following propositions allow us to define the slice ∞-category.
+Proposition 2.5 ([9]). Let K and S be simplicial sets, and p : K → S be an
+arbitrary map. There is a simplicial set S/p such that there exists a natural
+bijection
+sSet(Y, S/p ) ∼
+= sSetp (Y ⋆ K, S),
+where the subscript on right hand side indicates that we consider only those
+morphisms f : Y ⋆ K → S such that f |K = p.
+Proposition 2.6 (Joyal). Let X be an ∞-category and K be a simplicial set.
+If p : K → X is a map of simplicial sets, then X/p is an ∞-category. Moreover,
+if q : X → Y is a categorical equivalence, then the induced map X/p → Y/qp is
+also a categorical equivalence.
+Definition 2.16 (Slice ∞-Categorical [11]). Let X be an ∞-category, K a
+simplicial set and p : K → X a map of simplicial sets. Define the slice ∞category X/p of objects on p or cones on p (denoted by the diagram p : K ▷ → X,
+where p = p|K ). Dually, Xp/ is the ∞-category of objects under p or cocones
+on p (denoted by p : K ◁ → X).
+Example 2.2. Let X be an ∞-category and x ∈ X be an object that corresponds
+to map x : ∆0 → X. The objects of the ∞-category X/x of cones in x are
+morphism y → x in X, and the morphism from y → x to z → x in X/x , are the
+2-simplexes
+y
+
+
+z
+
+/ x
+
+in the ∞-category X.
+11
+
+2.8. Limits and colimits
+An object t of a category is final if for each object x in this category, there
+is a unique morphism x → t. Next, we define the final objects in ∞-categories,
+under a contractible space of morphisms.
+Definition 2.17 (Final object [11]). An object ω ∈ X in an ∞-category X, is
+a final object if for any object x ∈ X, the Kan complex of morphisms X(x, ω)
+is contractible.
+Corollary 2.1 ([16]). The final objects of an ∞-category X form a Kan complex
+which is either empty or equivalent to the point.
+Corollary 2.2 ([16]). Let x be a final object in an ∞-category X. For any
+simplicial set A, the constant map A → X with value x is a final object in
+M ap(A, X).
+Definition 2.18. (Limit and colimit [12, Variant 02JN]) Let X be an ∞category and let p : K → X a map of simplicial sets. We will say that p : K ◁ →
+X is a colimit diagram of p if it is an initial object of Xp/ , and p : K ▷ → X is
+a limit diagram of p if it is a final object of X/p .
+By the dual of Corollary 2.1, if the colimit exists, then the Kan complex of
+initial objects is contractible, i.e., the initial object is unique up to contractible
+choice.
+Definition 2.19. Let K be a simplicial set, and X be an ∞-category. We say
+that X admits K-indexed colimits if for every p : K → X there exists its colimit.
+We define in the same way for the K-indexed limit in X.
+Proposition 2.7 ([12]). Let X be an ∞-category which admits K-indexed colimits. Then, for every simplicial set S, the ∞-category F un(S, X) also admits
+K-indexed colimits.
+Proposition 2.8. ([12, Proposition 03D2]) Let C be a category and let F : C ◁ →
+D be a diagram of simplicial sets. The following conditions are equivalent:
+
+12
+
+1. The diagram F is a categorical colimit diagram.
+2. For every ∞-category D, the diagram of ∞-categories
+(C ▷ )op → QCat
+
+C 7→ Fun(F(C), D)
+
+is a categorical limit diagram [12, Definition 03BM].
+3. For every ∞-category D, the diagram of Kan complexes
+C 7→ Fun(F(C), D)≃
+
+(C ▷ )op → Kan
+
+is a homotopy limit diagram [12, Definition 03B6].
+Let N• be the nerve functor from the small categories to small ∞-categories,
+and Nhc
+• be the homotopy coherent nerve functor from simplicial categories to
+the ∞-categories [12]. So we have the following results:
+Proposition 2.9. ([12, Corollary 03BB]) Let C be a small category, let D be a
+locally Kan simplicial category, and let F : C ◁ → D be a functor. The following
+conditions are equivalent:
+1. The functor
+◁
+hc
+◁
+Nhc
+• (F) : N• (C) ≃ N• (C ) → N• (D)
+
+is a limit diagram in the ∞-category Nhc
+• (D)
+2. For every object D ∈ D, the functor
+C ◁ → Kan
+
+C 7→ HomD (D, F(C))•
+
+is a homotopy limit diagram of Kan complexes.
+Proposition 2.10. ([12, Proposition 03DE]) Let C be a small filtered category
+and let F : C ▷ → Set∆ be a colimit diagram in the category of simplicial sets.
+Then F is a categorical colimit diagram [12, Definition 03D0].
+2.9. Homotopy Domain Equation on an arbitrary Cartesian closed ∞-category
+This section is a direct generalization of the traditional methods for solving
+domain equations in Cartesian closed categories (see [4] and [3]), in the sense
+of obtaining solutions for certain types of equations, which we call Homotopy
+Domain Equations in any Cartesian closed ∞-category.
+13
+
+Definition 2.20 ([4]).
+
+1. An ω-diagram in an ∞-category K is a diagram
+
+with the following structure:
+f0
+
+f1
+
+fn
+
+K0 −→ K1 −→ K2 −→ · · · −→ Kn −→ Kn+1 −→ · · ·
+(dually, one defines ω op -diagrams by just reversing the arrows).
+2. An ∞-category K is ω-complete (ω-cocomplete) if it has limits (colimits)
+for all ω-diagrams.
+3. A functor F : K → K is ω-continuous if it preserves (under equivalence)
+all colimits of ω-diagrams.
+Theorem 2.3 ([6]). Let K be an ∞-category. Let F : K → K be a ω-continuous
+(covariant) functor and take a vertex K0 ∈ K such that there is an edge δ ∈
+K(K0 , F K0 ). Assume also that (K, {δi,ω ∈ K(F i K0 , K)}i∈ω ) is a colimit for
+the ω-diagram ({F i K0 }i∈ω , {F i δ}i∈ω ), where F 0 K0 = K0 and F 0 δ = δ. Then
+K ≃ F K.
+Definition 2.21 ([6]). An enriched ∞-category K on the h.p.o’s, is a 0-∞category if
+1. every Kan complex K(A, B) is a c.h.p.o, whose minimum elements are
+noted by 0A,B ,
+2. composition of morphisms is a continuous operation with respect to the
+homotopy order,
+3. for every f in K(A, B), 0B,C .f ≃ 0A,C .
+Definition 2.22 (h-projection pair [6]). Let K be a 0-∞-category, and let
+f + : A → B and f − : B → A be two morphisms in K. Then (f + , f − ) is
+a homotopy projection (or h-projection) pair (from A to B) if f − .f + ≃ IA
+and f + .f − ≾ IB . If (f + , f − ) is an h-projection pair, f + ∈ KHE (A, B) is an
+h-embedding (homotopy embedding) and f − ∈ KHP (A, B) is an h-projection
+(homotopy projection). Where KHE is the subcategory of K with the same objects and the h-embeddings as morphisms, and KHP is the subcategory of K with
+the same objects and the h-projections as morphisms.
+14
+
+Definition 2.23 (h-projections pair 0-∞-category [6]). Let K be a 0-∞-category.
+The 0-∞-category KHP rj is the ∞-category embedding in KHE with the same
+objects of K and h-projection pairs (f + , f − ) as morphisms.
+Remark 2.5. Every h-embedding i has unique (under homotopy) associated
+h-projection j = iR (and, conversely, every h-projection j has a unique (under
+homotopy) associated h-embedding i = j L ), since if there is j0 such that j0 .i ≃ I
+and i.j0 ≾ I (under homotopy), so j0 ≿ j0 .i.j ≃ j and j0 ≾ j (under homotopy).
+Thus, j0 ≃ j under homotopy (and, in the same way, we have i0 ≃ i under
+homotopy). KHP rj and is equivalent to a subcategory KHE of K that has hembeddings as morphisms (as well to a subcategory KHP of K which has hprojections as morphisms).
+Definition 2.24 ([6]). Given a 0-∞-category K, and a contravariant functor
+in the first component F : Kop × K → K, the functor covariant F +− : KHP rj ×
+KHP rj → KHP rj is defined by
+F +− (A, B) = F (A, B),
+F +− ((f + , f − ), (g + , g − )) = (F (f − , g + ), F (f + , g − )),
+where A, B are vertices and (f + , f − ), (g + , g − ) are n-simplexes pairs in KHP rj .
+Theorem 2.4 ([6]). Let K be a 0-∞-category. Let ({Ki }i∈ω , {fi }i∈ω ) be an ωdiagram in KHP rj . If (K, {γi }i∈ω ) is a limit for ({Ki }i∈ω , {fi− }i∈ω ) in K, then
+(K, {(δi , γi )}i∈ω ) is a colimit for ({Ki }i∈ω , {fi }i∈ω ) in KHP rj (that is, every γi
+is a right member of an h-projection pair).
+Therefore, the following corollary is an immediate consequence of the previous theorem.
+Corollary 2.3 ([6]). The cocone (K, {(δi , γi )}i∈ω ) for the ω-chain ({Ki }i∈ω , {(fi+ , fi− )}i∈ω )
+b
+in KHP rj is universal (a cocone colimit) iff Θ = i∈ω δi .γi ≃ IK .
+Definition 2.25 ([6] Locally monotonic). Let K be a 0-∞-category. A functor
+F : Kop ×K → K is locally h-monotonic if it is monotonic on the Kan complexes
+15
+
+of 1-simplexes, i.e., for f, f ′ ∈ Kop (A, B) and g, g ′ ∈ K(C, D) one has
+f ≾ f ′ , g ≾ g ′ =⇒ F (f, g) ≾ F (f ′ , g ′ ).
+Proposition 2.11 ([6]). If F : Kop ×K → K is locally h-monotonic and (f + , f − ),
+(g + , g − ) are h-projection pairs, then F +− ((f + , f − ), (g + , g − )) is also an h-projection
+pair.
+Definition 2.26 (Locally continuous [6]). Let K be a 0-∞-category. A F :
+Kop × K → K is locally continuous if it is ω-continuous on the Kan complexes
+of 1-simplexes. That is, for every directed diagram {fi }i∈ω in Kop (A, B), and
+every directed diagram {gi }i∈ω in K(C, D), one has
+F(
+
+b
+
+i∈ω {fi },
+
+b
+
+i∈ω {gi }) ≃
+
+b
+
+i∈ω F (fi , gi ).
+
+Remark 2.6. If F is locally continuous, then it is also locally monotonic.
+Theorem 2.5 ([6]). Let K be a 0-∞-category. Let also F : Kop × K → K be a
+locally continuous functor. Then the functor F +− : KHP rj × KHP rj → KHP rj
+is ω-continuous.
+Remark 2.7 ([6]). Let K be a Cartesian closed 0-∞-category, ω op -complete
+and with final object. Since the exponential functor ⇒: Kop × K → K and the
+diagonal functor ∆ : K → K × K are locally continuous, by the Theorem 2.5,
+the associated functors
+(⇒)+− : KHP rj × KHP rj → KHP rj ,
+
+(∆)+− : KHP rj → KHP rj × KHP rj
+
+are ω-continuous. But the composition of ω-continuous functors is still an ωcontinuous functor. Thus, the functor
+F = (⇒)+− .(∆)+− : KHP rj → KHP rj ,
+is ω-continuous. By Theorem 2.3 the functor F has a fixed point, that is, there
+is a vertex K ∈ K such that K ≃ (K ⇒ K). The ∞-category of the fixed points
+of F is denoted by F ix(F ).
+
+16
+
+3. The ∞-category CHP O
+In this section, we reintroduce the complete homotopy partial orders (c.h.p.o)
+as a direct generalisation of the c.p.o’s and ∞-category of the c.h.p.o’s (noted by
+CHP O), where the sets are replaced by Kan complexes and the order relations
+≤ by weak order relations ≾ ([5] and [20]). We define K∞ c.h.p.o from an
+analytical perspective and show that it is a Scott domain extended to weakly
+ordered Kan complexes.
+Definition 3.1 ([12]). A Kan complex is (-1)-truncated if is contractible or
+empty.
+Definition 3.2 ([12]). An ∞-category C is a 0-category if the Kan complexes
+C(x, y) are (-1)-truncated.
+Definition 3.3. A Kan fibration p : X → Y of simplicial sets is (-1)-truncated
+if its fibres are (-1)-truncated.1
+Definition 3.4 (h.p.o). Let K̂ be an ∞-category, the largest Kan complex K ⊆
+K̂ is a homotopy partial order (h.p.o) if the map
+(s,t)
+
+F un(∆1 , K̂) −−−→ K̂ × K̂
+is a (-1)-truncated fibration of simplicial sets.
+Remark 3.1. In other words, if K̂ is an ∞-category. We say that the largest
+Kan complex K ⊆ K̂ is a homotopy partial order (h.p.o), if for every x, y ∈ K
+one has K̂(x, y) it is contractible or empty (i.e., if K̂ is a 0-category). Since,
+the pullback diagram
+
+1 Specially, if X, Y
+
+K̂(x, y)
+
+/ F un(∆1 , K̂)
+
+
+∆0
+
+
+/ K̂ × K̂
+
+(s,t)
+
+(x,y)
+
+are ∞-categories, the functor p is 1-faithful (see [12, Tag 05AX] for the
+
+case n = 1).
+
+17
+
+preserves (-1)-truncated fibrations in sSet.2 Thus, the space K̂(x, y) is contractible or empty.
+The Kan complex K ⊆ K̂ admits a relation of h.p.o ≾ defined for each
+x, y ∈ K as follows:
+x ≾ y, if K̂(x, y) ̸= ∅,
+then, the pair (K, ≾) is a h.p.o. (we denote only K, which, of course, has a K̂
+∞-category associated with it, as in [5] and [7]).
+Definition 3.5. Let K be a h.p.o. We say that a h.p.o X ⊆ K, if X̂ ⊆ K̂
+is a full subcategory, i.e., X inherits the weak order of K and all its higher
+simplexes.
+Definition 3.6 (c.h.p.o. [5] and [7]). Let K ⊆ K̂ be h.p.o.
+1. A h.p.o X ⊆ K is directed if X ̸= ∅ and for each x, y ∈ X, there exists
+z ∈ X such that K̂(x, z) and K̂(y, z) are not empty (i.e., x ≾ z and
+y ≾ z).
+2. K is a complete homotopy partial order (c.h.p.o) if
+(a) There are minimum elements, i.e., 0 ∈ K is an minimum element if
+for each x ∈ K, K̂(0, x) is not empty. That is, 0 is an initial object
+of the 0-category K̂.
+(b) For each directed X ⊆ K the supremum (or colimit)
+
+b
+
+X ∈ K exists.
+
+Remark 3.2. If K is a c.h.p.o., note that K̂ is weakly contractible (i.e., its
+geometric realisation |K̂| is contractible) but K is not necessarily contractible: by
+example, if K̂ = ⟨Sing(|∂∆n |) ∪ {0}⟩ is the smallest 0-category that contains to
+the Kan complex K = Sing(|∂∆n |) ∪ {0} such that 0 be the initial object unique
+of K̂, where Sing : T op → Kan be the singular functor from the category of
+topological spaces to the category of Kan complexes and | | : Kan → T op be the
+geometric realisation. Since Sing(|∂∆n |) is isomorphic to the sphere S n−1 , we
+denote Sing(|∂∆n |) by S n−1 .
+2 Similarly, preserves functors 1-faithful ([12, Tag 05BD] for n = 1).
+
+18
+
+Definition 3.7 (Continuity [5] and [6]). Let K and K ′ be a c.h.p.o. A functor
+b
+b
+f : K → K ′ is continuous if f ( X) ≃ f (X), where f (X) is the essential
+image to be directed X ⊆ K.
+Proposition 3.1 ([7]). Continuous functors on c.h.p.o’s are always monotonic.
+Proof. Let f : K → K ′ be a continuous functor between c.h.p.o’s and suppose
+the non-trivial case a ≾ b in K. Since the h.p.o {a, b} ⊆ K is directed, by the
+continuity of f we have
+f (a) ≾
+
+j
+
+j
+{f (a), f (b)} ≃ f ( {a, b}) = f (b).
+
+Proposition 3.2. If K ⊆ K̂ and K ′ ⊆ K̂ ′ are h.p.o’s. Then, the Cartesian
+product K × K ′ ⊆ K̂ × K̂ ′ is also a h.p.o.
+Proof. By Definition 3.4, we will prove that the map
+(s×s′ , t×t′ )
+
+F un(∆1 , K̂ × K̂ ′ ) −−−−−−−→ (K̂ × K̂ ′ ) × (K̂ × K̂ ′ )
+is a (-1)-truncated fibration. Note that we can identify (s × s′ , t × t′ ) with the
+canonical map
+(s,t)×(s′ ,t′ )
+
+F un(∆1 , K̂) × F un(∆1 , K̂ ′ ) −−−−−−−→ (K̂ × K̂) × (K̂ ′ × K̂ ′ ),
+since (s, t) and (s′ , t′ ) are (-1)-truncated fibrations, (s, t) × (s′ , t′ ) is also (-1)truncated.
+Remark 3.3. Replacing K̂ with K̂×K̂ ′ in the pullback of the Remark 3.1, where
+K ⊆ K̂ and K ′ ⊆ K̂ ′ are h.p.o’s, we find that the space (K̂ × K̂ ′ )((x, x′ ), (y, y ′ ))
+is contractible or empty. Thus, the product of Kan complexes K ′ × K ⊆ K̂ ′ × K̂
+admits a relation of h.p.o ≾, defined for each pair (x, x′ ), (y, y ′ ) ∈ K × K ′ as
+follows:
+(x, x′ ) ≾ (y, y ′ ), if (K̂ × K̂ ′ )((x, x′ ), (y, y ′ )) ̸= ∅, if K̂(x, y) × K̂ ′ (x′ , y ′ ) ̸= ∅
+The Cartesian product between c.h.p.o’s can be considered again as a c.h.p.o.
+19
+
+Proposition 3.3 ([7]). Given the c.h.p.o’s K, K ′ , let K × K ′ the Cartesian
+product partially ordered, according to Remark 3.3, by
+(x, x′ ) ≾ (y, y ′ ), if x ≾ y and x′ ≾′ y ′ .
+Then K × K ′ is a c.h.p.o with for directed X ⊆ K × K ′
+j
+
+j
+j
+X = ( X0 , X1 )
+
+where X0 is the projection of X on K, and X1 is the projection of X on K ′ .
+Proof. (0, 0′ ) is a minimum element of K×K ′ . On the other hand, if X ⊆ K×K ′
+is directed, by the definition of order in K × K ′ , the projections X0 and X1 are
+b
+also directed, so the supremum X ∈ K × K ′ exists.
+Proposition 3.4. If K ⊆ K̂ is an h.p.o. Then, for every simplicial set S, the
+∞-category F un(S, K̂) is also an h.p.o.
+Proof. According to Definition 3.4, we see that the map
+(s,t)
+
+F un(∆1 , F un(S, K̂)) −−−→ F un(S, K̂) × F un(S, K̂)
+is a (-1)-truncated fibration. The map (s, t) can be identified with the canonical
+map
+F un(S, F un(∆1 , K̂)) →
+− F un(S, K̂ × K̂),
+which is a (-1)-truncated fibration (by Definition 3.4, [12, Tag 05AX] and Corollary [12, Tag 056S]).
+Remark 3.4. Changing K̂ with F un(S, K̂) in the pullback of Remark 3.1,
+where K ⊆ K̂ is h.p.o, we see that the space (F un(S, K̂))(f, g) is contractible
+or empty. So, the Kan complex F un(S, K) ⊆ F un(S, K̂) admits a relation ≾,
+defined for each f, g ∈ F un(S, K) as follows:
+f ≾ g, if (F un(S, K̂))(f, g) ̸= ∅,
+if there is an ’unique’ map f →
+− g in F un(S, K̂),
+if there is an ’unique’ map f (x) →
+− g(x) in K̂, for each x ∈ S,
+if f (x) ≾ g(x), for each x ∈ S.
+20
+
+Recall that the existence of a ’unique’ map is up to homotopy, that is, when
+the space of choices, which in this case corresponds to (F un(S, K̂))(f, g) and
+K̂(f (x), g(x)), is contractible.
+Definition 3.8 ([7]). Let K, K ′ be c.h.p.o’s. Define the full subcategory [K →
+K ′ ] ⊆ F un(K, K ′ ) of the continuous functors. By Remark 3.4, we can define
+the order pointwise on [K → K ′ ] by:
+f ≾ g ⇐⇒ ∀x ∈ K, f (x) ≾′ g(x).
+Notation 3.1. Let K be an h.p.o and P a predicate. Denote the full subcategory ⟨x ∈ K | P (x)⟩ ⊆ K as the h.p.o induced by the order of K (i.e.,
+⟨x ∈ K̂ | P (x)⟩ ⊆ K̂ is a full subcategory), whose objects are the x ∈ K that
+satisfy the property P and the higher simplexes are the same as K.
+Lemma 3.1 ([7]). Let ⟨fi ⟩i ⊆ [K → K ′ ] be an indexed directed of functors.
+Define
+j
+
+f (x) =
+
+fi (x).
+
+i
+
+Then f is well defined and continuous.
+Proof. Since ⟨fi ⟩i is directed, ⟨fi (x)⟩i is directed for each x ∈ K, the functor f
+exists. On the other hand, for directed X ⊆ K
+jj
+j
+j j
+jj
+j
+fi (X) ≃
+f ( X) =
+fi ( X) ≃
+fi (X) =
+f (X).
+i
+
+i
+
+i
+
+Proposition 3.5 ([7]). [K → K ′ ] is a c.h.p.o with supremum of a directed
+F ⊆ [K → K ′ ] defined by
+j
+j
+( F )(x) = ⟨f (x) | f ∈ F ⟩.
+Proof. The constant functor λx.0′ is a minimum element of [K → K ′ ] . By
+b
+Lemma 3.1 the functor λx. ⟨f (x) | f ∈ F ⟩ is continuous, which is the supremum
+of F .
+
+21
+
+Lemma 3.2 ([7]). Let f : K × K ′ → K ′′ . Then f is continuous iff f is
+continuous in its arguments separately, that is, iff λx.f (x, x′0 ) and λx′ .f (x0 , x′ )
+are continuous for all x0 , x′0 .
+Proof. (⇒) Let g = λx.f (x, x′0 ). Then for the directed X ⊆ K
+j
+j
+g( X) = f ( X, x′0 )
+j
+≃
+f (X × {x0 });
+f is continuous and X × {x0 } is directed
+j
+=
+g(X).
+
+Similarly λx′ .f (x0 , x′ ) is continuous.
+(⇐) Let X ⊆ K × K ′ be directed. So
+j
+j
+j
+f ( X) = f ( X0 , X1 )
+j
+j
+≃
+f (X0 , X1 );
+by hypothesis,
+jj
+≃
+f (X0 , X1 );
+by hypothesis,
+j
+=
+f (X);
+X is directed.
+
+Proposition 3.6 (Continuity of application [7]). Define application
+Ap : [K → K ′ ] × K → K ′
+by the functor Ap(f, x) = f (x). The Ap is continuous.
+Proof. The functor λx.f (x) = f (x) is continuous by the continuity of f . Let
+h = λf.f (x). Then for directed F ⊆ [K → K ′ ]
+j
+j
+h( F ) = ( F )(x)
+j
+= ⟨f (x) | f ∈ F ⟩ by Proposition 3.5,
+j
+= ⟨h(f ) | f ∈ F ⟩
+j
+=
+h(F ).
+So h is continuous and according to Lemma 3.2 the functor Ap is continuous.
+22
+
+Proposition 3.7 (Continuity of abstraction [7]). Let f ∈ [K × K ′ → K ′′ ].
+Define the functor fˆ(x) = λy ∈ K ′ .f (x, y). Then
+1. fˆ is continuous, i.e., fˆ ∈ [K → [K ′ → K ′′ ]];
+2. λf.fˆ : [K × K ′ → K ′′ ] → [K → [K ′ → K ′′ ]] is continuous.
+Proof. (1) Let X ⊆ K be directed. Then
+fˆ(
+
+j
+
+j
+X) = λy.f ( X, y)
+j
+≃ λy. f (X, y)
+j
+≃
+λy.f (X, y);
+
+by Proposition 3.5: takes F = λy.f (X, y),
+
+(2) Let L = λf.fˆ. Then for F ⊆ [K × K ′ → K ′′ ] directed
+L(
+
+j
+
+F ) = λxλy.(
+
+j
+
+F )(x, y)
+
+= λxλy.
+
+j
+
+f (x, y)
+
+f ∈F
+
+≃
+
+j
+
+λxλy.f (x, y)
+
+f ∈F
+
+=
+
+j
+
+L(F ).
+
+Definition 3.9 (CHP O). The category simplicial CHP O∆ is defined as follows:
+1. The objects of CHP O∆ are c.h.p.o’s.
+2. Given c.h.p.o’s K and K ′ , we define M apCHP O∆ (K, K ′ ) to be the Kan
+complex [K → K ′ ] of Definition 3.8.
+We let CHPO denote the homotopy coherent nerve Nhc
+• (CHP O∆ ). We will
+refer to CHPO as the ∞-category of the c.h.p.o’s.
+Remark 3.5 ([20]). Note that subcategory CHP O ⊆ Cat∞ , whose objects are
+the c.h.p.o’s and the morphisms are the continuous functors.
+Proposition 3.8 ([7]). CHP O is a Cartesian closed ∞-category.
+23
+
+Proof. One has that the product of c.h.p.o’s K × K ′ ∈ CHP O. The singleton
+c.h.p.o ∆0 is a terminal object. By 3.6 and 3.7 for each continuous functor
+f : K × K ′ → K ′′ there is an unique continuous functor fˆ : K → [K ′ → K ′′ ]
+such that
+f
+
+K × K′
+
+fˆ×idK ′
+
+/ K ′′
+:
+
+Ap
+
+
+[K ′ → K ′′ ] × K ′
+commutes in sSet (functors are morphisms of simplicial sets). Thus, the functor
+K × (−) has a right adjoint functor [K → (−)].
+Another alternative:
+Remark 3.6. Let g ∈ [K → [K ′ → K ′′ ]]. Define the functor ǧ(x, y) = λ(x, y) ∈
+K × K ′ .g(x)(y) . Then
+1. ǧ is continuous, i.e., ǧ ∈ [K × K ′ → K ′′ ]];
+2. λg.ǧ : [K → [K ′ → K ′′ ]] → [K × K ′ → K ′′ ]] is continuous.
+3. λg.ǧ is an inverse of λf.fˆ.
+Hence, CHP O is Cartesian closed.
+Before showing that CHP O admits colimits of the ω-diagrams, we see the
+following results.
+Proposition 3.9. Let C be a small category and let F : C ▷ → CHP O∆ be a
+diagram of ∞-categories. Then F is a categorical colimit diagram (in the sense
+of [12, Definition 03CQ]) if and only if the induced functor of ∞-categories
+▷
+hc
+Nhc
+• (F) : N• (C ) → N• (CHP O∆ ) = CHP O
+
+is a colimit diagram (Definition 2.18).
+Proof. Combine Proposition 2.8 with Proposition 2.9.
+
+24
+
+Proposition 3.10. The inclusion functor ι : N• (CHP O∆ ) ,→ Nhc
+• (CHP O∆ ) =
+CHPO preserves colimits indexed by small filtered categories.
+Proof. Let C be a small filtered category and suppose that we are given a colimit
+diagram F : C ▷ → CHP O∆ in the ordinary category CHP O∆ . We wish to show
+▷
+that the induced map Nhc
+• (F) : N• (C ) → CHP O is a colimit diagram in the
+
+∞-category CHP O. By Proposition 3.9, this is equivalent to the requirement
+that F is a categorical colimit diagram, which follows from Proposition 2.10.
+Corollary 3.1. The ∞-category CHP O admits colimits of the ω-diagrams.
+Proof. Given the ω-diagram ({Kn }n≥0 , {fn }n≥0 ) in CHP O. Let clim
+−−→(Kn , fn )
+denote the colimit of this diagram (formed in the ordinary category of simplicial
+sets). Then clim
+−−→(Kn , fn ) is also a c.h.p.o, which is also a colimit of the associated diagram N• (Z≥0 ) → CHP O. This is a special case of the Proposition
+3, since Z≥0 (denote the set of non-negative integers, endowed with its usual
+ordering) is a small filtered category.
+Next, Definition 3.10 and Remark 3.7; An analytical view of the limits of
+op
+
+ω -diagrams in CHP O for the dual case of Corollary 3.1
+Definition 3.10 (The Kan complex K∞ [7]). Let {Ki }i∈ω be countable sequence
+of c.h.p.o’s and let fi ∈ [Ki+1 → Ki ] for each i ∈ ω.
+1. The diagram (Ki , fi ) is called a projective (or inverse) system of c.h.p.o’s.
+2. The projective limit of the system (Ki , fi ) (notation lim
+←−(Ki , fi )) is the
+h.p.o (K∞ , ≾∞ ), where K∞ is a subcategory of Πi Ki (ω-times Cartesian
+product) whose n-simplexes (for any n ≥ 0) are the sequences (σi )i∈ω such
+that σi : ∆n → Ki , fi (σi+1 ) ≃ σi and the order on objects of K∞ defined
+by
+(xi )i ≾∞ (yi )i if ∀i. xi ≾i yi (in Ki ).
+Remark 3.7. Let (Ki , fi ) be a projective system. Then lim
+←−(Ki , fi ) = K∞ is
+c.h.p.o with
+j
+
+X = λi.
+
+j
+⟨x(i) | x ∈ X⟩,
+25
+
+for directed X ⊆ lim
+←−(Ki , fi ). Since, if X is directed, then ⟨x(i) | x ∈ X⟩ is
+directed for each i. Let
+yi =
+
+j
+
+⟨x(i) | x ∈ X⟩.
+
+Then by the continuity of fi
+fi (yi+1 ) ≃
+
+j
+
+fi (⟨x(i + 1) | x ∈ X⟩)
+
+=
+
+j
+
+⟨x(i) | x ∈ X⟩
+
+= yi
+Thus, (yi )i ∈ lim
+←−(Ki , fi ). Clearly, it is the supremum of X.
+Proposition 3.11 ([7]). The ∞-category CHP O is a 0-∞-category.
+Proof.
+
+1. Every Kan complex CHP O(K, K ′ ) = [K → K ′ ] is a chpo accord-
+
+ing to Proposition 3.5, where the constant functor λx.0′ is a minimum
+element of CHP O(K, K ′ )
+2. Let g ∈ [K ′ → K ′′ ] and a directed F ⊆ [K → K ′ ]. Then, the composition
+b
+b
+of f with the supremun of F , is given by (g.( F ))(x) = g( ⟨f (x) | f ∈
+b
+F ⟩); by the definition of F in Proposition 3.5. By the continuity of g, we
+b
+b
+b
+have (g.( F ))(x) ≃ ⟨g(f (x)) | f ∈ F ⟩ := ( g.F )(x). The proof of the
+composition on the left (continuity of .g) is similar; used the continuity of
+b
+the functor F ′ ∈ [K ′′ → K ′′′ ].
+3. Let f ∈ CHP O(K, K ′ ) and 0K ′ ,K ′′ = λx′ .0′′ ∈ CHP O(K ′ , K ′′ ), the
+composition 0K ′ ,K ′′ .f = (λx′ .0′′ ).f ≃ λx.0′′ = 0K,K ′′ .
+
+Next, by Remark 2.7, we argue that K∞ is a solution to the homotopy
+domain equation [X → X] ≃ X in the CHPO category. In Section 4, we
+present further details on the pair projections used to calculate K∞ .
+Remark 3.8. The ∞-category CHP O is a 0-∞-category. CHP O is an i.c.c
+and has limits for every ω op -diagram. The functor ⇒: CHP O × CHP O →
+CHP O is defined by:
+⇒ (A, B) = [A → B],
+
+⇒ (f, g) = λh.(g.h.f ),
+26
+
+is locally continuous, where g.h.f corresponds to composable morphisms in CHP O.
+The diagonal functor ∆ : CHP O → CHP O×CHP O, defined by ∆(A) = (A, A)
+and ∆(f ) = (f, f ) is also locally continuous. Thus, by Theorem 2.5 and conclude
+that the associated functors
+1. (⇒)+− : (CHP O)HP rj × (CHP O)HP rj → (CHP O)HP rj
+(⇒)+− ((f + , f − ), (g + , g − )) = (λh.(g + .h.f − ), λh.(g − .h.f + ))
+2. (∆)+− : (CHP O)HP rj → (CHP O)HP rj × (CHP O)HP rj
+(∆)+− (f + , f − ) = ((f + , f − ), (f + , f − ))
+are ω-continuous. However, the composition of ω-continuous functors is still an
+ω-continuous functor; thus, the functor F = (⇒)+− ◦ (∆)+− : (CHP O)HP rj →
+(CHP O)HP rj is ω-continuous. Explicitly, F is defined by
+F (X) = [X → X]
+F (f + , f − ) = (λh.(f + .h.f − ), λh.(f − .h.f + ))
+if all the fi− ∈ [Ki+1 → Ki ], of the inverse diagram (Ki , fi− ), are h-projections
+−
+(Definition 2.22) for some h-embedding fi+ ∈ [Ki → Ki+1 ], and K∞ = lim
+←−(Ki , fi ),
+
+by Theorem 2.4, we see that K∞ is a colimit for the diagram (Ki , (fi+ , fi− )) in
+(CHP O)HP rj (see Section 4, for more details on the initial h-projection pair
+(f0+ , f0− ) and the initial c.h.p.o K0 ). Thus, by Theorem 2.3, we conclude that
+K∞ ≃ F (K∞ ) = [K∞ → K∞ ] in (CHP O)HP rj .
+3.1. Scott Domains
+Definition 3.11. Let K ⊆ K̂ be a c.h.p.o.
+1. x ∈ K is compact if for every directed X ⊆ K one has
+x≾
+
+j
+
+X
+
+=⇒ x ≾ x0 for some x0 ∈ X.
+
+2. K is an algebraic c.h.p.o if for all x ∈ K the h.p.o x ↓= ⟨y ≾ x | y compact⟩
+b
+is directed and x ≃ (x ↓).
+3. K is bounded complete if for every h.p.o X ⊆ K with an upper bound has
+supremum.
+27
+
+Definition 3.12. A Homotopy Scott Domain is a bounded complete algebraic
+c.h.p.o.
+Proposition 3.12 ([7]). Let K be algebraic and f : K → K. Then f is
+b
+continuous iff f (x) ≃ ⟨f (e) | e ≾ x and e compact⟩.
+Proof. (⇒) Let f be continuous. Then
+j
+f (x) = f ( ⟨e ≾ x | e compact⟩)
+j
+≃ ⟨f (e) | e ≾ x and e compact⟩.
+(⇐) First we check that f is monotonic. If x ≾ y, then
+⟨e ≾ x | e compact⟩ ⊆ ⟨e ≾ y | e compact⟩,
+hence
+j
+⟨f (e) | e ≾ x and e compact⟩
+j
+≾ ⟨f (e) | e ≾ y and e compact⟩
+
+f (x) ≃
+
+≃ f (y).
+Now let X ⊆ K directed. Then
+j
+j
+j
+f ( X) ≃ ⟨f (e) | e ≾
+X and e compact⟩
+j
+≾ ⟨f (x) | x ∈ X⟩;
+by compactness and monotonicity of f
+j
+≾ f ( X);
+by monotonicity and definition of supremum.
+b
+b
+Thus, f ( X) ≃ f (X).
+Proposition 3.13 ([7]). Let K, K ′ be c.h.p.o’s.
+1. (x, y) ∈ K × K ′ is compact iff x and y are compact.
+2. K and K ′ are algebraic, then K × K ′ is algebraic.
+3. K and K ′ are bounded completes, then K × K ′ is bounded complete.
+
+28
+
+Proof. 1. (⇒) Let X ⊆ K and Y ⊆ K ′ be directed such that x ≾
+b
+y ≾ Y . Hence
+j j
+j
+(x, y) ≾ ( X, Y ) = (X × Y ).
+
+b
+
+X and
+
+By hypothesis, (x, y) ≾ (x0 , y0 ) for some (x0 , y0 ) ∈ X × Y . Thus, x and y are
+compact.
+(⇐) Let X ⊆ K × K ′ be directed such that
+(x, y) ≾
+
+j
+
+j
+j
+j
+X = ( X0 , X1 ) = (X0 × X1 ).
+
+By hypothesis, there are x0 ∈ X0 and y0 ∈ X1 such that x ≾ x0 and y ≾ y0 .
+b
+b
+Since (x0 , y0 ) ≾ (X0 × X1 ) = X, there exists (x1 , y1 ) ∈ X such that (x, y) ≾
+(x0 , y0 ) ≾ (x1 , y1 ). Hence (x, y) is compact.
+2. Let (x, y) ∈ K × K ′ . Then
+j
+j
+((x, y) ↓) = ⟨(e, d) ≾ (x, y) | (e, d) compact⟩
+j
+= ⟨(e, d) ≾ (x, y) | e and d are compact⟩;
+j
+j
+≃ ( (x ↓), (y ↓))
+≃ (x, y);
+
+by 1.
+
+by hypothesis.
+
+3. Let K and K ′ be bounded complete c.h.p.o’s and the h.p.o X ⊆ K × K ′
+with (x0 , x1 ) be an upper bound. By hypothesis we have
+j
+
+j
+j
+X = ( X0 , X1 ) ≾ (x0 , x1 )
+
+Definition 3.13 (Alg [7]). Define the full subcategory Alg ⊆ CHP O, whose
+objects are the c.h.p.o’s algebraic and the morphisms are continuous functors.
+Note that Acc, the ∞-category of accessible ∞-categories, is the generalisation of Alg, since all directed is filtered, every supremum is a filtered colimit,
+and for each X ∈ Alg, X has all supremum and the full subcategory Xc ⊆ X
+of compacts objects generates X under supremum.
+29
+
+Definition 3.14. Define the full subcategory HD ⊆ CHP O, whose objects are
+Homotopy Scott Domains and the morphisms are continuous functors.
+Proposition 3.14. If K0 is a Homotopy Scott Domain, then Kn+1 = [Kn →
+Kn ] is a Homotopy Domain Scott for each n ≥ 0.
+Proof. We suppose that Kn is algebraic (IH) and will see that by induction
+Kn+1 = [Kn → Kn ] it is also. The compact elements of Kn+1 are functors of
+bk
+the form i=1 (ai → bi ), where ai , bi ∈ Kn are compacts, and (a ⇒ b) : K → K
+denote the step functor induced by the map
+
+
+b if x ≿ a
+(a ⇒ b)(x) :=
+
+0 o.c
+by degenerate higher simplexes; for example, for the case of an equivalence
+∼
+
+x−
+→ y at K, we have the map induced
+∼
+
+(a ⇒ b)(x −
+→ y) :=
+
+
+
+1b
+
+if x ≿ a
+
+
+10
+
+o.c.
+
+In the same way, the other maps are induced for degenerate images of higher
+simplexes σ : ∆n → K. These functors are compact because they depend only
+on a finite number of values of Kn . We will see how to approximate functors
+using compacts: Let f ∈ Kn+1 . For each x ∈ Kn , since Kn is algebraic (by
+b
+b
+IH), we have x ≃ (x ↓) = ⟨a | a ≾ x and a compact⟩. By the continuity of
+b
+f and Proposition 3.12, f (x) ≃ ⟨f (a) | a ≾ x and a compact⟩. Since f (a) ∈
+b
+Kn , and Kn is algebraic, f is the supremum of compacts: f (a) ≃ ⟨b | b ≾
+f (a) and b compact⟩. Thus, the hpo of compact functors below of f is given by:
+(f ↓) = ⟨
+
+k
+j
+
+(ai ⇒ bi ) : bi ≾ f (ai ) and ai , bi ∈ Kn compacts⟩.
+
+i=1
+
+Since (f ↓) is directed (admits finite colimits) and f (x) is approximated by
+b
+values b ≾ f (a) for a ≾ x, we have f (x) ≃ ⟨g(x) : g ∈ (f ↓)⟩.
+We suppose that Kn is a bounded complete (IH) and will see that by induction Kn+1 = [Kn → Kn ] it is also. Let hpo F ⊆ [Kn → Kn ] with an upper
+30
+
+bound h ∈ [Kn → Kn ]. For each x ∈ Kn , we define (
+
+b
+
+F )(x) :=
+
+b
+
+⟨f (x) : f ∈
+
+F ⟩; It is well defined, since h is an upper bound of F , f (x) ≾ h(x) for each
+f ∈ F , given that Kn is bound complete, by IH, there exists the supremum
+b
+b
+⟨f (x) : f ∈ F ⟩. The proof that F is continuous is similar to the proof of
+Proposition 3.5 and Lemma 3.1.
+
+4. Construction of K∞ by h-projection pairs
+Definition 4.1 ([6]). Let X be a Kan complex. Define π0 (X) := π0 (|X|) and
+πn (X, x) := πn (|X|, x) for n > 0, with | | : Kan → T op being the functor of
+geometric realisation from the category of Kan complexes to the category of the
+topological spaces.
+The fact that a Kan complex X is not contractible does not imply that every
+vertex x ∈ X contains relevant information, that is, the higher fundamental
+groups πn (|X|, x) are non-trivial, nor that it contains holes in all the higher
+dimensions. To guarantee the existence of non-trivial Kan complexes as higher
+λ-models, we present the following definition.
+Definition 4.2 (Non-trivial Kan complex [6]). A small Kan complex X is nontrivial if
+1. π0 (X) is infinite.
+2. for each n ≥ 1, there is a vertex x ∈ X such that πn (X, x) ≇ ∗.
+3. for each vertex x of some non-degenerated horn in X, there is n ≥ 1 such
+πn (X, x) ≇ ∗.
+Example 4.1. For each n ≥ 0, let S n the sphere of Remark 3.2. Define the
+non-trivial Kan complex N as the disjoint union:
+N=
+
+a
+
+Sn.
+
+n<ω
+
+Furthermore, πn (S n ) ≇ ∗ for all n ≥ 1, and there is k > n such that
+πk (S n ) ≇ ∗ for each n ≥ 2 [21].
+
+31
+
+Definition 4.3 (The c.h.p.o N + ). Define the c.h.p.o N + := ⟨N ∪ {⊥0 }⟩, where
+⊥0 is the unique initial object of N + .
+Definition 4.4 (Non-Trivial Homotopy λ-Model [6]). Let K be a Cartesian
+closed ∞-category, whose objects are Kan complexes. An object K ∈ K is
+a non-trivial homotopy λ-model, if K is a non-trivial Kan complex and it is
+reflexive.
+Definition 4.5 (Sequence K0 , K1 . . .). For each natural n ≥ 0 define Kn by
+recursion
+K0 := N + ,
+Kn+1 := F (Kn ) = [Kn → Kn ].
+Where F : (CHP O)HP rj → (CHP O)HP rj is the functor defined in the Remark
+3.8 and [Kn → Kn ] be the c.h.p.o of the ω-continuous functors or continuous.
+Note by ⊥n the unique initial object of Kn .
+Remark 4.1. Notice that K0 = N + is a Scott Domain. By Proposition 3.14,
+Kn+1 = [Kn → Kn ] is also a Scott Domain for each n ≥ 0.
+Definition 4.6 (Initial h-projection pair). Define the initial h-projection pair
+(f0+ , f0− ), from K0 to K1 the following way:
+(a) the h-embedding f0+ from K0 into K1 defined as f0+ (x) := λy ∈ K.x′ , for
+some edge x → x′ at K0 .
+(b) and f0− is the unique (under homotopy) h-projection associated with the
+h-embedding f0+ such that f0− (g) := g(⊥0 ).
+Definition 4.7 (h-projection pair from Kn to Kn+1 ). From the definition of the
+functor F (f + , f − ) = (λh.(f + .h.f − ), λh.(f − .h.f + )) of Remark 3.8, we define
+the h-projection pair (fn+ , fn− ). If n = 0 define (f0+ , f0− ) as in Definition 4.6 by
+recursion. If n ≥ 1 define the h-projection pair (fn+ , fn− ) from Kn to Kn+1 as
++
+−
+−
++
+(fn+ , fn− ) := F n (f0+ , f0− ) = (λh.(fn−1
+.h.fn−1
+), λh.(fn−1
+.h.fn−1
+))
+
+32
+
+Remark 4.2 (The K∞ homotopy λ-model). Let (Kn , fn− ) be an inverse system
+−
+of h-projections such that lim
+←−(Kn , fn ) = (K∞ , (f∞,n )n ). By the Theorem 2.4,
+
+we have (K∞ , (fn,∞ , f∞,n )n ) as a colimit to the diagram (F n (K0 ), F n (f0+ , f0− )) =
+(Kn , (fn+ , fn− )) at the ∞-category (CHP O)HP rj , where K∞ corresponds to c.h.p.o
+defined in 3.10 and the h-embedding fn,∞ (x) := (fn,m (x))m (from Kn to K∞ )
+with fn,m equivalent to the composable h-embeddings if n < m, or to the composable h-projections if n > m, or to the identity if n = m, and the h-projection
+f∞,n (x) := xn (from K∞ to Kn ).
+Note that by Remark 3.8, the c.h.p.o K∞ is a fixed point of the functor
+F : (CHP O)HP rj → (CHP O)HP rj , that is, K∞ ≃ [K∞ → K∞ ]. Therefore,
+K∞ is a homotopy λ-model.
+Proposition 4.1. The K∞ chpo is a Homotopy Scott Domain.
+Proof. First, we will find that K∞ is algebraic. The compact elements of K∞
++
+(xn ), . . .) for some n ∈ ω and for all m > n.
+are of the form (x1 , . . . , xn , . . . , fn,m
+
+For any x ∈ K∞ , we define its finite approximations as compact elements x(n) :=
+b
++
+(x1 , . . . , xn , . . . , fn,m
+(xn ), . . .). The chain ⟨x(n) ⟩n∈ω is directed and n x(n) ≃ x,
+thus K∞ is an algebraic chpo. Now we will see that K∞ is bounded complete.
+Let X ⊆ K∞ with an upper bound u, then for each n ∈ ω, the hpo ⟨xn : x ∈
+K∞ ⟩ ⊆ K̂n is an upper bound by un ∈ Kn . Since Kn is bounded complete (Kn is
+b
+a Scott Domain by Remark 4.1), there exists supremum sn = ⟨xn : x ∈ K∞ ⟩.
+−
+By the continuity of fn−1
+, the sequence (sn )n ∈ K∞ and is the supremun of X,
+
+therefore K∞ is a Homotopy Scott Domain.
+Proposition 4.2. If x ∈ K∞ , then x ≃
+
+b
+
+n fn,∞ (xn ).
+
+Proof. We wish to show that for every k ∈ ω, (
+
+33
+
+b
+
+n fn,∞ (xn ))k ≃ xk .
+
+By the
+
+definition and continuity of f∞,k , we have:
+j
+j
+( fn,∞ (xn ))k = f∞,k ( fn,∞ (xn ))
+n
+
+n
+
+≃
+
+j
+
+f∞,k (fn,∞ (xn ))
+
+n
+
+≃
+
+j
+
+fn,k (xn )
+
+n≥k
+
+≃
+
+j
+
+xk
+
+n≥k
+
+≃ xk
+
+Proposition 4.3. If h : [K∞ → K∞ ] → K∞ and k : K∞ → [K∞ → K∞ ]
+are the equivalences resulting from applying Theorem 2.3 to the functor F :
+(CHP O)HP rj → (CHP O)HP rj of Remark 3.8, then
+h(f ) ≃
+
+j
+
+fn+1,∞ (f∞,n .f.fn,∞ ),
+
+k(x)(y) ≃
+
+n
+
+j
+
+fn,∞ (xn+1 (yn )).
+
+n
+
+Proof. We prove (λf.
+
+b
+
+k fk+1,∞ (f∞,k .f.fk,∞ )).F (fn,∞ )
+
+≃ fn+1,∞ . We have
+
+F (fn,∞ ) = λg.(fn,∞ .g.f∞,n ) : Kn+1 → F (K∞ ), and hence
+(λf.
+
+j
+
+fk+1,∞ (f∞,k .f.fk,∞ ))(F (fn,∞ )(g))
+
+k
+
+≃
+
+j
+
+fk+1,∞ (f∞,k .F (fn,∞ )(g).fk,∞ )
+
+k
+
+≃
+
+j
+
+fk+1,∞ (f∞,k .fn,∞ .g.f∞,n .fk,∞ )
+
+k>n
+
+≃
+
+j
+
+fk+1,∞ (fn,k .g.fk,n )
+
+k>n
+
+≃
+
+j
+
+fk+1,∞ (fn+1,k+1 (g))
+
+k>n
+
+≃
+
+j
+
+fn+1,∞ (g)
+
+k>n
+
+≃ fn+1,∞ (g)
+
+34
+
+Since (K∞ , (fn,∞ , f∞,n )n ) is a colimit to the ω-diagram (Kn , (fn+ , fn− )), there
+exists a unique (under homotopy; the space of choices is contractible) h : [K∞ →
+b
+K∞ ] → K∞ such that h.F (fn,∞ ) ≃ fn+1,∞ , therefore h(f ) ≃ n fn+1,∞ (f∞,n .f.fn,∞ ).
+On the other hand, by the same colimit, there exists an unique (under homotopy) k : K∞ → [K∞ → K∞ ] such that k.fn+1,∞ ≃ F (fn,∞ ), applying f∞,n+1
+on both sides
+k.fn+1,∞ .f∞,n+1 ≃ F (fn,∞ ).f∞,n+1
+≃ (λg.(fn,∞ .g.f∞,n )).f∞,n+1 ; by definition of F (fn,∞ )
+k(fn+1,∞ (f∞,n+1 (x)) ≃ (λg.(fn,∞ .g.f∞,n ))(f∞,n+1 (x))
+≃ fn,∞ .f∞,n+1 (x).f∞,n
+k(fn+1,∞ (xn+1 ))(y) ≃ (fn,∞ .xn+1 .f∞,n )(y); by definition of f∞,n+1 (x)
+≃ fn,∞ (xn+1 (f∞,n (y)))
+≃ fn,∞ (xn+1 (yn )); by definition of f∞,n+1 (y)
+j
+
+k(fn+1,∞ (xn+1 ))(y) ≃
+
+n
+
+j
+
+fn,∞ (xn+1 (yn ))
+
+n
+
+j
+j
+k( fn+1,∞ (xn+1 ))(y) ≃
+fn,∞ (xn+1 (yn ))
+n
+
+n
+
+k(x)(y) ≃
+
+j
+
+fn,∞ (xn+1 (yn )); since x ≃
+
+n
+
+j
+
+fn+1,∞ (xn+1 ) by 4.2.
+
+n
+
+Remark 4.3 (Application in K∞ ). For x, y ∈ K∞ , by definition x•y = k(x)(y),
+by Proposition 4.3 one has
+x•y ≃
+
+j
+
+fn,∞ (xn+1 (yn )).
+
+n
+
+Proposition 4.4. The Kan complex K∞ is a non-trivial homotopy λ-model.
+Proof.
+
+1. Since π0 (K0 ) is infinite and f0,∞ is an h-embedding, the map of
+
+connected components π0 (f0,∞ ) : π0 (K0 ) → π0 (K∞ ) is injective, and
+hence π0 (K∞ ) is infinite.
+35
+
+2. Given n ≥ 1, one has πn (K0 , x0 ) = πn (S n , x0 ) ≇ ∗. By the h-embedding
+f0,∞ , we have that the group homomorphism πn (f0,∞ ) : πn (K0 , x0 ) →
+πn (K∞ , f0,∞ (x0 )) is injective, thus πn (K∞ , f0,∞ (x0 )) ≇ ∗.
+3. We find that K0 = N + is a non-trivial Kan complex. Let x = (xi )i be a
+vertex of some non-degenerated horn in K∞ . To prove that there exists
+an n > 0 such that πn (K∞ , x) ≇ ∗, it is enough to prove that there is an
+i ≥ 0 such that πn (Ki , xi ) ≇ ∗ for some n > 0. Since x0 is a vertex of a
+non-degenerated horn in K0 , there exists n > 0 such that x0 ∈ S n , hence
+πn (K0 , x0 ) = πn (S n , x0 ) ≇ ∗.
+
+Example 4.2 (Interpretation of βη-contractions in K∞ ). Given a, b ∈ K∞
+such that a = f0,∞ (0) and b = f0,∞ (1). Let f = f0,∞ (⟨1, 0⟩′ ) ∈ K∞ (b, a) and
+g = f0,∞ (⟨0, 1⟩) ∈ K∞ (a, b), where ⟨1, 0⟩′ and ⟨0, 1⟩ are not inverses, and 0, 1
+are vertices of the degenerated sphere S 1 ⊆ K0 :
+1
+⟨1,0⟩′
+
+i
+
+
+0
+
+
+⟨0,1⟩
+
+/1
+
+If we define: f0,1 (0) := f0,1 (1) := λx.1 (note that f0,n+1 (0) = f0,n+1 (1) =
+b
+1n+1 := λx ∈ Kn .1n , with 10 := 1, and fn+1,0 (1n+1 ) = 1), h(f ) := n fn+1,∞ (f∞,n .f.fn,∞ )
+
+36
+
+and k(x)(y) :=
+
+b
+
+n fn,∞ (xn+1 (yn )), we have
+
+h(k(a)) =h(k(f0,∞ (0)))
+j
+= fn+1,∞ (f∞,n .fn,∞ .f0,n+1 (0).f∞,n .fn,∞ )
+n
+
+=
+
+j
+
+fn+1,∞ (f∞,n .fn,∞ .f0,n+1 (0));
+
+n
+
+(since: f0,n+1 (0).f∞,n .fn,∞ = 1n+1 .f∞,n .fn,∞ = 1n+1 )
+j
+= fn+1,∞ (f∞,n .fn,∞ .1n+1 )
+n
+
+=
+
+j
+
+fn+1,∞ (1n+1 );
+
+fm,n (1m ) = 1n ,
+
+for every m, n ∈ ω
+
+n
+
+=
+
+j
+
+fn+1,∞ (f0,n+1 (1))
+
+n
+
+=
+
+j
+
+f0,∞ (1)
+
+n
+
+=f0,∞ (1) = (1, 11 , 12 , . . . , 1n , . . .) = b
+̸=
+
+←−f0,∞ (0) = (0, 11 , 12 , . . . , 1n , . . .) = a.
+ηa
+
+The λ-term (λz.xz)y has the βη-contractions
+1β
+
+(λz.xz)y
+
+*
+
+4 xy
+
+1η
+
+Let ρ(x) = a and ρ(y) = b be vertices of K∞ . The interpretation of a λ-term
+is given by: J(λz.xz)yKρ = Jλz.xzKρ • b = h(λc.k(a)(c)) • b = h(k(a)) • b =
+k(h(k(a)))(b). Since h(k(a)) = b, so the interpretation of the β-contraction in
+K∞ is given by
+⟨k(b)(b),k(a)(b)⟩′
+
+b • b = k(b)(b) = k(h(k(a)))(b) = (kh)(k(a))(b) −−−−−−−−−−−→ k(a)(b) = a • b.
+Thus, εk(a) := ⟨k(b), k(a)⟩′ = k(⟨b, a⟩′ ) = k(f0,∞ ⟨1, 0⟩′ ). On the other hand, the
+(reverse) η-contraction is modelled by
+⟨k(a)(b),k(b)(b)⟩
+
+a • b = k(a)(b) −−−−−−−−−−→ k((hk)(a))(b) = k(h(k(a)))(b) = k(b)(b) = b • b
+Let k(ηa ) := ⟨k(a), k(b)⟩ = k(⟨a, b⟩) = k(f0,∞ ⟨0, 1⟩). Then, the degenerated
+37
+
+sphere k(f0,∞ (S 1 ))(b) ⊆ K∞ is given by
+(kh)(k(a))(b)
+i
+
+(εk(a) )b
+
+
+k(a)(b)
+
+(
+/ k((hk)(a))(b)
+
+(k(ηa ))b
+
+Therefore, J1βKρ ≇ J1ηKρ (no-equivalents) in K∞ .
+Example 4.2, indicates that there is no 2βη-conversion from 1β to 1η in the
+Homotopy Type-Free Theory (HoTFT) defined in [20]. This shows that the
+higher βη-conversions system of HoTFT is not trivial.
+4.1. Comparison with Other Intensional Models.
+From a broader semantic perspective, the homotopy λ-model K∞ can be
+viewed as complementary to several well-established intensional approaches to
+the λ-calculus. In PER-based models (in the sense of Scott, Hyland, and later
+Streicher and Longley), intensionality arises from the fine structure of partial
+equivalence relations over an underlying domain, where programs are identified up to observational equivalence induced by realizers. Game semantics (as
+developed by Abramsky-Jagadeesan-Malacaria and Hyland-Ong) captures intensional distinctions through interaction patterns between programs and their
+environments, emphasizing strategies and their dynamic behavior. Realizability models (in the tradition of Kleene and later realizability interpretations of
+typed and untyped λ-calculi) focus on computational witnesses and proof relevance, distinguishing terms by the computational content of their realizers. The
+model K∞ departs from these approaches by organizing intensional distinctions
+along higher homotopical dimensions: terms are not identified merely by equality or equivalence, but by structured spaces of paths, homotopies, and higher
+coherences. In this sense, K∞ does not aim to subsume PERs, game semantics, or realizability, but rather to offer an orthogonal semantic perspective in
+which intensionality is expressed geometrically. This homotopical enrichment
+makes explicit higher identifications that are implicit or collapsed in traditional
+
+38
+
+models, and suggests a semantic setting in which programs, proofs, and their
+equivalences can be analyzed uniformly across multiple levels of abstraction.
+
+5. Conclusions and further work
+We generalise Dana Scott’s λ-model D∞ to a non-trivial homotopy λ-model
+K∞ , corresponding to a complete weakly ordered Kan complex or complete
+homotopy partial order (chpo), with holes in higher dimensions to guarantee
+non-equivalence between interpretations of some higher conversions. For future
+work, we are developing an alternative type theory interpreted by chpo’s (or
+Scott domains), where the higher βη-conversions are included, in their typed
+version, as witnesses of the iterated identity types.
+
+References
+[1] J. Hindley, J. Seldin, Lambda-Calculus and Combinators, an Introduction,
+Cambridge University Press, New York, 2008.
+[2] D. Martı́nez-Rivillas, R. de Queiroz, The ∞-groupoid generated by an arbitrary topological λ-model, Logic Journal of the IGPL 30 (3) (2022) 465–488
+https://doi.org/10.1093/jigpal/jzab015, (also arXiv:1906.05729).
+[3] S. Abramsky, A. Jung, Domain theory, In S. Abramsky, D. M. Gabbay,
+and T. S. E. Maibaum, editors, Handbook of Logic in Computer Science,
+volume 3, pages 1–168, Clarendon Press, 1994.
+[4] A. Asperti, G. Longo, Categories, Types and Structures: An Introduction
+to Category Theory for the working computer scientist, Foundations of
+Computing Series, M.I.T Press, 1991.
+[5] D. Martı́nez-Rivillas, R. de Queiroz, Towards a homotopy domain theory,
+Archive for Mathematical Logic (also arXiv 2007.15082).
+URL https://doi.org/10.1007/s00153-022-00856-0
+
+39
+
+[6] D. Martı́nez-Rivillas, R. de Queiroz, Solving homotopy domain equations,
+arXiv:2104.01195.
+URL https://arxiv.org/abs/2104.01195
+[7] D. Martı́nez-Rivillas, Towards a homotopy domain theory, Tese doutoral,
+Centro de Informática (CIn), Universidade Federal de Pernambuco
+(UFPE), Recife, BR (2022).
+URL https://repositorio.ufpe.br/handle/123456789/49221
+[8] J. Boardman, R. Vogt, Homotopy invariant algebraic structures on topological spaces, Lecture Notes in Mathematics, 347, Berlin, New York:
+Springer-Verlag, 1973.
+[9] A. Joyal, Quasi-categories and kan complexes, Journal of Pure and Applied
+Algebra 175 (1) (2002) 207–222.
+[10] A. Joyal, M. Tierney, Quasi-categories vs segal spaces, Categories in algebra, geometry and mathematical physics, Contemp. Math. 431 (2008)
+277–326.
+[11] J. Lurie, Higher Topos Theory, Princeton University Press, Princeton and
+Oxford, 2009.
+[12] J. Lurie, Kerodon, https://kerodon.net (2025).
+[13] J. Lurie, Higher Algebra, Harvard University, 2017.
+[14] P. Goerss, J. Jardine, Simplicial Homotopy Theory, Birkhäuser Basel,
+Springer Nature Switzerl and AG, 2009.
+[15] G. Friedman, An elementary illustrated introduction to simplicial sets,
+Rocky Mountain J. Math. 42 (2) (2012) 353–423.
+[16] D.-C. Cisinski, Higher Categories and Homotopical Algebra, Cambridge
+University Press, 2019.
+
+40
+
+[17] C. Rezk, Introduction to Quasicategories, Lecture Notes for course at University of Illinois at Urbana-Champaign, 2022.
+URL https://faculty.math.illinois.edu/~rezk/quasicats.pdf
+[18] C. Rezk, Stuff about quasicategories, Lecture Notes for course at University
+of Illinois at Urbana-Champaign, 2017.
+[19] M. Groth, A short course on ∞-categories, 2015.
+URL https://arxiv.org/abs/1007.2925
+[20] D. Martı́nez-Rivillas, R. de Queiroz, The theory of an arbitrary
+higher λ-model, Bulletin of the Section of Logic 52 (1) (2023) 39–58
+https://doi.org/10.18778/0138–0680.2023.11, (also arXiv 2111.07092).
+[21] A. Hatcher, Algebraic Topology, Cambridge University Press, New York,
+NY, 2001.
+
+41
+
+
