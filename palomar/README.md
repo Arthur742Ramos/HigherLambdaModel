@@ -3,7 +3,9 @@
 This directory is the self-contained Lean project used for the Palomar
 submission. It mirrors the compact proposition-level Challenge/Solution
 surface at the repository root while keeping the registry replay independent
-of the repository's larger development dependencies.
+of the repository's larger development dependencies. The directory pins its
+own Lean toolchain so it remains self-contained if the main development moves
+to a different toolchain later.
 
 Submit this project with:
 
