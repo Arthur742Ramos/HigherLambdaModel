@@ -107,14 +107,19 @@ HigherLambdaModel/
 ## Palomar Registry package
 
 This repository also carries a compact Palomar Registry entry for the main
-proposition-level result, `HigherLambdaModel.Palomar.main_result`:
+proposition-level result, `HigherLambdaModel.Palomar.main_result`. The
+registry-facing project is `palomar/`, a self-contained Mathlib-only Lake
+project that avoids coupling hosted replay to the full development's private
+dependency trees:
 
-- `Challenge.lean` is a 156-line, statement-first surface containing de Bruijn
+- `palomar/Challenge.lean` is a 179-line, statement-first surface containing de Bruijn
   terms, βη-conversion, and the extensional Kan-complex semantic interface.
-- `Solution.lean` repeats that surface and supplies the independently checked
+- `palomar/Solution.lean` repeats that surface and supplies the independently checked
   β/η soundness and conversion proof.
-- `comparator.json` records the declaration and the permitted standard axioms;
+- `palomar/comparator.json` records the declaration and the permitted standard axioms;
   `formalization.yaml` records source provenance, attribution, and scope.
+- Submit with project directory `palomar`, comparator configuration
+  `comparator.json`, and metadata path `formalization.yaml`.
 
 The full higher-cell and `K∞` developments remain in the ordinary
 `HigherLambdaModel/` library. Local checks are:

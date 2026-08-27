@@ -1,5 +1,6 @@
 # Lake build directory
-/.lake
+/.lake/
+**/.lake/
 
 # Lean 4 build artifacts
 /build
