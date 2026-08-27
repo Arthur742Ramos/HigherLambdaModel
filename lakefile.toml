@@ -5,15 +5,28 @@ defaultTargets = ["HigherLambdaModel"]
 [[require]]
 name = "computational_paths"
 git = "https://github.com/Arthur742Ramos/ComputationalPathsLean.git"
-rev = "main"
+rev = "de434edb5e85fea06f44120a63964c15d0230382"
 
 [[require]]
 name = "Metatheory"
 git = "https://github.com/Arthur742Ramos/Metatheory.git"
-rev = "main"
+rev = "70bae8432e9eafb1cb91a0cab9c89932820873ac"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "8f9d9cff6bd728b17a24e163c9402775d9e6a365"
 
 [[lean_lib]]
 name = "HigherLambdaModel"
+
+[[lean_lib]]
+name = "Challenge"
+roots = ["Challenge"]
+
+[[lean_lib]]
+name = "Solution"
+roots = ["Solution"]
 
 [[lean_exe]]
 name = "higherlambdamodel"

@@ -9,7 +9,7 @@ This removes the need for the earlier church_rosser postulate in HigherTerms.lea
 -/
 
 import HigherLambdaModel.Lambda.Reduction
-import Metatheory
+import Metatheory.Lambda.Confluence
 
 namespace HigherLambdaModel.Lambda.ChurchRosserProof
 

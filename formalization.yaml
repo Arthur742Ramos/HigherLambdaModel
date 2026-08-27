@@ -1,0 +1,102 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "Higher Lambda Models"
+  description: >-
+    A Lean formalization of higher-dimensional structure in the untyped lambda
+    calculus.  The advertised result proves that every beta-eta equality is
+    valid in every extensional Kan-complex model, while the substantive
+    repository also formalizes the higher conversion tower and the concrete
+    K-infinity homotopy lambda model.
+  authors:
+    - name: "Arthur Ramos"
+      github: "Arthur742Ramos"
+  license: "MIT"
+  responsible_maintainers:
+    - name: "Arthur Ramos"
+      github: "Arthur742Ramos"
+
+classification:
+  arxiv: ["math.LO"]
+  msc2020: ["03B35"]
+
+sources:
+  - title: "The Theory of an Arbitrary Higher lambda-Model"
+    authors:
+      - "Daniel O. Martinez-Rivillas"
+      - "Ruy J.G.B. de Queiroz"
+    id: "arXiv:2111.07092"
+    type: "article"
+    location: "https://arxiv.org/abs/2111.07092"
+    relationship: "formalizes"
+    note: "The proposition-level advertised theorem is the corollary following Proposition 3.4."
+    author_endorsement: "not-contacted"
+  - title: "The K-infinity Homotopy lambda-Model"
+    authors:
+      - "Daniel O. Martinez-Rivillas"
+      - "Ruy J.G.B. de Queiroz"
+    id: "arXiv:2505.07103"
+    type: "article"
+    location: "https://arxiv.org/abs/2505.07103"
+    relationship: "formalizes"
+    note: "The repository includes the concrete K-infinity construction and its model properties; it is not part of the compact advertised statement."
+    author_endorsement: "not-contacted"
+
+status:
+  scope: >-
+    The full repository contains the higher-conversion, simplicial, domain,
+    and K-infinity developments.  Palomar compares the compact proposition-level
+    surface in Challenge.lean with its proof in Solution.lean; the surface
+    explicitly includes de Bruijn terms, beta/eta conversion, and the
+    reflexive/extensional Kan-complex semantic interface.  The Challenge proof
+    has one deliberate sorry, excluded from the proof-development counts.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: []
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["GPT-5"]
+      framework: "Lean 4"
+      tool_setup: "AI-assisted Lean development with independent lake builds and Palomar Comparator preparation."
+      cost:
+        wall_time: "local development session"
+        spend_usd: "subscription-based"
+        hardware: "local Apple Silicon machine"
+      prompting_notes: "The formalization was audited and packaged against the current Palomar entry contract."
+    - method: "manual"
+      models: []
+      framework: "Lean 4"
+      tool_setup: "Repository source review and metadata audit."
+      cost:
+        wall_time: "not tracked"
+        spend_usd: "not tracked"
+        hardware: "local machine"
+      prompting_notes: "n/a"
+  spend_usd: "subscription-based"
+  notes: "The substantive proof development predates this Palomar packaging; the Challenge/Solution boundary is an explicit compact statement surface."
+
+fidelity:
+  divergences: >-
+    The Palomar surface mirrors the proposition-level semantics with a compact
+    duplicate of the term, conversion, and model-interface definitions.  It
+    omits the full higher-cell implementation from the Challenge review surface;
+    the repository's ordinary library retains that complete development.
+
+review:
+  status: "self-assessed"
+  reviewers: ["none"]
+  notes: "Statement audited against the repository theorem and source-paper claim matrix; independent mathematical review remains open."
+
+alignment:
+  namespace: "HigherLambdaModel.Palomar"
+  statements:
+    - source: "Corollary following Proposition 3.4"
+      lean: "HigherLambdaModel.Palomar.main_result"
+      module: "Challenge.lean and Solution.lean"
+      status: "adapted"
+      note: "Every beta-eta conversion is interpreted equally in every extensional Kan-complex model."
+
+acknowledgements: "Lean, Mathlib, ComputationalPathsLean, Metatheory, and the Palomar Registry project."

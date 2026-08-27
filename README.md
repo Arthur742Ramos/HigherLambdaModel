@@ -4,7 +4,7 @@
 
 **A Lean 4 formalization of higher-dimensional structure in the untyped lambda calculus**
 
-[![Lean 4](https://img.shields.io/badge/Lean-4.24.0-blue?logo=lean)](https://lean-lang.org/)
+[![Lean 4](https://img.shields.io/badge/Lean-4.28.0-blue?logo=lean)](https://lean-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![arXiv](https://img.shields.io/badge/arXiv-2111.07092-b31b1b.svg)](https://arxiv.org/abs/2111.07092)
 
@@ -45,10 +45,10 @@ Completed execution work is tracked in
 
 Current snapshot, excluding `.lake`:
 
-- `35` Lean files
-- `29,761` lines of Lean
-- `361` named `theorem` / `lemma` declarations
-- no local `axiom`, `sorry`, or `admit` declarations
+- `40` Lean files
+- `43,522` lines of Lean
+- no local `axiom` or `admit` declarations; `Challenge.lean` contains one
+  deliberate `sorry` as the Palomar statement placeholder
 - all closure backlog issues `0` through `8` completed
 
 ## Key Results Formalized
@@ -104,11 +104,34 @@ HigherLambdaModel/
 +-- lakefile.toml
 ```
 
+## Palomar Registry package
+
+This repository also carries a compact Palomar Registry entry for the main
+proposition-level result, `HigherLambdaModel.Palomar.main_result`:
+
+- `Challenge.lean` is a 156-line, statement-first surface containing de Bruijn
+  terms, βη-conversion, and the extensional Kan-complex semantic interface.
+- `Solution.lean` repeats that surface and supplies the independently checked
+  β/η soundness and conversion proof.
+- `comparator.json` records the declaration and the permitted standard axioms;
+  `formalization.yaml` records source provenance, attribution, and scope.
+
+The full higher-cell and `K∞` developments remain in the ordinary
+`HigherLambdaModel/` library. Local checks are:
+
+```bash
+lake build
+lake build Challenge Solution
+```
+
+The hosted Palomar verifier additionally performs the frozen Challenge build,
+source-closure audit, Comparator check, and independent NanoDa replay.
+
 ## Building
 
 ### Prerequisites
 
-- [Lean 4](https://lean-lang.org/) `v4.24.0`
+- [Lean 4](https://lean-lang.org/) `v4.28.0`
 - [Lake](https://github.com/leanprover/lean4/tree/master/src/lake) (bundled with Lean)
 
 ### Build
@@ -169,6 +192,7 @@ Lake fetches:
 
 - [ComputationalPathsLean](https://github.com/Arthur742Ramos/ComputationalPathsLean)
 - [Metatheory](https://github.com/Arthur742Ramos/Metatheory)
+- [Mathlib](https://github.com/leanprover-community/mathlib4)
 
 The remaining external proof-theoretic dependency of note is `Metatheory`,
 which supplies the Church-Rosser transfer used in
