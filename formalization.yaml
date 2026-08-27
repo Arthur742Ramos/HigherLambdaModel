@@ -12,6 +12,8 @@ project:
   authors:
     - name: "Arthur Ramos"
       github: "Arthur742Ramos"
+    - name: "Daniel O. Martinez-Rivillas"
+    - name: "Ruy J.G.B. de Queiroz"
   license: "MIT"
   responsible_maintainers:
     - name: "Arthur Ramos"
