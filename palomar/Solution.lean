@@ -193,10 +193,10 @@ def boolSimplicialSet : SimplicialSet where
   face_degen_gt := by intro n σ i j hji hi; rfl
   degen_degen := by intro n σ i j hij hj; rfl
 
-private def boolHornPivot {n i : Nat} (_hi : i ≤ n + 1) : Nat :=
+def boolHornPivot {n i : Nat} (_hi : i ≤ n + 1) : Nat :=
   if i = 0 then 1 else 0
 
-private theorem boolHornPivot_ne {n i : Nat} (hi : i ≤ n + 1) :
+theorem boolHornPivot_ne {n i : Nat} (hi : i ≤ n + 1) :
     boolHornPivot hi ≠ i := by
   by_cases h : i = 0
   · subst h
@@ -205,14 +205,14 @@ private theorem boolHornPivot_ne {n i : Nat} (hi : i ≤ n + 1) :
     intro h0
     exact h h0.symm
 
-private theorem boolHornPivot_le {n i : Nat} (hi : i ≤ n + 1) :
+theorem boolHornPivot_le {n i : Nat} (hi : i ≤ n + 1) :
     boolHornPivot hi ≤ n + 1 := by
   by_cases h : i = 0
   · subst h
     simp [boolHornPivot]
   · simp [boolHornPivot, h]
 
-private theorem boolHornFacetsEq
+theorem boolHornFacetsEq
     {n i : Nat} (Λ : Horn boolSimplicialSet n i)
     {j k : Nat} (hj : j ≤ n + 1) (hk : k ≤ n + 1)
     (hji : j ≠ i) (hki : k ≠ i) :
