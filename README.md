@@ -126,6 +126,8 @@ lake build Challenge Solution
 
 The hosted Palomar verifier additionally performs the frozen Challenge build,
 source-closure audit, Comparator check, and independent NanoDa replay.
+GitHub Actions mirrors the local Lean checks with read-only permissions and
+immutable action pins.
 
 ## Building
 
