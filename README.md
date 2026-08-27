@@ -106,17 +106,22 @@ HigherLambdaModel/
 
 ## Palomar Registry package
 
-This repository also carries a compact Palomar Registry entry for the main
-proposition-level result, `HigherLambdaModel.Palomar.main_result`. The
-registry-facing project is `palomar/`, a self-contained Mathlib-only Lake
-project that avoids coupling hosted replay to the full development's private
-dependency trees:
+This repository also carries a compact Palomar Registry entry for the
+certified restricted-exponential result,
+`HigherLambdaModel.Palomar.main_result`. The registry-facing project is
+`palomar/`, a self-contained Mathlib-only Lake project that avoids coupling
+hosted replay to the full development's private dependency trees:
 
-- `palomar/Challenge.lean` is a 179-line, statement-first surface containing de Bruijn
-  terms, βη-conversion, and the extensional Kan-complex semantic interface.
-- `palomar/Solution.lean` repeats that surface and supplies the independently checked
-  β/η soundness and conversion proof.
-- `palomar/comparator.json` records the declaration and the permitted standard axioms;
+- `palomar/Challenge.lean` is a statement-first surface containing de Bruijn
+  terms, βη-conversion, and a restricted Kan-complex exponential whose
+  morphisms are not the full set-theoretic endomap space.
+- `palomar/Solution.lean` repeats that surface and supplies the independently
+  checked β/η soundness and conversion proof.
+- Both modules include `boolExtensionalCandidate_nontrivial`, an explicit
+  two-vertex carrier witness; `CertifiedExtensionalKanComplex` separately
+  records the term-generated-body representation certificate used by the
+  theorem.
+- `palomar/comparator.json` records both declarations and the permitted standard axioms;
   `formalization.yaml` records source provenance, attribution, and scope.
 - Submit with project directory `palomar`, comparator configuration
   `comparator.json`, and metadata path `formalization.yaml`.

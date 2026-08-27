@@ -1,7 +1,10 @@
 {
   "challenge_module": "Challenge",
   "solution_module": "Solution",
-  "theorem_names": ["HigherLambdaModel.Palomar.main_result"],
+  "theorem_names": [
+    "HigherLambdaModel.Palomar.main_result",
+    "HigherLambdaModel.Palomar.boolExtensionalCandidate_nontrivial"
+  ],
   "definition_names": [],
   "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
   "enable_nanoda": true

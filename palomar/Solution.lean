@@ -103,32 +103,175 @@ structure KanComplex extends SimplicialSet where
       {i : Nat} (_hi : i ≤ n + 1) (hmi : i ≠ missing),
       face n i (fill Λ) = Λ.facet i hmi
 
-def FunctorSpace (K : KanComplex) : Type := K.Obj → K.Obj
+/-! ## Restricted exponential semantics
+
+The semantic morphisms are a chosen exponential object, not the full
+set-theoretic endomap space.  Bodies are specifications supplied to the
+restricted abstraction operation; only term-generated bodies need be exact. -/
+
+structure Body (α : Type) where
+  run : α → α
 
 structure ReflexiveKanComplex extends KanComplex where
-  F : toKanComplex.Obj → FunctorSpace toKanComplex
-  G : FunctorSpace toKanComplex → toKanComplex.Obj
-  eta : ∀ (f : FunctorSpace toKanComplex) (x : toKanComplex.Obj), F (G f) x = f x
+  Morphism : Type
+  eval : Morphism → toKanComplex.Obj → toKanComplex.Obj
+  reify : toKanComplex.Obj → Morphism
+  reflect : Morphism → toKanComplex.Obj
+  abstract : Body toKanComplex.Obj → Morphism
+  reify_reflect_eval :
+    ∀ (m : Morphism) (x : toKanComplex.Obj),
+      eval (reify (reflect m)) x = eval m x
+
+noncomputable def interpret (K : ReflexiveKanComplex) (ρ : Nat → K.Obj) : Term → K.Obj
+  | Term.var n => ρ n
+  | Term.app M N =>
+      K.eval (K.reify (interpret K ρ M)) (interpret K ρ N)
+  | Term.lam M =>
+      K.reflect (K.abstract
+        { run := fun f => interpret K (fun n => if n = 0 then f else ρ (n - 1)) M })
+
+private theorem body_ext {α : Type} {b c : Body α}
+    (h : ∀ x, b.run x = c.run x) : b = c := by
+  cases b with
+  | mk b =>
+    cases c with
+    | mk c =>
+      congr 1
+      exact funext h
 
 structure ExtensionalKanComplex extends ReflexiveKanComplex where
-  epsilon : ∀ (x : toReflexiveKanComplex.Obj), x = G (F x)
+  reflect_reify : ∀ (x : toReflexiveKanComplex.Obj),
+    toReflexiveKanComplex.reflect (toReflexiveKanComplex.reify x) = x
+  morphism_extensional :
+    ∀ (m n : toReflexiveKanComplex.Morphism),
+      (∀ x, toReflexiveKanComplex.eval m x =
+        toReflexiveKanComplex.eval n x) →
+      toReflexiveKanComplex.reflect m =
+        toReflexiveKanComplex.reflect n
+
+structure CertifiedExtensionalKanComplex extends ExtensionalKanComplex where
+  abstract_eval :
+    ∀ (ρ : Nat → toReflexiveKanComplex.Obj) (M : Term)
+      (x : toReflexiveKanComplex.Obj),
+      toReflexiveKanComplex.eval
+          (toReflexiveKanComplex.abstract
+            { run := fun f =>
+                interpret toReflexiveKanComplex
+                  (fun n => if n = 0 then f else ρ (n - 1)) M }) x =
+        interpret toReflexiveKanComplex
+          (fun n => if n = 0 then x else ρ (n - 1)) M
+
+abbrev CertifiedExtensionalKanComplex.reflexive
+    (K : CertifiedExtensionalKanComplex) : ReflexiveKanComplex :=
+  K.toExtensionalKanComplex.toReflexiveKanComplex
 
 def Valuation (K : ReflexiveKanComplex) := Nat → K.Obj
 
 def Valuation.update {K : ReflexiveKanComplex} (ρ : Valuation K) (v : K.Obj) : Valuation K :=
   fun n => if n = 0 then v else ρ (n - 1)
 
-noncomputable def interpret (K : ReflexiveKanComplex) (ρ : Valuation K) : Term → K.Obj
-  | Term.var n => ρ n
-  | Term.app M N => K.F (interpret K ρ M) (interpret K ρ N)
-  | Term.lam M => K.G (fun f => interpret K (fun n => if n = 0 then f else ρ (n - 1)) M)
-
-def TheoryEq (K : ExtensionalKanComplex) (M N : Term) : Prop :=
-  ∀ (ρ : Valuation K.toReflexiveKanComplex),
-    interpret K.toReflexiveKanComplex ρ M = interpret K.toReflexiveKanComplex ρ N
+def TheoryEq (K : CertifiedExtensionalKanComplex) (M N : Term) : Prop :=
+  ∀ (ρ : Valuation K.toExtensionalKanComplex.toReflexiveKanComplex),
+    interpret K.toExtensionalKanComplex.toReflexiveKanComplex ρ M =
+      interpret K.toExtensionalKanComplex.toReflexiveKanComplex ρ N
 
 def HoTFT_eq (M N : Term) : Prop :=
-  ∀ (K : ExtensionalKanComplex), TheoryEq K M N
+  ∀ (K : CertifiedExtensionalKanComplex), TheoryEq K M N
+
+/-! ### Concrete nontrivial restricted carrier -/
+
+def boolSimplicialSet : SimplicialSet where
+  Simplex := fun _ => Bool
+  face := fun _ _ b => b
+  degen := fun _ _ b => b
+  face_degen0_eq := by intro σ; rfl
+  face_degen0_succ := by intro σ; rfl
+  face_face := by intro n σ i j hij hj; rfl
+  face_degen_lt := by intro n σ i j hij hj; rfl
+  face_degen_eq := by intro n σ i hi; rfl
+  face_degen_succ := by intro n σ i hi; rfl
+  face_degen_gt := by intro n σ i j hji hi; rfl
+  degen_degen := by intro n σ i j hij hj; rfl
+
+private def boolHornPivot {n i : Nat} (_hi : i ≤ n + 1) : Nat :=
+  if i = 0 then 1 else 0
+
+private theorem boolHornPivot_ne {n i : Nat} (hi : i ≤ n + 1) :
+    boolHornPivot hi ≠ i := by
+  by_cases h : i = 0
+  · subst h
+    simp [boolHornPivot]
+  · simp [boolHornPivot, h]
+    intro h0
+    exact h h0.symm
+
+private theorem boolHornPivot_le {n i : Nat} (hi : i ≤ n + 1) :
+    boolHornPivot hi ≤ n + 1 := by
+  by_cases h : i = 0
+  · subst h
+    simp [boolHornPivot]
+  · simp [boolHornPivot, h]
+
+private theorem boolHornFacetsEq
+    {n i : Nat} (Λ : Horn boolSimplicialSet n i)
+    {j k : Nat} (hj : j ≤ n + 1) (hk : k ≤ n + 1)
+    (hji : j ≠ i) (hki : k ≠ i) :
+    Λ.facet j hji = Λ.facet k hki := by
+  cases n with
+  | zero =>
+      have hi := Λ.missing_le
+      have hi' : i = 0 ∨ i = 1 := by omega
+      have hj' : j = 0 ∨ j = 1 := by omega
+      have hk' : k = 0 ∨ k = 1 := by omega
+      rcases hi' with rfl | rfl <;>
+        rcases hj' with rfl | rfl <;>
+          rcases hk' with rfl | rfl <;>
+            first
+            | rfl
+            | exact False.elim (hji rfl)
+            | exact False.elim (hki rfl)
+  | succ m =>
+      by_cases hjk : j = k
+      · subst hjk
+        rfl
+      · cases Nat.lt_or_gt_of_ne hjk with
+        | inl hjkLt =>
+            simpa [boolSimplicialSet] using
+              (Λ.compatibility hj hk hji hki hjkLt).symm
+        | inr hkjLt =>
+            simpa [boolSimplicialSet] using
+              Λ.compatibility hk hj hki hji hkjLt
+
+def boolKanComplex : KanComplex where
+  toSimplicialSet := boolSimplicialSet
+  fill := fun {n} {missing} Λ =>
+    Λ.facet (boolHornPivot Λ.missing_le) (boolHornPivot_ne Λ.missing_le)
+  fill_spec := by
+    intro n missing Λ i hi hmi
+    exact boolHornFacetsEq Λ (boolHornPivot_le Λ.missing_le) hi
+      (boolHornPivot_ne Λ.missing_le) hmi
+
+def boolRestrictedModel : ReflexiveKanComplex where
+  toKanComplex := boolKanComplex
+  Morphism := boolKanComplex.Obj
+  eval := fun m _ => m
+  reify := fun x => x
+  reflect := fun m => m
+  abstract := fun b => b.run false
+  reify_reflect_eval := by intro m x; rfl
+
+def boolExtensionalCandidate : ExtensionalKanComplex where
+  toReflexiveKanComplex := boolRestrictedModel
+  reflect_reify := by intro x; rfl
+  morphism_extensional := by
+    intro m n h
+    exact h false
+
+theorem boolExtensionalCandidate_nontrivial :
+    ∃ x y : boolExtensionalCandidate.toReflexiveKanComplex.Obj, x ≠ y := by
+  refine ⟨false, true, ?_⟩
+  intro h
+  cases h
 
 private theorem surface_nat_add_one_toNat (n : Nat) :
     (↑n + (1 : Int)).toNat = n + 1 := by
@@ -159,8 +302,10 @@ private theorem surface_shift_aux (K : ReflexiveKanComplex) (M : Term) :
   | lam M ih =>
     intro ρ₁ ρ₂ c h_lt h_ge
     simp only [Term.shift, interpret]
-    congr 1
-    funext f
+    apply congrArg K.reflect
+    apply congrArg K.abstract
+    apply body_ext
+    intro f
     apply ih
     · intro n hn
       cases n with
@@ -204,9 +349,16 @@ private theorem surface_subst_aux (K : ReflexiveKanComplex) (M : Term) :
   | lam M ih =>
     intro N ρ j
     simp only [Term.subst, interpret]
-    congr 1
-    funext g
+    apply congrArg K.reflect
+    apply congrArg K.abstract
+    apply body_ext
+    intro g
     let ρ' := fun n => if n = 0 then g else ρ (n - 1)
+    change interpret K ρ' (Term.subst (j + 1) (Term.shift1 N) M) =
+      interpret K
+        (fun n => if n = 0 then g
+          else if n - 1 = j then interpret K ρ N
+          else if n - 1 > j then ρ (n - 1 - 1) else ρ (n - 1)) M
     rw [ih (Term.shift1 N) ρ' (j + 1)]
     congr 1
     funext n
@@ -292,8 +444,10 @@ private theorem surface_unshift_aux (K : ReflexiveKanComplex) (M : Term) :
     intro ρ₁ ρ₂ c h_lt h_gt hfv
     simp only [Term.hasFreeVar] at hfv
     simp only [Term.shift, interpret]
-    congr 1
-    funext g
+    apply congrArg K.reflect
+    apply congrArg K.abstract
+    apply body_ext
+    intro g
     let ρ₁' : Valuation K := fun n => if n = 0 then g else ρ₁ (n - 1)
     let ρ₂' : Valuation K := fun n => if n = 0 then g else ρ₂ (n - 1)
     apply ih ρ₁' ρ₂' (c + 1)
@@ -325,16 +479,26 @@ private theorem surface_unshift (K : ReflexiveKanComplex) (M : Term)
     simp only [h1, ↓reduceIte]
   · exact h
 
-private theorem beta_sound (K : ExtensionalKanComplex) {M N : Term}
-    (h : BetaStep M N) (ρ : Valuation K.toReflexiveKanComplex) :
-    interpret K.toReflexiveKanComplex ρ M = interpret K.toReflexiveKanComplex ρ N := by
+private theorem beta_sound (K : CertifiedExtensionalKanComplex) {M N : Term}
+    (h : BetaStep M N) (ρ : Valuation K.reflexive) :
+    interpret K.reflexive ρ M = interpret K.reflexive ρ N := by
   induction h generalizing ρ with
   | beta M N =>
     simp only [interpret]
-    rw [surface_subst]
-    exact (K.toReflexiveKanComplex.eta
-      (fun f => interpret K.toReflexiveKanComplex
-        (Valuation.update ρ f) M) (interpret K.toReflexiveKanComplex ρ N))
+    rw [K.reflexive.reify_reflect_eval]
+    calc
+      K.reflexive.eval (K.reflexive.abstract
+          { run := fun f =>
+              interpret K.reflexive
+                (fun n => if n = 0 then f else ρ (n - 1)) M })
+          (interpret K.reflexive ρ N) =
+          interpret K.reflexive
+            (fun n => if n = 0 then interpret K.reflexive ρ N
+              else ρ (n - 1)) M :=
+        K.abstract_eval ρ M (interpret K.reflexive ρ N)
+      _ = interpret K.reflexive ρ (Term.subst0 N M) := by
+        symm
+        exact surface_subst K.reflexive M N ρ
   | appL h ih =>
     simp only [interpret]
     rw [ih]
@@ -343,13 +507,15 @@ private theorem beta_sound (K : ExtensionalKanComplex) {M N : Term}
     rw [ih]
   | lam h ih =>
     simp only [interpret]
-    congr 1
-    funext f
+    apply congrArg K.reflexive.reflect
+    apply congrArg K.reflexive.abstract
+    apply body_ext
+    intro f
     exact ih (Valuation.update ρ f)
 
-private theorem eta_sound (K : ExtensionalKanComplex) {M N : Term}
-    (h : EtaStep M N) (ρ : Valuation K.toReflexiveKanComplex) :
-    interpret K.toReflexiveKanComplex ρ M = interpret K.toReflexiveKanComplex ρ N := by
+private theorem eta_sound (K : CertifiedExtensionalKanComplex) {M N : Term}
+    (h : EtaStep M N) (ρ : Valuation K.reflexive) :
+    interpret K.reflexive ρ M = interpret K.reflexive ρ N := by
   induction h generalizing ρ with
   | eta M hfv =>
     simp only [interpret]
@@ -357,13 +523,28 @@ private theorem eta_sound (K : ExtensionalKanComplex) {M N : Term}
       cases h : Term.hasFreeVar 0 M with
       | false => rfl
       | true => exact False.elim (hfv h)
-    have key : ∀ f, interpret K.toReflexiveKanComplex
-        (fun n => if n = 0 then f else ρ (n - 1)) M =
-        interpret K.toReflexiveKanComplex ρ (Term.shift (-1) 0 M) :=
-      fun f => surface_unshift K.toReflexiveKanComplex M ρ f hfv'
-    simp only [key]
-    exact (K.epsilon (interpret K.toReflexiveKanComplex ρ
-      (Term.shift (-1) 0 M))).symm
+    rw [← K.toExtensionalKanComplex.reflect_reify
+      (interpret K.reflexive ρ (Term.shift (-1) 0 M))]
+    apply K.toExtensionalKanComplex.morphism_extensional
+    intro f
+    calc
+      K.reflexive.eval (K.reflexive.abstract
+          { run := fun g =>
+              interpret K.reflexive
+                (fun n => if n = 0 then g else ρ (n - 1))
+                (Term.app M (Term.var 0)) }) f =
+          interpret K.reflexive
+            (fun n => if n = 0 then f else ρ (n - 1))
+              (Term.app M (Term.var 0)) :=
+        K.abstract_eval ρ (Term.app M (Term.var 0)) f
+      _ = K.reflexive.eval (K.reflexive.reify
+            (interpret K.reflexive
+              (fun n => if n = 0 then f else ρ (n - 1)) M)) f := by
+        rfl
+      _ = K.reflexive.eval (K.reflexive.reify
+            (interpret K.reflexive
+              ρ (Term.shift (-1) 0 M))) f := by
+        rw [surface_unshift K.reflexive M ρ f hfv']
   | appL h ih =>
     simp only [interpret]
     rw [ih]
@@ -372,19 +553,22 @@ private theorem eta_sound (K : ExtensionalKanComplex) {M N : Term}
     rw [ih]
   | lam h ih =>
     simp only [interpret]
-    congr 1
-    funext f
+    apply congrArg K.reflexive.reflect
+    apply congrArg K.reflexive.abstract
+    apply body_ext
+    intro f
     exact ih (Valuation.update ρ f)
 
-/-- Every beta/eta conversion is valid in every extensional Kan-complex model. -/
+/-- Every beta/eta conversion is valid in every certified extensional
+restricted-exponential model. -/
 theorem main_result (M N : Term) (h : TH_lambda_eq M N) :
     HoTFT_eq M N := by
   intro K
   change BetaEtaConv M N at h
   have sound : ∀ {M N : Term}, BetaEtaConv M N →
-      ∀ (ρ : Valuation K.toReflexiveKanComplex),
-        interpret K.toReflexiveKanComplex ρ M =
-          interpret K.toReflexiveKanComplex ρ N := by
+      ∀ (ρ : Valuation K.reflexive),
+        interpret K.reflexive ρ M =
+          interpret K.reflexive ρ N := by
     intro M N h
     induction h with
     | refl M =>
